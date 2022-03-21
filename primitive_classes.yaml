@@ -1,0 +1,12 @@
+---
+- name: "ls"
+  description: "Load/Store primitives."
+- name: "calc"
+  description: "Arithmetic primitives."
+- name: "compare"
+  description: "Compare primitives."
+- name: "mask"
+  description: "Mask related primitives."
+- name: "io"
+  description: "Input/Output primitives."
+...

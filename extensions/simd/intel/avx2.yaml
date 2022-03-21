@@ -1,0 +1,40 @@
+---
+description: "Definition of the SIMD TargetExtension avx2."
+vendor: "intel"
+extension_name: "avx2"
+#todo: these are not all lscpu flags but a sample
+lscpu_flags: ["avx", "avx2"]
+includes: ['"immintrin.h"']
+simdT_name: "avx2"
+simdT_default_size_in_bits: 256
+#i have no clue why vector_size has to be 8 instead of 64... since g++ defines __m512i as typedef long long __m512i __attribute__ ((__vector_size__ (64), __may_alias__));
+simdT_register_type_attributes: |-
+   __attribute__ ((
+               __vector_size__ (
+                  VectorSizeInBits/sizeof(
+                     TVL_DEP_TYPE(
+                        (std::is_integral_v< BaseType >),
+                        long long,
+                        TVL_DEP_TYPE(
+                           (sizeof( BaseType ) == 4),
+                           float,
+                           double
+                        )
+                     )
+                  )
+               ), 
+               __may_alias__, 
+               __aligned__(VectorSizeInBits/sizeof(char))
+               ))
+simdT_register_type: |-
+   TVL_DEP_TYPE(
+                  (std::is_integral_v< BaseType >),
+                  long long,
+                  TVL_DEP_TYPE(
+                     (sizeof( BaseType ) == 4),
+                     float,
+                     double
+                  )
+               )
+simdT_mask_type: "register_t"
+...

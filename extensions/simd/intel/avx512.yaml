@@ -1,0 +1,73 @@
+---
+description: "Definition of the SIMD TargetExtension avx512."
+vendor: "intel"
+extension_name: "avx512"
+#todo: these are not all lscpu flags but a sample
+lscpu_flags: ["avx512f", "avx512bw", "avx512cd", "avx512dq", "avx512er", "avx512vl", "avx512vbmi", "avx512vbmi2"]
+includes: ['"immintrin.h"']
+simdT_name: "avx512"
+simdT_default_size_in_bits: 512
+#i have no clue why vector_size has to be 8 instead of 64... since g++ defines __m512i as typedef long long __m512i __attribute__ ((__vector_size__ (64), __may_alias__));
+simdT_register_type_attributes: |-
+   __attribute__ ((
+               __vector_size__ (
+                  VectorSizeInBits/sizeof(
+                     TVL_DEP_TYPE(
+                        (std::is_integral_v< BaseType >),
+                        long long,
+                        TVL_DEP_TYPE(
+                           (sizeof( BaseType ) == 4),
+                           float,
+                           double
+                        )
+                     )
+                  )
+               ), 
+               __may_alias__, 
+               __aligned__(VectorSizeInBits/sizeof(char))
+               ))
+simdT_register_type: |-
+   TVL_DEP_TYPE(
+                  (std::is_integral_v< BaseType >),
+                  long long,
+                  TVL_DEP_TYPE(
+                     (sizeof( BaseType ) == 4),
+                     float,
+                     double
+                  )
+               )
+simdT_mask_type: |-
+   TVL_DEP_TYPE(
+               ( VectorSizeInBits == 512 ),
+               TVL_DEP_TYPE(
+                  ( sizeof( register_t ) / sizeof( BaseType ) ) == 64,
+                  __mmask64,
+                  TVL_DEP_TYPE(
+                     ( sizeof( register_t ) / sizeof( BaseType ) ) == 32,
+                     __mmask32,
+                     TVL_DEP_TYPE(
+                        ( sizeof( register_t ) / sizeof( BaseType ) ) == 16,
+                        __mmask16,
+                        __mmask8
+                     )
+                  )
+               ),
+               TVL_DEP_TYPE(
+                  ( VectorSizeInBits == 256 ),
+                  TVL_DEP_TYPE(
+                     ( sizeof( register_t ) / sizeof( BaseType ) ) == 32,
+                     __mmask32,
+                     TVL_DEP_TYPE(
+                        ( sizeof( register_t ) / sizeof( BaseType ) ) == 16,
+                        __mmask16,
+                        __mmask8
+                     )
+                  ),
+                  TVL_DEP_TYPE(
+                     ( sizeof( register_t ) / sizeof( BaseType ) ) == 16,
+                     __mmask16,
+                     __mmask8
+                  )
+               )
+            )
+...

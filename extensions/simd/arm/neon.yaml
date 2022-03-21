@@ -1,0 +1,21 @@
+---
+description: "Definition of the SIMD TargetExtension neon."
+vendor: "arm"
+extension_name: "neon"
+lscpu_flags: ["neon"]
+includes: ['<arm_neon.h>']
+simdT_name: "neon"
+simdT_default_size_in_bits: 128
+simdT_register_type: |-
+   TVL_DEP_TYPE(
+                  (std::is_integral_v< BaseType >),
+                  int64x2_t,
+                  TVL_DEP_TYPE(
+                     (sizeof( BaseType ) == 4),
+                     float32x4_t,
+                     float64x2_t
+                  )
+               )
+simdT_mask_type: "uint64x2_t"
+note: "mask type is wrong."
+...

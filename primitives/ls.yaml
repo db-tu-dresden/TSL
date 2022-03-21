@@ -1,0 +1,141 @@
+---
+primitive_name: "load"
+brief_description: "Loads data from aligned memory into a vector register."
+parameters:
+   - ctype: "typename Vec::base_type const *"
+     name: "memory"
+     description: "Aligned memory which should be transferred into a vector register."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing the loaded data."
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: "T"
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_load_si512( reinterpret_cast< void const * >( memory ) );"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: "int64_t"
+     lscpu_flags: [ 'avx' ]
+     implementation: "return _mm256_load_si256( reinterpret_cast< __m256i const * >( memory ) );"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: "int64_t"
+     lscpu_flags: [ 'sse2' ]
+     implementation: "return _mm_load_si128( reinterpret_cast< __m128i const * >( memory ) );"
+#ARM - NEON
+   - target_extension: "neon"
+     ctype: "int64_t"
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vld1q_s64( memory );"
+...
+---
+primitive_name: "loadu"
+brief_description: "Loads data from (un)aligned memory into a vector register."
+parameters:
+   - ctype: "typename Vec::base_type const *"
+     name: "memory"
+     description: "(Un)aligned memory which should be transferred into a vector register."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing the loaded data."
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: "int64_t"
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_loadu_si512( reinterpret_cast< void const * >( memory ) );"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: "int64_t"
+     lscpu_flags: [ 'avx' ]
+     implementation: "return _mm256_loadu_si256( reinterpret_cast< __m256i const * >( memory ) );"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: "int64_t"
+     lscpu_flags: [ 'sse2' ]
+     implementation: "return _mm_loadu_si128( reinterpret_cast< __m128i const * >( memory ) );"
+#ARM - NEON
+   - target_extension: "neon"
+     ctype: "int64_t"
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vld1q_s64( memory );"
+...
+---
+primitive_name: "set1"
+brief_description: "Broadcasts a single value into all lanes of a vector register."
+parameters:
+   - ctype: "typename Vec::base_type"
+     name: "value"
+     description: "Value which should be broadcasted."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing the same value in all lanes."
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: "int64_t"
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_set1_epi64( value );"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: "int64_t"
+     lscpu_flags: [ 'avx' ]
+     implementation: "return _mm256_set1_epi64x( value );"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: "int64_t"
+     lscpu_flags: [ 'sse2' ]
+     implementation: "return _mm_set1_epi64x( value );"
+#ARM - NEON
+   - target_extension: "neon"
+     ctype: "int64_t"
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vdupq_n_s64( value );"
+...
+---
+primitive_name: "gather"
+brief_description: "Transfers data from arbitrary locations into a vector register."
+parameters:
+   - ctype: "typename Vec::register_type"
+     name: "source"
+     description: "Vector register containing values which should be preserved depending on the mask (if mask[i] == 0)."
+   - ctype: "typename Vec::base_type const *"
+     name: "memory"
+     description: "(Start)pointer of the memory (which is used as base for address calculation)."
+   - ctype: "typename Vec::register_type"
+     name: "index"
+     description: "Offsets (in base_type granularity) relative to the start pointer."
+   - ctype: "typename Vec::mask_type"
+     name: "mask"
+     description: "Mask indicating which lanes should be gathered."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing gathered data."
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: "int64_t"
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_mask_i64gather_epi64( source, mask, index, reinterpret_cast< void const * >( memory ), 8 );"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: "int64_t"
+     lscpu_flags: [ 'AVX2' ]
+     implementation: "return _mm256_mask_i64gather_epi64( source, reinterpret_cast< long long int const * >( memory ), index, mask, 8 );"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: "int64_t"
+     lscpu_flags: [ 'sse2' ]
+     implementation: "return _mm_set_epi64x( ( mask[ 1 ] == 0 ) ? source[ 1 ] : memory[ index[ 1 ] ], ( mask[ 0 ] == 0 ) ? source[ 0 ] : memory[ index[ 0 ] ] );"
+     is_native: False
+#ARM - NEON
+   - target_extension: "neon"
+     ctype: "int64_t"
+     lscpu_flags: [ 'neon' ]
+     is_native: False
+     implementation: >
+         auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : memory[ index[ 0 ] ] );
+                     return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : memory[ index[ 1 ] ] ), tmp, 1 );
+...

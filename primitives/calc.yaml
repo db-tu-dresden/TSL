@@ -1,0 +1,25 @@
+---
+primitive_name: "add"
+brief_description: "Adds two vector registers."
+includes: ['"immintrin.h"']
+parameters:
+   - ctype: "typename Vec::register_type"
+     name: "vec_a"
+     description: "First vector."
+   - ctype: "typename Vec::register_type"
+     name: "vec_b"
+     description: "Second vector."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing result of the addition."
+definitions:
+   - target_extension: "avx512"
+     ctype: "uint64_t"
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_add_epi64(vec_a, vec_b);"
+     is_native: False
+   - target_extension: "avx512"
+     ctype: "uint32_t"
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_add_epi32(vec_a, vec_b);"
+...
