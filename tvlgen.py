@@ -53,7 +53,7 @@ if __name__ == '__main__':
         Path(args.configpath).joinpath("data/templates"),
         Path(args.configpath).joinpath("data/tvl_generator_schema.yaml"),
         Path(args.datapath),
-        Path("static_files")
+        Path(__file__).resolve().parent.joinpath("static_files")
     )
     generator.import_data()
     generator.create_generated_files(args.targets)
