@@ -1,0 +1,43 @@
+---
+file_description: "TODO."
+tvl_include_guard: "TUD_D2RG_TVL_STATIC_SIMD_SIMD_TYPE_CONCEPTS_HPP"
+includes:
+   - '<type_traits>'
+   - '<concepts>'
+   - '"../utils/type_concepts.hpp"'
+implementations:
+   - >
+      template< typename T, typename U >
+         concept TargetExtension = Arithmetic< U > && requires {
+            typename T::default_size_in_bits;
+            typename T:: template types< U >;
+            typename T:: template types< U >::register_t;
+            typename T:: template types< U >::mask_t;
+         };
+         template< typename T >
+         concept VectorProcessingStyle = requires {
+            typename T::base_type;
+            typename T::target_extension;
+            typename T::register_type;
+            typename T::mask_type;
+            { T::vector_size_b() } -> std::same_as< std::size_t >;
+            { T::vector_size_B() } -> std::same_as< std::size_t >;
+            { T::vector_element_count() } -> std::same_as< std::size_t >;
+            { T::vector_alignment() } -> std::same_as< std::size_t >;
+            { T::vector_mask_ratio() } -> std::same_as< std::size_t >;
+            { T::mask_shift() } -> std::same_as< std::size_t >;
+         } &&
+            Arithmetic< typename T::base_type > &&
+            TargetExtension< typename T::target_extension, typename T::base_type > &&
+            ( T::vector_size_b() > 0 ) &&
+            ( T::vector_size_B() > 0 ) &&
+            ( T::vector_element_count() > 0 ) &&
+            ( T::vector_alignment() > 0 ) &&
+            ( T::vector_mask_ratio() > 0 ) &&
+            ( T::mask_shift() > 0 );
+
+         struct native{};
+         struct workaround{};
+         template< class T >
+         concept ImplementationDegreeOfFreedom = std::is_same_v< T, native > || std::is_same_v< T, workaround >;
+...

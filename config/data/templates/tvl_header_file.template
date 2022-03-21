@@ -1,0 +1,16 @@
+{{ tvl_license }}
+{{ tvl_file_doxygen }}
+#ifndef {{ tvl_include_guard }}
+#define {{ tvl_include_guard }}
+
+{% for include in includes -%}
+#include {{ include }}
+{% endfor -%}
+{% if codes %}
+namespace {{ tvl_namespace }} {
+   {%- for code in codes %}
+   {{ code }}
+   {% endfor %}
+} // end of namespace {{ tvl_namespace }}
+{% endif %}
+#endif //{{ tvl_include_guard }}

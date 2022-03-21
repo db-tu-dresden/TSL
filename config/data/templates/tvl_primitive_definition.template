@@ -1,0 +1,48 @@
+{%- macro abort(error) %}
+    {{ None['[ERROR] ' ~ error][0] }}
+{%- endmacro %}
+{%- if vector_length_agnostic and vector_length_bits != 0 %}
+{{ abort("A specialization can be either vector length agnostig or have a vector-length-dependent specialization.") }}
+{%- endif %}
+{%- if vector_length_agnostic %}
+{%- set SIMD_TYPE_VECTOR_LENGTH = ', VectorSize' %}
+{%- elif vector_length_bits != 0 %}
+{%- set SIMD_TYPE_VECTOR_LENGTH = ', {{ vector_length_bits }}' %}
+{%- else %}
+{%- set SIMD_TYPE_VECTOR_LENGTH = '' %}
+{%- endif %}
+{%- if ctype == 'T' %}
+{%- set TEMPLATE_CTYPE = 'typename T, ' %}
+{%- else %}
+{%- set TEMPLATE_CTYPE = '' %}
+{%- endif %}
+{#- Every implementation is in the (nested) namespace "details" -#}
+namespace {{ tvl_implementation_namespace }} {
+      template< {{ TEMPLATE_CTYPE }}{{ 'std::size_t VectorSize,' if vector_length_agnostic else '' }} ImplementationDegreeOfFreedom {{ idof_name }} >
+   {#- If the vector_length_bits is specified in the yaml file, a specialization is generated. #}
+      struct {{ primitive_name }}_impl< simd< {{ ctype }}, {{ target_extension }}{{ SIMD_TYPE_VECTOR_LENGTH }} >, {{ idof_name }} > {
+         using {{ vector_name }} = simd< {{ ctype }}, {{ target_extension }} {{ ', {{ vector_length_bits }}' if vector_length_bits != 0 else '' }} >;
+         static constexpr bool native_supported() {
+   {#- If there is hardware support this function returns true, false otherwise. #}
+            return {{ 'true;' if is_native else 'false;' }}
+         }
+   {{ tvl_function_doxygen }}
+   {#- If the primitive returns something, the caller has to capture the result. #}
+         {{ '[[nodiscard]] ' if returns['ctype'] != 'void' else ''}}
+   {#- If there is no hardware support we generate a warning. -#}
+         {{ '' if is_native else "TVL_NO_NATIVE_SUPPORT_WARNING" }}
+   {#- If force_inline is set to True, we use TVL_FORCE_INLINE. #}
+         {{ 'TVL_FORCE_INLINE ' if force_inline else '' -}}
+         static {{ returns['ctype'] }} apply(
+   {#- Iterate over all parameters and write them out. #}
+            {%- for param in parameters %}
+            {{ param['ctype'] }} {{ param['attributes'] }} {{ param['name'] }}{{ ', ' if not loop.last else '' }}
+            {%- endfor %}
+         ) {
+            {%- if not is_native %}
+            static_assert( !std::is_same_v< {{ idof_name }}, native >, "The primitive {{ primitive_name }} is not supported by your hardware natively while it is forced by using native" );
+            {% endif %}
+            {{ implementation }}
+         }
+      };
+   } // end of namespace {{ tvl_implementation_namespace }} for template specialization of {{ primitive_name }}_impl for {{ target_extension }} using {{ ctype }}.

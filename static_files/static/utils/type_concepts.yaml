@@ -1,0 +1,13 @@
+---
+file_description: "TODO."
+tvl_include_guard: "TUD_D2RG_TVL_STATIC_UTILS_TYPE_CONCEPTS_HPP"
+includes:
+   - '"type_helper.hpp"'
+implementations:
+   - >
+      template< typename T >
+         concept Arithmetic = std::is_arithmetic_v< T >;
+
+         template< typename T >
+         concept Tuple = is_tuple< T >::value;
+...

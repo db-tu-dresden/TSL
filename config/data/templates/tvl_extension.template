@@ -1,0 +1,10 @@
+struct {{ simdT_name }} {
+      using default_size_in_bits = std::integral_constant< std::size_t, {{ simdT_default_size_in_bits }} >;
+      template< Arithmetic BaseType, std::size_t VectorSizeInBits = default_size_in_bits::value >
+      struct types {
+         using register_t {{ simdT_register_type_attributes }} =
+            {{ simdT_register_type }};
+         using mask_t =
+            {{ simdT_mask_type }};
+      };
+   };

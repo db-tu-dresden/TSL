@@ -1,0 +1,199 @@
+---
+includes: &includes_schema
+   type: "list"
+   default: []
+   entry_type: "str"
+   brief: "A list of includes which are required."
+
+extension:
+   required:
+      vendor:
+         type: "str"
+         brief: "Vendor Name."
+         example: "'intel'"
+      extension_name:
+         type: "str"
+         brief: "Extension Name (used as filename)."
+         example: "'avx512'"
+      lscpu_flags: &lscpu_flags_schema
+         type: "list"
+         entry_type: "str"
+         brief: "List of extension specific flags, exposed by using lscpu."
+         example: "[ 'avx512cd', 'avx512f' ]"
+      simdT_name:
+         type: "str"
+         brief: "Extension Name which will be used inside the TVL."
+         example: "'avx512'"
+      simdT_default_size_in_bits:
+         type: "int"
+         brief: "Default size of a vector register for the specific extension in bits."
+         example: 512
+      simdT_register_type:
+         type: "str"
+         brief: "Vector register type, depending on the base type."
+         example: "BaseType"
+      simdT_mask_type:
+         type: "str"
+         brief: "Mask type, depending on the base type."
+   optional:
+      simdT_register_type_attributes:
+         type: "str"
+         brief: "Additional attributes of vector type."
+         example: "__attribute__((vector_size(64), __may_alias_, _aligned_(64)))"
+         default: ""
+      description:
+         type: "str"
+         brief: "A description of the SIMD extension which is used for doxygen generation."
+         default: "todo."
+      includes: *includes_schema
+
+return: &return_schema
+   required:
+      ctype:
+         type: "str"
+         brief: "TVL type of the parameter with all cvref qualifiers."
+         example: "Vec::vector_type const &"
+   optional:
+      description:
+         type: "str"
+         brief: "A short description of the parameter."
+         default: "todo."
+
+parameter: &parameter_schema
+   required:
+      ctype:
+         type: "str"
+         brief: "TVL type of the parameter with all cvref qualifiers."
+         example: "Vec::vector_type const &"
+      name:
+         type: "str"
+         brief: "Name of the parameter."
+   optional:
+      attributes:
+         type: "str"
+         brief: "Parameter attributes."
+         example: "__restrict__"
+         default: ""
+      description:
+         type: "str"
+         brief: "A short description of the parameter."
+         default: "todo."
+
+primitive_specialization_requirements: &definition_requirements_schema
+   target_extension:
+      type: "str"
+      brief: "The TVL extension for which this definition is a specialization."
+   ctype:
+      type: "str"
+      brief: "The C/C++ datatype for which this definition is a specialization. If ctype == 'T', the specialization is base type agnostic."
+   lscpu_flags: *lscpu_flags_schema
+
+primitive_specialization_optionals: &definition_optionals_schema
+   is_native:
+      type: "bool"
+      default: True
+      brief: "A flag indicating whether the definition is using a 1-to-1 mapping (True) or whether it is some kind of a workaround (False)."
+   vector_length_bits:
+      type: "int"
+      default: 0
+      brief: "The size of a vector register for the specific extension in bits. (default: 0 indicates that the default amount of bits - defined for the extension - will be used)."
+   vector_length_agnostic:
+      type: "bool"
+      default: False
+      brief: "Indicates, whether a Primitive specialization is agnostic to the actual vector length (default: False)."
+   includes: *includes_schema
+
+primitive_definition: &definition_schema
+   required:
+      <<: *definition_requirements_schema
+      implementation:
+         type: "str"
+         brief: "The actual implementation for this definition."
+   optional: *definition_optionals_schema
+#
+#primitive_definition_template: &definition_template_schema
+#   required:
+#      template_data:
+#         type: "list"
+#         entry_type:
+#            <<: *definition_requirements_schema
+#            <<: *definition_optionals_schema
+#         brief: "A list of dictionaries containing the data which is used for the jinja implementation part"
+#      implementation:
+#         type: "str"
+#         brief: "The actual implementation for this definition."
+#
+primitive:
+   required:
+      primitive_name:
+         type: "str"
+         brief: "Name of the primitive."
+         example: "load"
+   optional:
+      tvl_implementation_namespace:
+         type: "str"
+         default: "details"
+         brief: "Namespace for template specializations."
+      brief_description:
+         type: "str"
+         default: "todo."
+         brief: "Brief description of the primitive."
+      detailed_description:
+         type: "str"
+         default: "todo."
+         brief: "Detailed description of the primitive."
+      parameters:
+         type: "list"
+         default: []
+         entry_type: *parameter_schema
+         brief: "A list of necessary parameters for the primitive."
+         example: "[{ctype: 'Vec::vector_type const &', name: 'a', description: 'first summand'}, {ctype: 'Vec::vector_type const &', name: 'b', description: 'second summand'}]"
+      vector_name:
+         type: "str"
+         default: "Vec"
+         brief: "The template class name which is referenced from the parameters and within the code."
+      idof_name:
+         type: "str"
+         default: "Idof"
+         brief: "The template class name which is used to care about the implementation degree of freedom."
+      force_inline:
+         type: "bool"
+         default: True
+         brief: "A flag indicating whether the primitive should be marked as ((always_inline)). (default = True)"
+      returns:
+         type: "dict"
+         entry_type: *return_schema
+         default: {"ctype": "void", "description": ""}
+         brief: "The return type of the primitive. (default = void)"
+      includes: *includes_schema
+      definitions:
+         type: "list"
+         default: [ ]
+         entry_type: *definition_schema
+         brief: "A list of definitions for a specific primitive."
+#      definitions_templates:
+#         type: "list"
+#         default: [ ]
+#         entry_type: *definition_template_schema
+#         brief: "A list of templated (jinja2) definitions for a specific primitive."
+
+primitive_class: &primitive_class_schema
+   required:
+      name:
+         type: "str"
+         brief: "Name of the primitive class."
+      description:
+         type: "str"
+         brief: "A description of the primitive class."
+      file:
+         type: "str"
+         brief: "A file, containing all primitives"
+primitive_classes:
+   optional:
+      classes:
+         type: "list"
+         default: []
+         entry_type: *primitive_class_schema
+         brief: "A list containing the primitive classes."
+
+...

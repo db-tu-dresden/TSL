@@ -1,0 +1,13 @@
+---
+file_description: "TODO."
+tvl_include_guard: "TUD_D2RG_TVL_STATIC_SIMD_SIMD_PRIMITIVES_CONCEPTS_HPP"
+includes:
+   - '"../utils/type_concepts.hpp"'
+implementations:
+   - >
+      template< typename T >
+         concept SimdPrimitiveImpl = requires {
+            { T::native_supported() } -> std::same_as< bool >;
+         } &&
+            ( T::native_supported() || (! T::native_supported() ) );
+...

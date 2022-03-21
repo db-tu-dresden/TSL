@@ -1,0 +1,26 @@
+{# Every implementation is in the (nested) namespace "details" -#}
+namespace {{ tvl_implementation_namespace }} {
+      {#- This is the forward declaration of the actual primitive implementation struct #}
+      template< VectorProcessingStyle {{ vector_name }}, ImplementationDegreeOfFreedom {{ idof_name }} >
+      struct {{ primitive_name }}_impl{};
+   } // end namespace {{ tvl_implementation_namespace }}
+   {{ tvl_function_doxygen }}
+   {#- This is the templated free function for the primitive which is called by the user of TVL. #}
+   template< VectorProcessingStyle {{ vector_name }}, ImplementationDegreeOfFreedom {{ idof_name }} = workaround >
+   {#- If the primitive returns something, the caller has to capture the result. #}
+   {{ '[[nodiscard]] ' if return_type != 'void' else '' }}
+   {#- If force_inline is set to True, we use TVL_FORCE_INLINE. #}
+   {{ 'TVL_FORCE_INLINE ' if force_inline else '' -}}
+   {{ returns['ctype'] }} {{ primitive_name }}(
+   {#- Iterate over all parameters and write them out. #}
+      {%- for param in parameters %}
+      {{ param['ctype'] }} {{ param['attributes'] }} {{ param['name'] }}{{ ', ' if not loop.last else '' }}
+      {%- endfor %}
+   ) {
+   {#- If the function primitive implementation returns something we have to return it, otherwise we just call it. #}
+      {{ 'return ' if returns['ctype'] != 'void' else '' -}}
+   {#- Call the actual implementation with all parameters. -#}
+      {{ tvl_implementation_namespace }}::{{ primitive_name }}_impl< {{ vector_name }}, {{ idof_name }} >::apply(
+         {% for param in parameters %}{{ param['name'] }}{{ ', ' if not loop.last else '' }}{% endfor %}
+      );
+   }
