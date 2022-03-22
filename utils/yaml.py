@@ -8,7 +8,7 @@ from utils.file import BadSuffixError, BadFormatError
 from utils.log import LogInit, log
 from utils.singleton import Singleton
 
-YamlNestedDataType = NewType("YamlNestedDataType", Union[Dict[str, str | List[str]], dict[str, list | str]])
+YamlNestedDataType = NewType("YamlNestedDataType", Union[Dict[str, Union[str, List[str]]], Dict[str, Union[list, str]]])
 YamlDataType = NewType("YamlDataType", Union[YamlNestedDataType, Dict[str, YamlNestedDataType], List[YamlNestedDataType]])
 
 
@@ -58,6 +58,3 @@ class YamlLoader(metaclass=Singleton):
         if not yaml_documents:
             raise BadFormatError(f"Could not find documents in yaml file.", {"filename": yaml_file_path})
         return yaml_documents
-
-
-
