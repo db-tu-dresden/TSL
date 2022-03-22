@@ -15,7 +15,7 @@ jobs:
       with:
         repository: db-tu-dresden/TVL.git
         ref: main
-        token: '${{ secrets.GITHUB_TOKEN }}'
+        token: '${{ secrets.TVL_AT }}'
         submodules: recursive
     - name: Setup Git Creds
       run: |
@@ -77,12 +77,12 @@ jobs:
         git switch main
         python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data
         git add -A
-        git commit -m "updated tvl sources, generated with db-tu-dresden/TVLGenerator using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
+        git commit -m "updated tvl sources, generated with db-tu-dresden/TVLGen using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
         git push
 #    - name: Push changes to general code
 #      uses: ad-m/github-push-action@v0.6.0
 #      with:
-#        github_token: ${{ secrets.GITHUB_TOKEN }}
+#        github_token: ${{ secrets.TVL_AT }}
 #        branch: main
     - name: Generate SSE code
       run: |
@@ -92,13 +92,13 @@ jobs:
         git switch sse
         python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data --targets sse sse2 ssse3 sse4_1 sse4_2
         git add -A
-        git commit -m "updated SSE sources, generated with db-tu-dresden/TVLGenerator using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
+        git commit -m "updated SSE sources, generated with db-tu-dresden/TVLGen using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
         git push
         git switch main
 #    - name: Push changes to SSE code
 #      uses: ad-m/github-push-action@v0.6.0
 #      with:
-#        github_token: ${{ secrets.GITHUB_TOKEN }}
+#        github_token: ${{ secrets.TVL_AT }}
 #        branch: sse
     - name: Generate AVX2 code
       run: |
@@ -108,13 +108,13 @@ jobs:
         git switch avx2
         python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data --targets sse sse2 ssse3 sse4_1 sse4_2 avx avx2
         git add -A
-        git commit -m "updated SSE+AVX(2) sources, generated with db-tu-dresden/TVLGenerator using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
+        git commit -m "updated SSE+AVX(2) sources, generated with db-tu-dresden/TVLGen using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
         git push
         git switch main
 #    - name: Push changes to AVX2 code
 #      uses: ad-m/github-push-action@v0.6.0
 #      with:
-#        github_token: ${{ secrets.GITHUB_TOKEN }}
+#        github_token: ${{ secrets.TVL_AT }}
 #        branch: avx2
     - name: Generate NEON code
       run: |
@@ -124,13 +124,13 @@ jobs:
         git switch neon
         python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data --targets neon
         git add -A
-        git commit -m "updated Neon sources, generated with db-tu-dresden/TVLGenerator using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
+        git commit -m "updated Neon sources, generated with db-tu-dresden/TVLGen using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
         git push
         git switch main
 #    - name: Push changes to AVX2 code
 #      uses: ad-m/github-push-action@v0.6.0
 #      with:
-#        github_token: ${{ secrets.GITHUB_TOKEN }}
+#        github_token: ${{ secrets.TVL_AT }}
 #        branch: neon
 #	- name: Push all changes
 #      run: |
