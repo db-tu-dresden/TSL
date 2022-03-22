@@ -13,14 +13,14 @@ jobs:
     - name: Checkout TVL repository (recursive)
       uses: actions/checkout@v3
       with:
-        repository: MorphStore/TVL.git
+        repository: db-tu-dresden/TVL.git
         ref: main
         token: '${{ secrets.GITHUB_TOKEN }}'
         submodules: recursive
     - name: Setup Git Creds
       run: |
-        git config --global user.email "action@github.com"
-        git config --global user.name "GitHub Action"
+        git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+        git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
     - name: Update TVL generator repository
       run: |
         set -x
@@ -77,7 +77,7 @@ jobs:
         git switch main
         python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data
         git add -A
-        git commit -m "updated tvl sources, generated with MorphStore/TVLGenerator using data from MorphStore/TVLPrimitiveData @${GITHUB_SHA}" -a
+        git commit -m "updated tvl sources, generated with db-tu-dresden/TVLGenerator using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
         git push
 #    - name: Push changes to general code
 #      uses: ad-m/github-push-action@v0.6.0
@@ -92,7 +92,7 @@ jobs:
         git switch sse
         python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data --targets sse sse2 ssse3 sse4_1 sse4_2
         git add -A
-        git commit -m "updated SSE sources, generated with MorphStore/TVLGenerator using data from MorphStore/TVLPrimitiveData @${GITHUB_SHA}" -a
+        git commit -m "updated SSE sources, generated with db-tu-dresden/TVLGenerator using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
         git push
         git switch main
 #    - name: Push changes to SSE code
@@ -108,7 +108,7 @@ jobs:
         git switch avx2
         python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data --targets sse sse2 ssse3 sse4_1 sse4_2 avx avx2
         git add -A
-        git commit -m "updated SSE+AVX(2) sources, generated with MorphStore/TVLGenerator using data from MorphStore/TVLPrimitiveData @${GITHUB_SHA}" -a
+        git commit -m "updated SSE+AVX(2) sources, generated with db-tu-dresden/TVLGenerator using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
         git push
         git switch main
 #    - name: Push changes to AVX2 code
@@ -124,7 +124,7 @@ jobs:
         git switch neon
         python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data --targets neon
         git add -A
-        git commit -m "updated Neon sources, generated with MorphStore/TVLGenerator using data from MorphStore/TVLPrimitiveData @${GITHUB_SHA}" -a
+        git commit -m "updated Neon sources, generated with db-tu-dresden/TVLGenerator using data from db-tu-dresden/TVLPrimitiveData @${GITHUB_SHA}" -a
         git push
         git switch main
 #    - name: Push changes to AVX2 code
