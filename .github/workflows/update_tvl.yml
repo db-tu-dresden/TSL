@@ -15,7 +15,7 @@ jobs:
       with:
         repository: db-tu-dresden/TVL.git
         ref: main
-        token: '${{ secrets.TVL_AT }}'
+        token: '${{ secrets.DHTVL_AT }}'
         submodules: recursive
     - name: Setup Git Creds
       run: |
@@ -82,7 +82,7 @@ jobs:
 #    - name: Push changes to general code
 #      uses: ad-m/github-push-action@v0.6.0
 #      with:
-#        github_token: ${{ secrets.TVL_AT }}
+#        github_token: ${{ secrets.DHTVL_AT }}
 #        branch: main
     - name: Generate SSE code
       run: |
@@ -98,7 +98,7 @@ jobs:
 #    - name: Push changes to SSE code
 #      uses: ad-m/github-push-action@v0.6.0
 #      with:
-#        github_token: ${{ secrets.TVL_AT }}
+#        github_token: ${{ secrets.DHTVL_AT }}
 #        branch: sse
     - name: Generate AVX2 code
       run: |
@@ -114,7 +114,7 @@ jobs:
 #    - name: Push changes to AVX2 code
 #      uses: ad-m/github-push-action@v0.6.0
 #      with:
-#        github_token: ${{ secrets.TVL_AT }}
+#        github_token: ${{ secrets.DHTVL_AT }}
 #        branch: avx2
     - name: Generate NEON code
       run: |
@@ -130,7 +130,7 @@ jobs:
 #    - name: Push changes to AVX2 code
 #      uses: ad-m/github-push-action@v0.6.0
 #      with:
-#        github_token: ${{ secrets.TVL_AT }}
+#        github_token: ${{ secrets.DHTVL_AT }}
 #        branch: neon
 #	- name: Push all changes
 #      run: |
