@@ -1,0 +1,104 @@
+name: Update TVL Submodule
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout TVL repository (recursive)
+      uses: actions/checkout@v3
+      with:
+        repository: db-tu-dresden/TVL.git
+        ref: main
+        token: '${{ secrets.DHTVL_AT }}'
+        submodules: recursive
+    - name: Setup Git Creds
+      run: |
+        git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+        git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+    - name: Update TVL repository (main branch)
+      run: |
+        set -x
+        pwd
+        ls -halt
+        git submodule foreach -q --recursive 'branch="$(git config -f $toplevel/.gitmodules submodule.$name.branch)"; git switch $branch'
+        git add generator
+        git commit -m "Updated submodule generator"
+    - name: Update TVL repository (hardware branches)
+      run: | 
+        #!/bin/bash
+        set -x
+        git fetch --all
+        git pull --all
+        git switch main
+        for remote_branch in $(git for-each-ref --format='%(refname)' refs/remotes/origin/); do
+           branch=$(echo $remote_branch | sed 's/refs\/remotes\/origin\///g')
+           if [[ "$branch" != *(main|HEAD) ]]; then
+              echo "In branch: $branch"
+              git switch $branch
+              git merge --strategy ours --no-commit --allow-unrelated-histories main
+              git reset -- lib
+              git commit -am "Updated branch $branch"
+              git push
+              git switch main
+           fi
+        done
+        git switch main
+    - name: Set up Python 3.10.2
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.10.2"
+    - name: Install generator dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f ./generator/requirements.txt ]; then pip install -r ./generator/requirements.txt; fi
+    - name: Generate complete code
+      run: |
+        #!/bin/bash
+        git fetch --all
+        git pull --all
+        git switch main
+        python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data
+        git add -A
+        git commit -m "updated tvl sources, generated with db-tu-dresden/TVLGen@${GITHUB_SHA}" -a
+        git push
+    - name: Generate SSE code
+      run: |
+        #!/bin/bash
+        git fetch --all
+        git pull --all
+        git switch sse
+        python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data --targets sse sse2 ssse3 sse4_1 sse4_2
+        git add -A
+        git commit -m "updated SSE sources, generated with db-tu-dresden/TVLGen@${GITHUB_SHA}" -a
+        git push
+        git switch main
+    - name: Generate AVX2 code
+      run: |
+        #!/bin/bash
+        git fetch --all
+        git pull --all
+        git switch avx2
+        python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data --targets sse sse2 ssse3 sse4_1 sse4_2 avx avx2
+        git add -A
+        git commit -m "updated SSE+AVX(2) sources, generated with db-tu-dresden/TVLGen@${GITHUB_SHA}" -a
+        git push
+        git switch main
+    - name: Generate NEON code
+      run: |
+        #!/bin/bash
+        git fetch --all
+        git pull --all
+        git switch neon
+        python generator/tvlgen.py -o ./lib -c generator/config -d generator/primitive_data --targets neon
+        git add -A
+        git commit -m "updated Neon sources, generated with db-tu-dresden/TVLGen@${GITHUB_SHA}" -a
+        git push
+        git switch main
