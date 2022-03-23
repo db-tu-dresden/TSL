@@ -2,9 +2,10 @@ import functools
 import inspect
 import logging
 import types
+from typing import Union
 
 
-def get_logging_instance_from_self(*args) -> logging.Logger | None:
+def get_logging_instance_from_self(*args) -> Union[logging.Logger, None]:
     first_args = next(iter(args), None)  # capture first arg to check for `self`
     if first_args is None:
         return None
@@ -132,5 +133,3 @@ def log(_func=None, successLevel=logging.DEBUG):
         return decorator_log
     else:
         return decorator_log(_func)
-
-

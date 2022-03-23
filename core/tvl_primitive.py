@@ -2,7 +2,7 @@ from __future__ import annotations
 import copy
 import logging
 from pathlib import Path
-from typing import List, Generator, Set, Tuple, Dict
+from typing import List, Generator, Set, Tuple, Dict, Union
 
 from core.tvl_config import TVLGeneratorConfig
 from utils.log import LogInit, log
@@ -143,7 +143,7 @@ class TVLPrimitive:
             for definition in data_dict["definitions"]:
                 self.__definitions.add_definition(
                     TVLPrimitiveDefinition(
-                        declaration_dict | definition
+                        {**declaration_dict, **definition}
                     )
                 )
 
