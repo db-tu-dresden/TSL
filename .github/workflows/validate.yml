@@ -1,0 +1,46 @@
+name: Validate TVL Generator
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Get branch names
+      id: branch-name
+      uses: tj-actions/branch-names@v4.9
+    - name: Checkout TVL repository (recursive)
+      uses: actions/checkout@v3
+      with:
+        repository: db-tu-dresden/TVLGen.git
+        ref: main
+        token: '${{ secrets.DHTVL_AT }}'
+    - name: Checkout TVL Primitive Data repository
+      uses: actions/checkout@v3
+      with:
+        repository: db-tu-dresden/TVLPrimitiveData.git
+        ref: ${{ github.event.pull_request.head.sha }}
+        token: '${{ secrets.DHTVL_AT }}'
+        path: primitive_data
+    - name: Setup Git Creds
+      run: |
+        git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+        git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+    - name: Set up Python 3.10.2
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.10.2"
+    - name: Install generator dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f ./requirements.txt ]; then pip install -r ./requirements.txt; fi
+    - name: Execute code generation
+      run: |
+        #!/bin/bash
+        python tvlgen.py -o ./lib -c config -d primitive_data
+#        cd - && cd primitive_data && ls -halt
+#        git status && git branch && cat .github/workflows/validate.yml
