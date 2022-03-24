@@ -58,4 +58,5 @@ simdT_mask_type: |-
                      )
                   )
                )
+intrinsic_mapping: {uint8_t: ["u", 8], uint16_t: ["u", 16], uint32_t: ["u", 32], uint64_t: ["u", 64], int8_t: ["s", 8], int16_t: ["s", 16], int32_t: ["s", 32], int64_t: ["s", 64], float: ["f", 32], double: ["f", 64]}
 ...

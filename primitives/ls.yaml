@@ -59,9 +59,8 @@ definitions:
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-     magic: {uint8_t: ["u", 8], uint16_t: ["u", 16], uint32_t: ["u", 32], uint64_t: ["u", 64], int8_t: ["s", 8], int16_t: ["s", 16], int32_t: ["s", 32], int64_t: ["s", 64], float: ["f", 32], double: ["f", 64]}
      lscpu_flags: [ 'neon' ]
-     implementation: "return vld1q_{{ magic[ctype][0] }}{{ magic[ctype][1] }}( memory );"
+     implementation: "return vld1q_{{ intrinsic_mapping[ctype][0] }}{{ intrinsic_mapping[ctype][1] }}( memory );"
 ...
 ---
 primitive_name: "set1"
@@ -92,9 +91,8 @@ definitions:
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-     magic: {uint8_t: ["u", 8], uint16_t: ["u", 16], uint32_t: ["u", 32], uint64_t: ["u", 64], int8_t: ["s", 8], int16_t: ["s", 16], int32_t: ["s", 32], int64_t: ["s", 64], float: ["f", 32], double: ["f", 64]}
      lscpu_flags: [ 'neon' ]
-     implementation: "return vdupq_n_{{ magic[ctype][0] }}{{ magic[ctype][1] }}( value );"
+     implementation: "return vdupq_n_{{ intrinsic_mapping[ctype][0] }}{{ intrinsic_mapping[ctype][1] }}( value );"
 ...
 ---
 primitive_name: "gather"

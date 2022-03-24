@@ -20,9 +20,8 @@ definitions:
      #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-     magic: {uint8_t: ["u", 8], uint16_t: ["u", 16], uint32_t: ["u", 32], uint64_t: ["u", 64], int8_t: ["s", 8], int16_t: ["s", 16], int32_t: ["s", 32], int64_t: ["s", 64], float: ["f", 32], double: ["f", 64]}
      lscpu_flags: [ 'neon' ]
-     implementation: "return vaddq_{{ magic[ctype][0] }}{{ magic[ctype][1] }}( vec_a, vec_b );"
+     implementation: "return vaddq_{{ intrinsic_mapping[ctype][0] }}{{ intrinsic_mapping[ctype][1] }}( vec_a, vec_b );"
 ...
 ---
 primitive_name: "mul"
@@ -38,12 +37,21 @@ returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing result of the multiplication."
 definitions:
-     #ARM - NEON
+#ARM - NEON
    - target_extension: "neon"
-     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-     magic: {uint8_t: ["u", 8], uint16_t: ["u", 16], uint32_t: ["u", 32], uint64_t: ["u", 64], int8_t: ["s", 8], int16_t: ["s", 16], int32_t: ["s", 32], int64_t: ["s", 64], float: ["f", 32], double: ["f", 64]}
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t", "float", "double"]
      lscpu_flags: [ 'neon' ]
-     implementation: "return vmulq_{{ magic[ctype][0] }}{{ magic[ctype][1] }}( vec_a, vec_b );"
+     implementation: "return vmulq_{{ intrinsic_mapping[ctype][0] }}{{ intrinsic_mapping[ctype][1] }}( vec_a, vec_b );"
+   - target_extension: "neon"
+     ctype: ["uint64_t", "int64_t"]
+     lscpu_flags: [ 'neon' ]
+     is_native: False
+     implementation: |
+        //Found this on stackoverflow. This seems like an overkill.
+                     const auto ac = vmovn_{{ intrinsic_mapping[ctype][0] }}64(vec_a);
+                     const auto pr = vmovn_{{ intrinsic_mapping[ctype][0] }}64(vec_b);
+                     const auto hi = vmulq_{{ intrinsic_mapping[ctype][0] }}32(vreinterpretq_{{ intrinsic_mapping[ctype][0] }}32_{{ intrinsic_mapping[ctype][0] }}64(vec_b), vrev64q_{{ intrinsic_mapping[ctype][0] }}32(vreinterpretq_{{ intrinsic_mapping[ctype][0] }}32_{{ intrinsic_mapping[ctype][0] }}64(vec_a)));
+                     return vmlal_{{ intrinsic_mapping[ctype][0] }}32(vshlq_n_{{ intrinsic_mapping[ctype][0] }}64(vpaddlq_{{ intrinsic_mapping[ctype][0] }}32(hi), 32), ac, pr);
 ...
 ---
 primitive_name: "hadd"
@@ -59,7 +67,6 @@ definitions:
      #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-     magic: {uint8_t: ["u", 8], uint16_t: ["u", 16], uint32_t: ["u", 32], uint64_t: ["u", 64], int8_t: ["s", 8], int16_t: ["s", 16], int32_t: ["s", 32], int64_t: ["s", 64], float: ["f", 32], double: ["f", 64]}
      lscpu_flags: [ 'neon' ]
-     implementation: "return vaddvq_{{ magic[ctype][0] }}{{ magic[ctype][1] }}( value );"
+     implementation: "return vaddvq_{{ intrinsic_mapping[ctype][0] }}{{ intrinsic_mapping[ctype][1] }}( value );"
 ...
