@@ -17,4 +17,49 @@ definitions:
      ext: {uint8_t: 8, uint16_t: 16, uint32_t: 32, uint64_t: 64}
      lscpu_flags: ['avx512f']
      implementation: "return _mm512_add_epi{{ ext[ctype] }}(vec_a, vec_b);"
+     #ARM - NEON
+   - target_extension: "neon"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     magic: {uint8_t: ["u", 8], uint16_t: ["u", 16], uint32_t: ["u", 32], uint64_t: ["u", 64], int8_t: ["s", 8], int16_t: ["s", 16], int32_t: ["s", 32], int64_t: ["s", 64], float: ["f", 32], double: ["f", 64]}
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vaddq_{{ magic[ctype][0] }}{{ magic[ctype][1] }}( vec_a, vec_b );"
+...
+---
+primitive_name: "mul"
+brief_description: "Multiplies two vector registers."
+parameters:
+   - ctype: "typename Vec::register_type"
+     name: "vec_a"
+     description: "First vector."
+   - ctype: "typename Vec::register_type"
+     name: "vec_b"
+     description: "Second vector."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing result of the multiplication."
+definitions:
+     #ARM - NEON
+   - target_extension: "neon"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     magic: {uint8_t: ["u", 8], uint16_t: ["u", 16], uint32_t: ["u", 32], uint64_t: ["u", 64], int8_t: ["s", 8], int16_t: ["s", 16], int32_t: ["s", 32], int64_t: ["s", 64], float: ["f", 32], double: ["f", 64]}
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vmulq_{{ magic[ctype][0] }}{{ magic[ctype][1] }}( vec_a, vec_b );"
+...
+---
+primitive_name: "hadd"
+brief_description: "Reduces the elements to a sum."
+parameters:
+   - ctype: "typename Vec::register_type"
+     name: "value"
+     description: "Input vector."
+returns:
+   ctype: "typename Vec::base_type"
+   description: "Scalar value after adding all elements in the vector."
+definitions:
+     #ARM - NEON
+   - target_extension: "neon"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     magic: {uint8_t: ["u", 8], uint16_t: ["u", 16], uint32_t: ["u", 32], uint64_t: ["u", 64], int8_t: ["s", 8], int16_t: ["s", 16], int32_t: ["s", 32], int64_t: ["s", 64], float: ["f", 32], double: ["f", 64]}
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vaddvq_{{ magic[ctype][0] }}{{ magic[ctype][1] }}( value );"
 ...
