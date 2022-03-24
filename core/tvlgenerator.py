@@ -1,3 +1,4 @@
+import copy
 import os.path
 from pathlib import Path
 from typing import List, Dict
@@ -48,8 +49,10 @@ class TVLGenerator(metaclass=Singleton):
     @log
     def create_generated_files(self, relevant_lscpu_flags: List[str] = None) -> None:
         headers_to_be_included_by_tvl_generated_hpp : List[Path] = []
+        extension_dicts: Dict[str, dict] = dict()
         for extension_file_path in self.__extension_files:
             data_dict = YamlLoader().load(extension_file_path)
+            extension_dicts[data_dict["extension_name"]] = copy.deepcopy(data_dict)
             if relevant_lscpu_flags is not None:
                 if not (set(data_dict["lscpu_flags"]) <= set(relevant_lscpu_flags)):
                     continue
@@ -94,7 +97,7 @@ class TVLGenerator(metaclass=Singleton):
                         definition_files[definition.target_extension].add_include(
                             f"\"{str(rel_path_to_decl)}\""
                         )
-                    definition_files[definition.target_extension].add_code(definition.render())
+                    definition_files[definition.target_extension].add_code(definition.render(extension_dicts[definition.target_extension]))
                     definition_files[definition.target_extension].add_includes(definition.includes)
             declaration_file.generate()
             for definition_file_key in definition_files:
