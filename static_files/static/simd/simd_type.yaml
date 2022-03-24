@@ -9,7 +9,12 @@ implementations:
    - >
       template<
             Arithmetic BaseType,
+      
+      #ifdef TVL_USE_CONCEPTS
             TargetExtension< BaseType > TargetExtensionType,
+      #else
+            class TargetExtensionType,
+      #endif
             std::size_t VectorSizeInBits = TargetExtensionType::default_size_in_bits::value
          >
          struct simd {
