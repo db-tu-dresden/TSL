@@ -84,8 +84,10 @@ primitive_specialization_requirements: &definition_requirements_schema
       type: "str"
       brief: "The TVL extension for which this definition is a specialization."
    ctype:
-      type: "str"
-      brief: "The C/C++ datatype for which this definition is a specialization. If ctype == 'T', the specialization is base type agnostic."
+      type: "list"
+      entry_type: "str"
+      brief: "List of the C/C++ datatype(s) for which this definition is a specialization. If ctype == 'T', the specialization is base type agnostic."
+      example: "['uint32_t', 'uint64_t'], ['uint64_t'], ['T']"
    lscpu_flags: *lscpu_flags_schema
 
 primitive_specialization_optionals: &definition_optionals_schema
@@ -101,6 +103,10 @@ primitive_specialization_optionals: &definition_optionals_schema
       type: "bool"
       default: False
       brief: "Indicates, whether a Primitive specialization is agnostic to the actual vector length (default: False)."
+   brief_description:
+      type: "str"
+      default: "todo."
+      brief: "Brief description of the primitive."
    includes: *includes_schema
 
 primitive_definition: &definition_schema

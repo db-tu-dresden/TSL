@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from typing import List, Generator, Set, Tuple, Dict, Union
 
+from jinja2 import Template
+
 from core.tvl_config import TVLGeneratorConfig
 from utils.log import LogInit, log
 from utils.yaml import YamlDataType
@@ -18,6 +20,10 @@ class TVLPrimitiveDefinition:
         self.__lscpu_flags : List[str] = self.__data["lscpu_flags"]
         self.__data["tvl_function_doxygen"] = TVLGeneratorConfig().documentation_template.render_function_documentation(
             self.__data)
+        implementation_template = Template(self.__data["implementation"])
+        if "_mm512_add_epi" in self.__data["implementation"]:
+            print("NOW")
+        self.__data["implementation"] = implementation_template.render(self.__data)
 
     @property
     def data(self) -> YamlDataType:
@@ -141,11 +147,14 @@ class TVLPrimitive:
         self.__definitions: TVLPrimitiveDefinitionContainer = TVLPrimitiveDefinitionContainer()
         if "definitions" in data_dict:
             for definition in data_dict["definitions"]:
-                self.__definitions.add_definition(
-                    TVLPrimitiveDefinition(
-                        {**declaration_dict, **definition}
+                types = copy.deepcopy(definition["ctype"])
+                for ctype in types:
+                    definition["ctype"] = ctype
+                    self.__definitions.add_definition(
+                        TVLPrimitiveDefinition(
+                            {**declaration_dict, **definition}
+                        )
                     )
-                )
 
         del data_dict
 

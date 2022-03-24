@@ -48,12 +48,12 @@ class Schema:
         def __init__(self, schema_dict: YamlDataType) -> None:
             if "required" in schema_dict or "optional" in schema_dict:
                 if "required" in schema_dict:
-                    self.__required_fields: Dict[Schema.SchemaNode] = {
+                    self.__required_fields: Dict[str, Schema.SchemaNode] = {
                         field: self.__class__(schema_dict["required"][field])
                         for
                         field in schema_dict["required"]}
                 if "optional" in schema_dict:
-                    self.__optional_fields: Dict[Schema.SchemaNode] = {
+                    self.__optional_fields: Dict[str, Schema.SchemaNode] = {
                         field: self.__class__(schema_dict["optional"][field])
                         for
                         field in schema_dict["optional"]}
@@ -107,7 +107,11 @@ class Schema:
                     casted_data = data
                 else:
                     try:
-                        casted_data = eval(self.__type)(data)
+                        if self.__entry_type is not None:
+                            if "list" == self.__type:
+                                casted_data = [data]
+                        else:
+                            casted_data = eval(self.__type)(data)
                     except:
                         raise Schema.TypeCastError("Cast was not possible.",
                                                    {"cast candidate": data, "target type": self.__type})
@@ -118,6 +122,7 @@ class Schema:
                         casted_data = self.__entry_type.validate(casted_data)
                     else:
                         raise Schema.UnknownTypeError("Type has to be list or dict", {"type": self.__type})
+
                 return casted_data
 
     @LogInit()
