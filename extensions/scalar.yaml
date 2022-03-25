@@ -5,7 +5,7 @@ extension_name: "scalar"
 lscpu_flags: []
 includes: []
 simdT_name: "scalar"
-simdT_default_size_in_bits: 64
+simdT_default_size_in_bits: "sizeof(BaseType)*8"
 simdT_register_type: "BaseType"
 simdT_mask_type: "bool"
 ...
