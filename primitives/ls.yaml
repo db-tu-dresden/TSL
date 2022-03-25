@@ -60,7 +60,7 @@ definitions:
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: [ 'neon' ]
-     implementation: "return vld1q_{{ intrinsic_mapping[ctype][0] }}{{ intrinsic_mapping[ctype][1] }}( memory );"
+     implementation: "return vld1q_{{ intrin_tp_full[ctype] }}( memory );"
 ...
 ---
 primitive_name: "set1"
@@ -92,7 +92,7 @@ definitions:
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: [ 'neon' ]
-     implementation: "return vdupq_n_{{ intrinsic_mapping[ctype][0] }}{{ intrinsic_mapping[ctype][1] }}( value );"
+     implementation: "return vdupq_n_{{ intrin_tp_full[ctype] }}( value );"
 ...
 ---
 primitive_name: "gather"
@@ -138,4 +138,21 @@ definitions:
      implementation: >
          auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : memory[ index[ 0 ] ] );
                      return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : memory[ index[ 1 ] ] ), tmp, 1 );
+...
+---
+primitive_name: "set"
+brief_description: "Transfers provided elements into a vector register."
+parameters:
+   - ctype: "Ts"
+     name: "args"
+     description: "Values which should be transferred."
+     is_parameter_pack: True
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector register containing the values."
+definitions:
+   - target_extension: "avx2"
+     ctype: ["uint64_t", "int64_t"]
+     lscpu_flags: ['avx2']
+     implementation: "return _mm256_set_epi64x( args... );"
 ...
