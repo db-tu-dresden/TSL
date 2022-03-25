@@ -25,9 +25,9 @@ extension:
          brief: "Extension Name which will be used inside the TVL."
          example: "'avx512'"
       simdT_default_size_in_bits:
-         type: "int"
+         type: "str"
          brief: "Default size of a vector register for the specific extension in bits."
-         example: 512
+         example: "512"
       simdT_register_type:
          type: "str"
          brief: "Vector register type, depending on the base type."
