@@ -1,0 +1,23 @@
+---
+primitive_name: "and"
+brief_description: "Binary ANDs two vector registers."
+parameters:
+   - ctype: "typename Vec::register_type"
+     name: "a"
+     description: "First vector."
+   - ctype: "typename Vec::register_type"
+     name: "b"
+     description: "Second vector."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing result of the binary AND."
+definitions:
+   - target_extension: "neon"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vandq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );"
+   - target_extension: "scalar"
+     ctype: ["T"]
+     lscpu_flags: []
+     implementation: "return vec_a & vec_b;"
+...

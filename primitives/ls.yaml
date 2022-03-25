@@ -29,6 +29,10 @@ definitions:
      ctype: "int64_t"
      lscpu_flags: [ 'neon' ]
      implementation: "return vld1q_s64( memory );"
+   - target_extension: "scalar"
+     ctype: [ "T" ]
+     lscpu_flags: [ ]
+     implementation: "return *memory;"
 ...
 ---
 primitive_name: "loadu"
@@ -61,6 +65,10 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: [ 'neon' ]
      implementation: "return vld1q_{{ intrin_tp_full[ctype] }}( memory );"
+   - target_extension: "scalar"
+     ctype: [ "T" ]
+     lscpu_flags: [ ]
+     implementation: "return *memory;"
 ...
 ---
 primitive_name: "set1"
@@ -93,6 +101,10 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: [ 'neon' ]
      implementation: "return vdupq_n_{{ intrin_tp_full[ctype] }}( value );"
+   - target_extension: "scalar"
+     ctype: [ "T" ]
+     lscpu_flags: [ ]
+     implementation: "return value;"
 ...
 ---
 primitive_name: "gather"
@@ -138,6 +150,10 @@ definitions:
      implementation: >
          auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : memory[ index[ 0 ] ] );
                      return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : memory[ index[ 1 ] ] ), tmp, 1 );
+   - target_extension: "scalar"
+     ctype: [ "T" ]
+     lscpu_flags: [ ]
+     implementation: "return (mask&1)==1 ? memory[index] : source;"
 ...
 ---
 primitive_name: "set"
