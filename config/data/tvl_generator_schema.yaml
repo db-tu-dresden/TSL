@@ -45,6 +45,37 @@ extension:
          type: "str"
          brief: "A description of the SIMD extension which is used for doxygen generation."
          default: "todo."
+      intrin_tp:
+         type: "dict"
+         entry_type:
+            required:
+               key:
+                  type: "str"
+                  brief: "Name of ctype."
+                  example: "uint8_t"
+               value:
+                  type: "list"
+                  brief: "List containing possibly multiple entries depending on type mapping and size mapping."
+                  example: "['epi', '8']"
+                  entry_type: "str"
+         brief: "If intrinsics follow a specific pattern (for instance by enconding type informations into intrinsic-names), this can be used to generate multiple primitivies."
+         example: "{uint8_t: ['u', '8'], uint16_t: ['u', '16']}. Usage: vaddq_{{ intrin_tp[ctype][0] }}{{ intrin_tp[ctype][1] }}"
+         default: "{}"
+      intrin_tp_full:
+         type: "dict"
+         entry_type:
+            required:
+               key:
+                  type: "str"
+                  brief: "Name of ctype."
+                  example: "uint8_t"
+               value:
+                  type: "str"
+                  brief: "Identifier in c-style function."
+                  example: "epi8"
+         brief: "If intrinsics follow a specific pattern (for instance by enconding type informations into intrinsic-names), this can be used to generate multiple primitivies."
+         example: "{uint8_t: ['u', '8'], uint16_t: ['u', '16']}. Usage: vaddq_{{ intrin_tp_full[ctype] }}"
+         default: "{}"
       includes: *includes_schema
 
 return: &return_schema
@@ -78,6 +109,10 @@ parameter: &parameter_schema
          type: "str"
          brief: "A short description of the parameter."
          default: "todo."
+      is_parameter_pack:
+         type: "bool"
+         default: false
+         brief: "A flag indicating whether the definition is using a 1-to-1 mapping (True) or whether it is some kind of a workaround (False)."
 
 primitive_specialization_requirements: &definition_requirements_schema
    target_extension:
