@@ -67,13 +67,15 @@ class TVLPrimitiveDefinition:
         return (self.__ctype==other.ctype) and (self.__target_extension==other.target_extension)
 
     def is_relevant(self, relevant_lscpu_flags: List[str] = None) -> bool:
-        if relevant_lscpu_flags is None:
+        if (relevant_lscpu_flags is None) or (len(self.__lscpu_flags) == 0):
             return True
         relevant_lscpu_flags_set: Set[str] = set(relevant_lscpu_flags)
         own_lscpu_flags_set: Set[str] = set(self.__lscpu_flags)
         return own_lscpu_flags_set <= relevant_lscpu_flags_set
 
     def get_prio_score(self, relevant_lscpu_flags: List[str]):
+        if (len(self.__lscpu_flags) == 0):
+            return 1
         relevant_lscpu_flags_set: Set[str] = set(relevant_lscpu_flags)
         own_lscpu_flags_set: Set[str] = set(self.__lscpu_flags)
         # we assume, that self is relevant
