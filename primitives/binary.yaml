@@ -12,6 +12,18 @@ returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing result of the binary AND."
 definitions:
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+     lscpu_flags: ["sse2"]
+     implementation: "return _mm_and_si128(a, b);"
+   - target_extension: "sse"
+     ctype: ["float"]
+     lscpu_flags: ["sse"]
+     implementation: "return _mm_and_ps(a, b);"
+   - target_extension: "sse"
+     ctype: [ "float" ]
+     lscpu_flags: [ "sse2" ]
+     implementation: "return _mm_and_pd(a, b);"
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
      lscpu_flags: [ 'neon' ]

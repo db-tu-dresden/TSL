@@ -17,6 +17,18 @@ definitions:
      ext: {uint8_t: 8, uint16_t: 16, uint32_t: 32, uint64_t: 64}
      lscpu_flags: ['avx512f']
      implementation: "return _mm512_add_epi{{ ext[ctype] }}(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t" ]
+     lscpu_flags: [ 'sse2' ]
+     implementation: "return _mm_add_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: [ "float" ]
+     lscpu_flags: [ 'sse' ]
+     implementation: "return _mm_add_ps(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: [ "double" ]
+     lscpu_flags: [ 'sse2' ]
+     implementation: "return _mm_add_pd(vec_a, vec_b);"
      #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -41,10 +53,10 @@ returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing result of the multiplication."
 definitions:
-   -  target_extension: "scalar"
-      ctype: [ "T" ]
-      lscpu_flags: [ ]
-      implementation: "return vec_a * vec_b;"
+   - target_extension: "scalar"
+     ctype: [ "T" ]
+     lscpu_flags: [ ]
+     implementation: "return vec_a * vec_b;"
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t", "float", "double"]
@@ -55,7 +67,8 @@ definitions:
      lscpu_flags: [ 'neon' ]
      is_native: False
      implementation: |
-        //Found this on stackoverflow. This seems like an overkill.
+        //Found this on stackoverflow. This seems like an overkill. Maybe an extract and scalar multiply would do the trick more efficient.
+        //@todo: benchmark this.
                      const auto ac = vmovn_{{ intrin_tp[ctype][0] }}64(vec_a);
                      const auto pr = vmovn_{{ intrin_tp[ctype][0] }}64(vec_b);
                      const auto hi = vmulq_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_b), vrev64q_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_a)));
