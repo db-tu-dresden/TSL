@@ -39,7 +39,7 @@ extension:
       simdT_register_type_attributes:
          type: "str"
          brief: "Additional attributes of vector type."
-         example: "__attribute__((vector_size(64), __may_alias_, _aligned_(64)))"
+         example: "__attribute__((vector_size(64), __may_alias__, _aligned_(64)))"
          default: ""
       description:
          type: "str"
