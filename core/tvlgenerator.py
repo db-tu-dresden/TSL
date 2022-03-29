@@ -54,8 +54,9 @@ class TVLGenerator(metaclass=Singleton):
             data_dict = YamlLoader().load(extension_file_path)
             extension_dicts[data_dict["extension_name"]] = copy.deepcopy(data_dict)
             if relevant_lscpu_flags is not None:
-                if not (set(data_dict["lscpu_flags"]) <= set(relevant_lscpu_flags)):
-                    continue
+                if len(data_dict["lscpu_flags"])>0:
+                    if not (set(relevant_lscpu_flags) & set(data_dict["lscpu_flags"])):
+                        continue
             extension_file: TVLFile = TVLFile(
                 Path(f"./generated/extensions/").joinpath(
                     self.__yaml_file_tree.get_extension_rel_path(extension_file_path)
