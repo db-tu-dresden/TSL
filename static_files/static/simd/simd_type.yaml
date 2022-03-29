@@ -15,7 +15,7 @@ implementations:
       #else
             class TargetExtensionType,
       #endif
-            std::size_t VectorSizeInBits = TargetExtensionType::default_size_in_bits::value
+            std::size_t VectorSizeInBits = TargetExtensionType::template types< BaseType >::default_size_in_bits::value
          >
          struct simd {
             using base_type = BaseType;

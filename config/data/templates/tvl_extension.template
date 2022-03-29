@@ -1,7 +1,14 @@
+{%- set ns = namespace(
+   default_vector_size=0) -%}
+{%- if simdT_default_size_in_bits == 0 %}
+   {%- set ns.default_vector_size = "sizeof(BaseType)*8" %}
+{%- else %}
+   {%- set ns.default_vector_size = simdT_default_size_in_bits %}
+{%- endif %}
 struct {{ simdT_name }} {
-      using default_size_in_bits = std::integral_constant< std::size_t, {{ simdT_default_size_in_bits }} >;
-      template< Arithmetic BaseType, std::size_t VectorSizeInBits = default_size_in_bits::value >
+      template<Arithmetic BaseType, std::size_t VectorSizeInBits = {{ ns.default_vector_size }}>
       struct types {
+      using default_size_in_bits = std::integral_constant< std::size_t, VectorSizeInBits >;
          using register_t {{ simdT_register_type_attributes }} =
             {{ simdT_register_type }};
          using mask_t =
