@@ -98,9 +98,17 @@ definitions:
      lscpu_flags: [ ]
      implementation: "return value;"
    - target_extension: "sse"
-     ctype: ["float", "double"]
+     ctype: ["float"]
      lscpu_flags: ["sse3"]
-     implementation: "return _mm_hadd_{{ intrin_tp_full[ctype] }}(value);"
+     implementation: |
+      auto res = _mm_hadd_ps(value, value);
+      return res[1]+res[0];
+   - target_extension: "sse"
+     ctype: ["double"]
+     lscpu_flags: ["sse3"]
+     implementation: |
+      auto res = _mm_hadd_pd(value, value);
+      return res[0];
      #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
