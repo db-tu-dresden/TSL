@@ -53,10 +53,18 @@ returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing result of the multiplication."
 definitions:
-   - target_extension: "scalar"
-     ctype: [ "T" ]
-     lscpu_flags: [ ]
-     implementation: "return vec_a * vec_b;"
+   -  target_extension: "scalar"
+      ctype: [ "T" ]
+      lscpu_flags: [ ]
+      implementation: "return vec_a * vec_b;"
+   - target_extension: "sse"
+     ctype: ["float"]
+     lscpu_flags: ["sse"]
+     implementation: "return _mm_mul_ps(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: [ "double" ]
+     lscpu_flags: [ "sse2" ]
+     implementation: "return _mm_mul_pd(vec_a, vec_b);"
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t", "float", "double"]
@@ -85,10 +93,14 @@ returns:
    ctype: "typename Vec::base_type"
    description: "Scalar value after adding all elements in the vector."
 definitions:
-   -  target_extension: "scalar"
-      ctype: [ "T" ]
-      lscpu_flags: [ ]
-      implementation: "return value;"
+   - target_extension: "scalar"
+     ctype: [ "T" ]
+     lscpu_flags: [ ]
+     implementation: "return value;"
+   - target_extension: "sse"
+     ctype: ["float", "double"]
+     lscpu_flags: ["sse3"]
+     implementation: "return _mm_hadd_{{ intrin_tp_full[ctype] }}(value);"
      #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
