@@ -7,34 +7,19 @@ lscpu_flags: ["sse", "sse2", "ssse3", "sse4_1", "sse4_2" ]
 includes: ['"immintrin.h"']
 simdT_name: "sse"
 simdT_default_size_in_bits: 128
-#i have no clue why vector_size has to be 8 instead of 64... since g++ defines __m512i as typedef long long __m512i __attribute__ ((__vector_size__ (64), __may_alias__));
 simdT_register_type_attributes: |-
-   __attribute__ ((
-               __vector_size__ (
-                  VectorSizeInBits/sizeof(
-                     TVL_DEP_TYPE(
-                        (std::is_integral_v< BaseType >),
-                        long long,
-                        TVL_DEP_TYPE(
-                           (sizeof( BaseType ) == 4),
-                           float,
-                           double
-                        )
-                     )
-                  )
-               ), 
-               __may_alias__, 
-               __aligned__(VectorSizeInBits/sizeof(char))
-               ))
+   __attribute__((__vector_size__(VectorSizeInBits/8),__may_alias__,__aligned__(VectorSizeInBits/8)))
 simdT_register_type: |-
    TVL_DEP_TYPE(
-                  (std::is_integral_v< BaseType >),
-                  long long,
-                  TVL_DEP_TYPE(
-                     (sizeof( BaseType ) == 4),
-                     float,
-                     double
+                     (std::is_integral_v< BaseType >),
+                     long long,
+                     TVL_DEP_TYPE(
+                        (sizeof( BaseType ) == 4),
+                        float,
+                        double
+                     )
                   )
-               )
 simdT_mask_type: "register_t"
+intrin_tp: {uint8_t: ["epu", 8], uint16_t: ["epu", 16], uint32_t: ["epu", 32], uint64_t: ["epu", 64], int8_t: ["epi", 8], int16_t: ["epi", 16], int32_t: ["epi", 32], int64_t: ["epi", 64], float: ["p", "s"], double: ["p", "d"]}
+intrin_tp_full: {uint8_t: "epu8", uint16_t: "epu16", uint32_t: "epu32", uint64_t: "epi64", int8_t: "epi8", int16_t: "epi16", int32_t: "epi32", int64_t: "epi64", float: "ps", double: "pd"}
 ...

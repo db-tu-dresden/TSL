@@ -1,7 +1,6 @@
 ---
 primitive_name: "add"
 brief_description: "Adds two vector registers."
-includes: ['"immintrin.h"']
 parameters:
    - ctype: "typename Vec::register_type"
      name: "vec_a"
@@ -14,12 +13,105 @@ returns:
    description: "Vector containing result of the addition."
 definitions:
    - target_extension: "avx512"
-     ctype: "uint64_t"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+     ext: {uint8_t: 8, uint16_t: 16, uint32_t: 32, uint64_t: 64}
      lscpu_flags: ['avx512f']
-     implementation: "return _mm512_add_epi64(vec_a, vec_b);"
+     implementation: "return _mm512_add_epi{{ ext[ctype] }}(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t" ]
+     lscpu_flags: [ 'sse2' ]
+     implementation: "return _mm_add_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: [ "float" ]
+     lscpu_flags: [ 'sse' ]
+     implementation: "return _mm_add_ps(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: [ "double" ]
+     lscpu_flags: [ 'sse2' ]
+     implementation: "return _mm_add_pd(vec_a, vec_b);"
+     #ARM - NEON
+   - target_extension: "neon"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vaddq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );"
+   - target_extension: "scalar"
+     ctype: ["T"]
+     lscpu_flags: []
+     implementation: "return vec_a + vec_b;"
+...
+---
+primitive_name: "mul"
+brief_description: "Multiplies two vector registers."
+parameters:
+   - ctype: "typename Vec::register_type"
+     name: "vec_a"
+     description: "First vector."
+   - ctype: "typename Vec::register_type"
+     name: "vec_b"
+     description: "Second vector."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing result of the multiplication."
+definitions:
+   -  target_extension: "scalar"
+      ctype: [ "T" ]
+      lscpu_flags: [ ]
+      implementation: "return vec_a * vec_b;"
+   - target_extension: "sse"
+     ctype: ["float"]
+     lscpu_flags: ["sse"]
+     implementation: "return _mm_mul_ps(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: [ "double" ]
+     lscpu_flags: [ "sse2" ]
+     implementation: "return _mm_mul_pd(vec_a, vec_b);"
+#ARM - NEON
+   - target_extension: "neon"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t", "float", "double"]
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vmulq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );"
+   - target_extension: "neon"
+     ctype: ["uint64_t", "int64_t"]
+     lscpu_flags: [ 'neon' ]
      is_native: False
-   - target_extension: "avx512"
-     ctype: "uint32_t"
-     lscpu_flags: ['avx512f']
-     implementation: "return _mm512_add_epi32(vec_a, vec_b);"
+     implementation: |
+        //Found this on stackoverflow. This seems like an overkill. Maybe an extract and scalar multiply would do the trick more efficient.
+        //@todo: benchmark this.
+                     const auto ac = vmovn_{{ intrin_tp[ctype][0] }}64(vec_a);
+                     const auto pr = vmovn_{{ intrin_tp[ctype][0] }}64(vec_b);
+                     const auto hi = vmulq_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_b), vrev64q_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_a)));
+                     return vmlal_{{ intrin_tp[ctype][0] }}32(vshlq_n_{{ intrin_tp[ctype][0] }}64(vpaddlq_{{ intrin_tp[ctype][0] }}32(hi), 32), ac, pr);
+...
+---
+primitive_name: "hadd"
+brief_description: "Reduces the elements to a sum."
+parameters:
+   - ctype: "typename Vec::register_type"
+     name: "value"
+     description: "Input vector."
+returns:
+   ctype: "typename Vec::base_type"
+   description: "Scalar value after adding all elements in the vector."
+definitions:
+   - target_extension: "scalar"
+     ctype: [ "T" ]
+     lscpu_flags: [ ]
+     implementation: "return value;"
+   - target_extension: "sse"
+     ctype: ["float"]
+     lscpu_flags: ["sse3"]
+     implementation: |
+      auto res = _mm_hadd_ps(value, value);
+      return res[1]+res[0];
+   - target_extension: "sse"
+     ctype: ["double"]
+     lscpu_flags: ["sse3"]
+     implementation: |
+      auto res = _mm_hadd_pd(value, value);
+      return res[0];
+     #ARM - NEON
+   - target_extension: "neon"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vaddvq_{{ intrin_tp_full[ctype] }}( value );"
 ...

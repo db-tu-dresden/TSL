@@ -1,0 +1,40 @@
+---
+primitive_name: "binary_and"
+brief_description: "Binary ANDs two vector registers."
+parameters:
+   - ctype: "typename Vec::register_type"
+     name: "a"
+     description: "First vector."
+   - ctype: "typename Vec::register_type"
+     name: "b"
+     description: "Second vector."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing result of the binary AND."
+definitions:
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+     lscpu_flags: ["sse2"]
+     implementation: "return _mm_and_si128(a, b);"
+   - target_extension: "sse"
+     ctype: ["float"]
+     lscpu_flags: ["sse"]
+     implementation: "return _mm_and_ps(a, b);"
+   - target_extension: "sse"
+     ctype: [ "float" ]
+     lscpu_flags: [ "sse2" ]
+     implementation: "return _mm_and_pd(a, b);"
+   - target_extension: "neon"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+     lscpu_flags: [ 'neon' ]
+     implementation: "return vandq_{{ intrin_tp_full[ctype] }}( a, b );"
+   - target_extension: "neon"
+     ctype: ["float", "double"]
+     lscpu_flags: ['neon']
+     note: "is it a good idea to support bitmanipulation for floats and doubles?"
+     implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vandq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));"
+   - target_extension: "scalar"
+     ctype: ["T"]
+     lscpu_flags: []
+     implementation: "return a & b;"
+...

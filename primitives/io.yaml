@@ -1,6 +1,7 @@
 ---
 primitive_name: "to_ostream"
 brief_description: "Loads data from aligned memory into a vector register."
+includes: ['<ostream>']
 parameters:
    - ctype: "std::ostream &"
      name: "out"
