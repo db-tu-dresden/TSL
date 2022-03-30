@@ -10,8 +10,8 @@ implementations:
       #ifdef TVL_USE_CONCEPTS
          template< typename T, typename U >
          concept TargetExtension = Arithmetic< U > && requires {
-            typename T::default_size_in_bits;
             typename T:: template types< U >;
+            typename T:: template types< U >::default_size_in_bits;
             typename T:: template types< U >::register_t;
             typename T:: template types< U >::mask_t;
          };

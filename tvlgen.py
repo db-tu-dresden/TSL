@@ -13,7 +13,8 @@ def existing_path(path_str: str):
             raise argparse.ArgumentError(f"{p} is already present but not a directory.")
     else:
         p.mkdir(parents=True)
-    return str(p.resolve())
+    # return str(p.resolve())
+    return str(p)
 
 
 if __name__ == '__main__':

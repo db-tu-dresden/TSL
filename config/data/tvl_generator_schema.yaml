@@ -48,32 +48,22 @@ extension:
          default: "todo."
       intrin_tp:
          type: "dict"
-         entry_type:
-            required:
-               key:
-                  type: "str"
-                  brief: "Name of ctype."
-                  example: "uint8_t"
-               value:
-                  type: "list"
-                  brief: "List containing possibly multiple entries depending on type mapping and size mapping."
-                  example: "['epi', '8']"
-                  entry_type: "str"
+#         entry_type:
+#            required:
+#               key:
+#                  type: "str"
+#                  brief: "Name of ctype."
+#                  example: "uint8_t"
+#               value:
+#                  type: "list"
+#                  brief: "List containing possibly multiple entries depending on type mapping and size mapping."
+#                  example: "['epi', '8']"
+#                  entry_type: "str"
          brief: "If intrinsics follow a specific pattern (for instance by enconding type informations into intrinsic-names), this can be used to generate multiple primitivies."
          example: "{uint8_t: ['u', '8'], uint16_t: ['u', '16']}. Usage: vaddq_{{ intrin_tp[ctype][0] }}{{ intrin_tp[ctype][1] }}"
          default: "{}"
       intrin_tp_full:
          type: "dict"
-         entry_type:
-            required:
-               key:
-                  type: "str"
-                  brief: "Name of ctype."
-                  example: "uint8_t"
-               value:
-                  type: "str"
-                  brief: "Identifier in c-style function."
-                  example: "epi8"
          brief: "If intrinsics follow a specific pattern (for instance by enconding type informations into intrinsic-names), this can be used to generate multiple primitivies."
          example: "{uint8_t: ['u', '8'], uint16_t: ['u', '16']}. Usage: vaddq_{{ intrin_tp_full[ctype] }}"
          default: "{}"
@@ -139,9 +129,9 @@ primitive_specialization_optionals: &definition_optionals_schema
       type: "bool"
       default: False
       brief: "Indicates, whether a Primitive specialization is agnostic to the actual vector length (default: False)."
-   brief_description:
+   specialization_comment:
       type: "str"
-      default: "todo."
+      default: ""
       brief: "Brief description of the primitive."
    includes: *includes_schema
 

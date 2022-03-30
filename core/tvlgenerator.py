@@ -51,7 +51,7 @@ class TVLGenerator(metaclass=Singleton):
         headers_to_be_included_by_tvl_generated_hpp : List[Path] = []
         extension_dicts: Dict[str, dict] = dict()
         for extension_file_path in self.__extension_files:
-            data_dict = YamlLoader().load(extension_file_path)
+            data_dict = self.__config.extension_schema.validate(YamlLoader().load(extension_file_path))
             extension_dicts[data_dict["extension_name"]] = copy.deepcopy(data_dict)
             if relevant_lscpu_flags is not None:
                 if len(data_dict["lscpu_flags"])>0:
