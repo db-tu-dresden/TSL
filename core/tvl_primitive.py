@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from typing import List, Generator, Set, Tuple, Dict, Union
 
+from jinja2 import Template
+
 from core.tvl_config import TVLGeneratorConfig
 from utils.log import LogInit, log
 from utils.yaml import YamlDataType
@@ -18,6 +20,7 @@ class TVLPrimitiveDefinition:
         self.__lscpu_flags : List[str] = self.__data["lscpu_flags"]
         self.__data["tvl_function_doxygen"] = TVLGeneratorConfig().documentation_template.render_function_documentation(
             self.__data)
+
 
     @property
     def data(self) -> YamlDataType:
@@ -40,8 +43,10 @@ class TVLPrimitiveDefinition:
         return (include for include in self.__data["includes"])
 
     @log
-    def render(self) -> str:
-        return TVLGeneratorConfig().definition_template.render(self.data)
+    def render(self, extension_dict: Dict[str, dict] = {}) -> str:
+        implementation_template = Template(self.__data["implementation"])
+        self.__data["implementation"] = implementation_template.render({**self.data, **extension_dict})
+        return TVLGeneratorConfig().definition_template.render(self.__data)
 
     def __hash__(self):
         t: Tuple[str, str] = (self.__target_extension, self.__ctype)
@@ -62,13 +67,15 @@ class TVLPrimitiveDefinition:
         return (self.__ctype==other.ctype) and (self.__target_extension==other.target_extension)
 
     def is_relevant(self, relevant_lscpu_flags: List[str] = None) -> bool:
-        if relevant_lscpu_flags is None:
+        if (relevant_lscpu_flags is None) or (len(self.__lscpu_flags) == 0):
             return True
         relevant_lscpu_flags_set: Set[str] = set(relevant_lscpu_flags)
         own_lscpu_flags_set: Set[str] = set(self.__lscpu_flags)
         return own_lscpu_flags_set <= relevant_lscpu_flags_set
 
     def get_prio_score(self, relevant_lscpu_flags: List[str]):
+        if (len(self.__lscpu_flags) == 0):
+            return 1
         relevant_lscpu_flags_set: Set[str] = set(relevant_lscpu_flags)
         own_lscpu_flags_set: Set[str] = set(self.__lscpu_flags)
         # we assume, that self is relevant
@@ -141,11 +148,14 @@ class TVLPrimitive:
         self.__definitions: TVLPrimitiveDefinitionContainer = TVLPrimitiveDefinitionContainer()
         if "definitions" in data_dict:
             for definition in data_dict["definitions"]:
-                self.__definitions.add_definition(
-                    TVLPrimitiveDefinition(
-                        {**declaration_dict, **definition}
+                types = copy.deepcopy(definition["ctype"])
+                for ctype in types:
+                    definition["ctype"] = ctype
+                    self.__definitions.add_definition(
+                        TVLPrimitiveDefinition(
+                            {**declaration_dict, **definition}
+                        )
                     )
-                )
 
         del data_dict
 
@@ -164,37 +174,12 @@ class TVLPrimitive:
 
     @log
     def render_declaration(self) -> str:
-
         self.log(logging.INFO, f"Adding declaration {repr(self.__declaration)}")
         return TVLGeneratorConfig().declaration_template.render(self.get_declaration_data())
-
-    # @log
-    # def _get_relevant_definitions(self, relevant_lscpu_flags: List[str] = None) -> Generator[
-    #     TVLPrimitiveDefinition, None, None]:
-    #     yield from self.__definitions.get_relevant_definitions(relevant_lscpu_flags)
-        # if relevant_lscpu_flags is not None:
-        #     relevant_lscpu_flags_set: Set[str] = set(relevant_lscpu_flags)
-        # else:
-        #     relevant_lscpu_flags_set: Set[str] = set()
-        # for definition in self.__definitions:
-        #     if not relevant_lscpu_flags_set or relevant_lscpu_flags_set < set(definition.data["lscpu_flags"]):
-        #         yield definition
-
-    # @log
-    # def render_definitions(self, relevant_lscpu_flags: List[str] = None) -> Generator[str, None, None]:
-    #     for definition in self._get_relevant_definitions(relevant_lscpu_flags):
-    #         self.log(logging.INFO, f"Adding definition {repr(definition)}")
-    #         yield TVLGeneratorConfig().definition_template.render(definition.data)
 
     @log
     def get_definitions(self, relevant_lscpu_flags: List[str] = None) -> Generator[TVLPrimitiveDefinition, None, None]:
         yield from self.__definitions.get_relevant_definitions(relevant_lscpu_flags)
-
-
-    # @log
-    # def get_definitions_includes(self, relevant_lscpu_flags: List[str] = None) -> Generator[List[str], None, None]:
-    #     for definition in self.__definitions.get_relevant_definitions(relevant_lscpu_flags):
-    #         yield definition.data["includes"]
 
 
 class TVLPrimitiveClass:

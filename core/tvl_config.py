@@ -56,6 +56,10 @@ class TVLGeneratorConfig(metaclass=Singleton):
         return self.__extension_template
 
     @property
+    def extension_schema(self) -> TVLExtensionSchema:
+        return self.__extension_schema
+
+    @property
     def declaration_template(self) -> TVLPrimitiveDeclarationTemplate:
         return self.__declaration_template
 

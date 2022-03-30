@@ -3,14 +3,15 @@ file_description: "TODO."
 tvl_include_guard: "TUD_D2RG_TVL_STATIC_SIMD_SIMD_TYPE_CONCEPTS_HPP"
 includes:
    - '<type_traits>'
-   - '<concepts>'
    - '"../utils/type_concepts.hpp"'
 implementations:
-   - >
-      template< typename T, typename U >
+   - |
+      
+      #ifdef TVL_USE_CONCEPTS
+         template< typename T, typename U >
          concept TargetExtension = Arithmetic< U > && requires {
-            typename T::default_size_in_bits;
             typename T:: template types< U >;
+            typename T:: template types< U >::default_size_in_bits;
             typename T:: template types< U >::register_t;
             typename T:: template types< U >::mask_t;
          };
@@ -35,9 +36,15 @@ implementations:
             ( T::vector_alignment() > 0 ) &&
             ( T::vector_mask_ratio() > 0 ) &&
             ( T::mask_shift() > 0 );
-
+      #else
+      #define VectorProcessingStyle class
+      #endif
          struct native{};
          struct workaround{};
+      #ifdef TVL_USE_CONCEPTS
          template< class T >
          concept ImplementationDegreeOfFreedom = std::is_same_v< T, native > || std::is_same_v< T, workaround >;
+      #else
+      #define ImplementationDegreeOfFreedom class
+      #endif
 ...

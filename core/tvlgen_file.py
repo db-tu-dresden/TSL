@@ -53,7 +53,7 @@ class TVLFile:
     def add_code(self, code: str) -> None:
         self.__data_dict["codes"].append(code)
 
-    @log(successLevel=logging.INFO)
+    @log
     def generate(self) -> None:
         self.__data_dict["includes"] = self.__includes.includes
         self.__file_name.resolve().write_text(TVLGeneratorConfig().header_file_template.render(self.__data_dict))

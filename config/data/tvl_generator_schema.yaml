@@ -24,10 +24,6 @@ extension:
          type: "str"
          brief: "Extension Name which will be used inside the TVL."
          example: "'avx512'"
-      simdT_default_size_in_bits:
-         type: "int"
-         brief: "Default size of a vector register for the specific extension in bits."
-         example: 512
       simdT_register_type:
          type: "str"
          brief: "Vector register type, depending on the base type."
@@ -36,15 +32,41 @@ extension:
          type: "str"
          brief: "Mask type, depending on the base type."
    optional:
+      simdT_default_size_in_bits:
+         type: "int"
+         brief: "Default size of a vector register for the specific extension in bits."
+         default: 0
+         example: 512
       simdT_register_type_attributes:
          type: "str"
          brief: "Additional attributes of vector type."
-         example: "__attribute__((vector_size(64), __may_alias_, _aligned_(64)))"
+         example: "__attribute__((vector_size(64), __may_alias__, _aligned_(64)))"
          default: ""
       description:
          type: "str"
          brief: "A description of the SIMD extension which is used for doxygen generation."
          default: "todo."
+      intrin_tp:
+         type: "dict"
+#         entry_type:
+#            required:
+#               key:
+#                  type: "str"
+#                  brief: "Name of ctype."
+#                  example: "uint8_t"
+#               value:
+#                  type: "list"
+#                  brief: "List containing possibly multiple entries depending on type mapping and size mapping."
+#                  example: "['epi', '8']"
+#                  entry_type: "str"
+         brief: "If intrinsics follow a specific pattern (for instance by enconding type informations into intrinsic-names), this can be used to generate multiple primitivies."
+         example: "{uint8_t: ['u', '8'], uint16_t: ['u', '16']}. Usage: vaddq_{{ intrin_tp[ctype][0] }}{{ intrin_tp[ctype][1] }}"
+         default: "{}"
+      intrin_tp_full:
+         type: "dict"
+         brief: "If intrinsics follow a specific pattern (for instance by enconding type informations into intrinsic-names), this can be used to generate multiple primitivies."
+         example: "{uint8_t: ['u', '8'], uint16_t: ['u', '16']}. Usage: vaddq_{{ intrin_tp_full[ctype] }}"
+         default: "{}"
       includes: *includes_schema
 
 return: &return_schema
@@ -78,14 +100,20 @@ parameter: &parameter_schema
          type: "str"
          brief: "A short description of the parameter."
          default: "todo."
+      is_parameter_pack:
+         type: "bool"
+         default: false
+         brief: "A flag indicating whether the definition is using a 1-to-1 mapping (True) or whether it is some kind of a workaround (False)."
 
 primitive_specialization_requirements: &definition_requirements_schema
    target_extension:
       type: "str"
       brief: "The TVL extension for which this definition is a specialization."
    ctype:
-      type: "str"
-      brief: "The C/C++ datatype for which this definition is a specialization. If ctype == 'T', the specialization is base type agnostic."
+      type: "list"
+      entry_type: "str"
+      brief: "List of the C/C++ datatype(s) for which this definition is a specialization. If ctype == 'T', the specialization is base type agnostic."
+      example: "['uint32_t', 'uint64_t'], ['uint64_t'], ['T']"
    lscpu_flags: *lscpu_flags_schema
 
 primitive_specialization_optionals: &definition_optionals_schema
@@ -101,6 +129,10 @@ primitive_specialization_optionals: &definition_optionals_schema
       type: "bool"
       default: False
       brief: "Indicates, whether a Primitive specialization is agnostic to the actual vector length (default: False)."
+   specialization_comment:
+      type: "str"
+      default: ""
+      brief: "Brief description of the primitive."
    includes: *includes_schema
 
 primitive_definition: &definition_schema
