@@ -2,3 +2,6 @@ PyYAML
 Jinja2
 wheel
 MarkupSafe
+networkx
+pygraphviz
+wget

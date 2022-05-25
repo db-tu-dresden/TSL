@@ -3,7 +3,7 @@ configuration:
    namespace:                     "tvl"
    header_file_extension:         ".hpp"
    source_file_extension:         ".cpp"
-   root_path:                     "../../TVLTMP/lib"
+   root_path:                     "../lib"
    compiler_architecture_prefix:  "-m"
    use_concepts:                  False
    default_types:                 ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
