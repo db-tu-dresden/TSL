@@ -1,0 +1,19 @@
+---
+file_description: "TODO."
+includes:
+   - '"type_helper.hpp"'
+implementations:
+   - |
+      
+      #ifdef TVL_USE_CONCEPTS
+         #include <concepts> //this is ugly, but the generator does not support conditional includes
+         template< typename T >
+         concept Arithmetic = std::is_arithmetic_v< T >;
+
+         template< typename T >
+         concept Tuple = is_tuple< T >::value;
+      #else
+      #define Arithmetic typename
+      #define Tuple typename
+      #endif
+...

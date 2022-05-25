@@ -1,0 +1,53 @@
+---
+file_description: "TODO."
+includes:
+   - '"../utils/type_concepts.hpp"'
+   - '"../utils/type_helper.hpp"'
+   - '"simd_type_concepts.hpp"'
+   - "<array>"
+implementations:
+   - >
+      template<
+            Arithmetic BaseType,
+      #ifdef TVL_USE_CONCEPTS
+            TargetExtension<BaseType> TargetExtensionType,
+      #else
+            class TargetExtensionType,
+      #endif
+            std::size_t VectorSizeInBits = TargetExtensionType::template types<BaseType>::default_size_in_bits::value
+         >
+         struct simd {
+            using base_type = BaseType;
+            using target_extension = TargetExtensionType;
+   
+            using register_type = typename TargetExtensionType::template types<BaseType, VectorSizeInBits>::register_t;
+            using mask_type = typename TargetExtensionType::template types<BaseType, VectorSizeInBits>::mask_t;
+
+            using offset_register_type = typename TargetExtensionType::template types<offset_t, VectorSizeInBits>::register_t[sizeof(offset_t)/sizeof(BaseType)];
+
+            static inline constexpr bool register_type_is_pointer_v = std::is_pointer_v<register_type>;
+
+            static constexpr /*should be consteval, but clang does not eat this */ std::size_t vector_size_b() {
+               return VectorSizeInBits;
+            }
+            static constexpr std::size_t vector_size_B() {
+               return vector_element_count() * sizeof( base_type );
+            }
+            static constexpr std::size_t vector_element_count() {
+               return VectorSizeInBits / ( sizeof( base_type ) * 8 );
+            }
+            static constexpr std::size_t vector_alignment() {
+               if constexpr( vector_size_B() > 32 ) {
+                  return 64;
+               } else {
+                  return vector_size_B();
+               }
+            }
+            static constexpr std::size_t vector_mask_ratio() {
+               return ( sizeof( mask_type ) * 8 ) / vector_element_count();
+            }
+            static constexpr std::size_t mask_shift() {
+               return vector_element_count();
+            }
+         };
+...
