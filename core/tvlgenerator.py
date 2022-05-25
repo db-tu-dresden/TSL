@@ -5,7 +5,7 @@ from typing import List, Dict
 
 from core.tvl_config import TVLGeneratorConfig
 from core.tvlgen_file import TVLYamlFileTree, TVLFile
-from core.tvl_primitive import TVLPrimitiveClass, TVLPrimitiveClassSet
+from core.model.tvl_primitive import TVLPrimitiveClass, TVLPrimitiveClassSet
 from utils.log import LogInit, log
 from utils.singleton import Singleton
 from utils.yaml import YamlLoader, YamlDataType
@@ -23,14 +23,11 @@ class TVLGenerator(metaclass=Singleton):
         self.__config = TVLGeneratorConfig(generation_out_path, template_root_path, schema_file)
         self.__tvl_data_path: Path = tvl_data_path
         self.__primitive_classes_file: Path = tvl_data_path.joinpath("primitive_classes.yaml")
-
         self.__yaml_file_tree = TVLYamlFileTree(tvl_data_path)
-
         self.__primitive_classes: TVLPrimitiveClassSet = TVLPrimitiveClassSet()
-
         self.__static_files_base_path: Path = static_files_base_path
+        # self.__extension_files: List[Path] = []
 
-        self.__extension_files: List[Path] = []
 
     @log
     def import_data(self) -> None:
@@ -44,31 +41,10 @@ class TVLGenerator(metaclass=Singleton):
             for primitive_data_dict in YamlLoader().load_all(primitive_file):
                 primitive_class_obj.add_primitive_dict(primitive_data_dict)
 
-        self.__extension_files = [extension_file for extension_file in self.__yaml_file_tree.relevant_extension_files()]
+        # self.__extension_files = [extension_file for extension_file in self.__yaml_file_tree.relevant_extension_files()]
 
     @log
     def create_generated_files(self, relevant_lscpu_flags: List[str] = None) -> None:
-        headers_to_be_included_by_tvl_generated_hpp : List[Path] = []
-        extension_dicts: Dict[str, dict] = dict()
-        for extension_file_path in self.__extension_files:
-            data_dict = self.__config.extension_schema.validate(YamlLoader().load(extension_file_path))
-            extension_dicts[data_dict["extension_name"]] = copy.deepcopy(data_dict)
-            if relevant_lscpu_flags is not None:
-                if len(data_dict["lscpu_flags"])>0:
-                    if not (set(relevant_lscpu_flags) & set(data_dict["lscpu_flags"])):
-                        continue
-            extension_file: TVLFile = TVLFile(
-                Path(f"./generated/extensions/").joinpath(
-                    self.__yaml_file_tree.get_extension_rel_path(extension_file_path)
-                ),
-                Path(f"{extension_file_path.stem}"),
-                data_dict
-            )
-            extension_file.add_code(self.__config.extension_template.render(data_dict))
-            if "includes" in data_dict:
-                extension_file.add_includes((include for include in data_dict["includes"]))
-            extension_file.generate()
-            headers_to_be_included_by_tvl_generated_hpp.append(extension_file.file)
 
         for primitive_class in self.__primitive_classes.get_classes():
             declaration_file: TVLFile = TVLFile(Path(f"./generated/declarations/"), Path(f"{primitive_class.name}"),

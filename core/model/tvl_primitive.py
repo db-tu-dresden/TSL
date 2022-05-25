@@ -117,6 +117,9 @@ class TVLPrimitiveDefinitionContainer:
             if relevant_lscpu_flags is not None and max_scored_definition is not None:
                 yield max_scored_definition
 
+    @property
+    def definitions(self) -> Dict[object, List[TVLPrimitiveDefinition]]:
+        return self.__definitions
 
 
 class TVLPrimitiveDeclaration:
@@ -167,10 +170,10 @@ class TVLPrimitive:
     def get_declaration_includes(self) -> Generator[str, None, None]:
         yield from self.__declaration.data["includes"]
 
-    @log
-    def get_definitions_data(self) -> Generator[YamlDataType, None, None]:
-        for definition in self.__definitions:
-            yield definition.data
+    # @log
+    # def get_definitions_data(self) -> Generator[YamlDataType, None, None]:
+    #     for definition in self.__definitions.definitions:
+    #         yield definition.data
 
     @log
     def render_declaration(self) -> str:

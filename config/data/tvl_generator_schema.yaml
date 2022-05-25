@@ -48,17 +48,6 @@ extension:
          default: "todo."
       intrin_tp:
          type: "dict"
-#         entry_type:
-#            required:
-#               key:
-#                  type: "str"
-#                  brief: "Name of ctype."
-#                  example: "uint8_t"
-#               value:
-#                  type: "list"
-#                  brief: "List containing possibly multiple entries depending on type mapping and size mapping."
-#                  example: "['epi', '8']"
-#                  entry_type: "str"
          brief: "If intrinsics follow a specific pattern (for instance by enconding type informations into intrinsic-names), this can be used to generate multiple primitivies."
          example: "{uint8_t: ['u', '8'], uint16_t: ['u', '16']}. Usage: vaddq_{{ intrin_tp[ctype][0] }}{{ intrin_tp[ctype][1] }}"
          default: "{}"
@@ -66,6 +55,11 @@ extension:
          type: "dict"
          brief: "If intrinsics follow a specific pattern (for instance by enconding type informations into intrinsic-names), this can be used to generate multiple primitivies."
          example: "{uint8_t: ['u', '8'], uint16_t: ['u', '16']}. Usage: vaddq_{{ intrin_tp_full[ctype] }}"
+         default: "{}"
+      arch_flags:
+         type: "dict"
+         brief: "Dictionary for mapping architecture flags to compiler related arcitecture flags. Only non-obvious mappings must be included in this dictionary."
+         example: "{sse4_1: 'msse4.1', sse4_2: 'msse4.2'}"
          default: "{}"
       includes: *includes_schema
 
@@ -142,19 +136,7 @@ primitive_definition: &definition_schema
          type: "str"
          brief: "The actual implementation for this definition."
    optional: *definition_optionals_schema
-#
-#primitive_definition_template: &definition_template_schema
-#   required:
-#      template_data:
-#         type: "list"
-#         entry_type:
-#            <<: *definition_requirements_schema
-#            <<: *definition_optionals_schema
-#         brief: "A list of dictionaries containing the data which is used for the jinja implementation part"
-#      implementation:
-#         type: "str"
-#         brief: "The actual implementation for this definition."
-#
+
 primitive:
    required:
       primitive_name:
@@ -162,6 +144,10 @@ primitive:
          brief: "Name of the primitive."
          example: "load"
    optional:
+      test_function_name:
+         type: "str"
+         brief: "@TODO"
+         example: "test_add"
       tvl_implementation_namespace:
          type: "str"
          default: "details"
@@ -203,11 +189,6 @@ primitive:
          default: [ ]
          entry_type: *definition_schema
          brief: "A list of definitions for a specific primitive."
-#      definitions_templates:
-#         type: "list"
-#         default: [ ]
-#         entry_type: *definition_template_schema
-#         brief: "A list of templated (jinja2) definitions for a specific primitive."
 
 primitive_class: &primitive_class_schema
    required:

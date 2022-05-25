@@ -21,7 +21,7 @@ if __name__ == '__main__':
     logging.basicConfig(#filename="tvlgen.log",
                         format='[%(asctime)s %(levelname)-8s %(name)s::%(decorated_funcName)s (%(decorated_filename)s)]: %(message)s',
                         datefmt='%d.%m.%Y %I:%M:%S %p',
-                        level=logging.INFO)
+                        level=logging.ERROR)
 
     parser = argparse.ArgumentParser(description="TVL Generator")
     parser.add_argument(
