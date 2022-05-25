@@ -1,4 +1,8 @@
 ---
+name: "compare"
+description: "Compare primitives."
+...
+---
 primitive_name: "equal"
 brief_description: "Compares two vector registers for equality."
 parameters:

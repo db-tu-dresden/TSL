@@ -1,0 +1,140 @@
+---
+name: "memory"
+description: "Memory related primitives."
+...
+---
+primitive_name: "allocate"
+brief_description: "Allocates (unaligned) contiguous memory."
+parameters:
+   - ctype: "std::size_t"
+     name: "count_bytes"
+     description: "Number of bytes which should be allocated."
+returns:
+   ctype: "typename Vec::base_type *"
+   description: "Pointer to allocated memory."
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['avx512f']
+     implementation: "return reinterpret_cast<typename Vec::base_type*>(_mm_malloc(count_bytes, 1));"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['avx']
+     implementation: "return reinterpret_cast<typename Vec::base_type*>(_mm_malloc(count_bytes, 1));"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['sse']
+     implementation: "return reinterpret_cast<typename Vec::base_type*>(_mm_malloc(count_bytes, 1));"
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return reinterpret_cast<typename Vec::base_type*>(malloc(count_bytes));"
+...
+---
+primitive_name: "allocate_aligned"
+brief_description: "Allocates aligned contiguous memory."
+parameters:
+   - ctype: "std::size_t"
+     name: "count_bytes"
+     description: "Number of bytes which should be allocated."
+   - ctype: "std::size_t"
+     name: "alignment"
+     description: "Alignment bytes."
+returns:
+   ctype: "typename Vec::base_type *"
+   description: "Pointer to allocated memory."
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['avx512f']
+     implementation: "return reinterpret_cast<typename Vec::base_type*>(_mm_malloc(count_bytes, alignment));"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['avx']
+     implementation: "return reinterpret_cast<typename Vec::base_type*>(_mm_malloc(count_bytes, alignment));"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['sse']
+     implementation: "return reinterpret_cast<typename Vec::base_type*>(_mm_malloc(count_bytes, alignment));"
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return reinterpret_cast<typename Vec::base_type*>(malloc(count_bytes));"
+...
+---
+primitive_name: "deallocate"
+brief_description: "Deallocates (possibly aligned) contiguous memory."
+parameters:
+   - ctype: "typename Vec::base_type *"
+     name: "ptr"
+     description: "Pointer to memory which should be deallocated."
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['avx512f']
+     implementation: "_mm_free(ptr);"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['avx']
+     implementation: "_mm_free(ptr);"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['sse']
+     implementation: "_mm_free(ptr);"
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return free(ptr);"
+...
+---
+primitive_name: "memory_cp"
+brief_description: "Copy memory."
+includes: ["<cstring>"]
+parameters:
+   - ctype: "typename Vec::base_type *"
+     name: "dst"
+     description: "Destination."
+   - ctype: "typename Vec::base_type const *"
+     name: "src"
+     description: "Source."
+   - ctype: "std::size_t"
+     name: "count_bytes"
+     description: "Number of bytes, which should be copied"
+   - ctype: "int"
+     name: "copy_kind"
+     default_value: "0"
+     description: "Which type of copy should be performed: {0: host->host, 1: host->device, 2: device->host, 3: device->device}"
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['avx512f']
+     implementation: "std::memcpy(reinterpret_cast<void *>(dst), reinterpret_cast<void const *>(src), count_bytes);"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['avx']
+     implementation: "std::memcpy(reinterpret_cast<void *>(dst), reinterpret_cast<void const *>(src), count_bytes);"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['sse']
+     implementation: "std::memcpy(reinterpret_cast<void *>(dst), reinterpret_cast<void const *>(src), count_bytes);"
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "std::memcpy(reinterpret_cast<void *>(dst), reinterpret_cast<void const *>(src), count_bytes);"
+...
