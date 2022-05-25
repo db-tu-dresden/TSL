@@ -535,7 +535,7 @@ definitions:
    - target_extension: "scalar"
      ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
      lscpu_flags: [ ]
-     implementation: "return (mask&1)==1 ? memory[index] : source;"
+     implementation: "return (mask&1)==1 ? memory[index[0]] : source;"
 ...
 #---
 #primitive_name: "vcompress"
