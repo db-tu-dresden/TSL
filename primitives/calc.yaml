@@ -360,6 +360,7 @@ testing:
                }
                return allOk;
 definitions:
+   - target_extension: "avx2"
 #INTEL - AVX512
    - target_extension: "avx512"
      ctype: ["float", "double"]
