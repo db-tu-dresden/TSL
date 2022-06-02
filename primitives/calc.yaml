@@ -191,7 +191,7 @@ definitions:
                      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
                         buffer_a[i] *= buffer_b[i];
                      }
-                     return _mm512_load_si512(reinterpret_cast<void const *>(buffer_a));
+                     return _mm512_load_si512(reinterpret_cast<void const *>(buffer_a.data()));
 #INTEL - AVX2
    - target_extension: "avx2"
      ctype: ["float", "double"]
