@@ -13,7 +13,7 @@ class TVLSlicer:
     @LogInit()
     def __init__(self, relevant_hardware_flags: List[str] = None):
         self.__relevant_hardware_flags: List[str] = relevant_hardware_flags
-        self.__relevant_hardware_flags_set: Set[str] = set(relevant_hardware_flags)
+        # self.__relevant_hardware_flags_set: Set[str] = set(relevant_hardware_flags)
 
     @requirement(data_dict="NotNone")
     def is_extension_relevant(self, data_dict: dict) -> bool:
