@@ -126,28 +126,29 @@ returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing result of the multiplication."
 testing: #optional
-   -  requires: ["set1", "loadu", "hadd"]
+   -  requires: ["loadu", "storeu"]
       includes: ["<cstddef>"]
       implementation: |
          using T = typename Vec::base_type;
                std::size_t element_count = 1024;
-               testing::test_memory_helper_t<Vec> test_helper{1024, 1, false};
+               testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
                bool allOk = true;
                auto reference_data_ptr = test_helper.data_ref();
                auto reference_result_ptr = test_helper.result_ref();
                auto test_data_ptr = test_helper.data_target();
                auto test_result_ptr = test_helper.result_target();
-               for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
-                  T scalar_sanity = 0;
-                  for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
-                     scalar_sanity += reference_data_ptr[j];
+               for(std::size_t i = 0; i < element_count - (2*Vec::vector_element_count()); i+=(2*Vec::vector_element_count())) {
+                  std::size_t j = i;
+                  for(; j < i + Vec::vector_element_count(); ++j) {
+                     reference_result_ptr[j-i] = reference_data_ptr[j];
                   }
-                  *reference_result_ptr = scalar_sanity;
-                  auto vec = set1<Vec>( 0 );
-                  auto elements = loadu<Vec>(&test_data_ptr[i]);
-                  vec = add<Vec>(vec, elements);
-                  const typename Vec::base_type vec_sanity = hadd<Vec>(vec);
-                  *test_result_ptr = vec_sanity;
+                  for(; j < i + (2*Vec::vector_element_count()); ++j) {
+                     reference_result_ptr[j-(i+Vec::vector_element_count())] *= reference_data_ptr[j];
+                  }
+                  auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+                  auto vec_b = loadu<Vec>(&test_data_ptr[i+Vec::vector_element_count()]);
+                  auto vec_result = mul<Vec>(vec_a, vec_b);
+                  storeu<Vec>(test_result_ptr, vec_result);
                   test_helper.synchronize();
                   allOk &= test_helper.validate();
                }
@@ -213,7 +214,7 @@ definitions:
      implementation: "return _mm256_mullo_epi64(vec_a, vec_b);"
    - target_extension: "avx2"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
-     lscpu_flags: ["avx512f"]
+     lscpu_flags: ["avx"]
      is_native: False
      includes: ["<array>", "<cstddef>"]
      implementation: |
@@ -224,7 +225,7 @@ definitions:
                      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
                         buffer_a[i] *= buffer_b[i];
                      }
-                     return _mm256_load_si256(reinterpret_cast<__m256i const *>(buffer_a));
+                     return _mm256_load_si256(reinterpret_cast<__m256i const *>(buffer_a.data()));
 #INTEL - SSE
    - target_extension: "sse"
      ctype: ["float"]
@@ -262,7 +263,7 @@ definitions:
                      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
                         buffer_a[i] *= buffer_b[i];
                      }
-                     return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a));
+                     return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t", "float", "double"]
@@ -446,5 +447,4 @@ definitions:
      ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
      lscpu_flags: [ ]
      implementation: "return value;"
-
 ...
