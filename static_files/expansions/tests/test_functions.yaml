@@ -8,6 +8,7 @@ includes:
    - "<cstdlib>"
    - "<functional>"
    - "<algorithm>"
+   - "<utility>"
 implementations:
    - |
       template<typename T>
@@ -41,6 +42,19 @@ implementations:
                   return (std::fabs(static_cast<T>(base - to_be_examined)) <= std::numeric_limits<T>::epsilon());
                }
             }
+   - |
+      template<VectorProcessingStyle Vec>
+            class set_call_helper_t {
+               private:
+                  template<std::size_t... Is>
+                  static auto call_set_impl(typename Vec::base_type const * data, std::index_sequence<Is...>) {
+                     return tvl::set<Vec>(data[(Vec::vector_element_count()-1)-Is]...);
+                  }
+               public:
+                  static auto call_set(typename Vec::base_type const * data) {
+                     return call_set_impl(data, std::make_index_sequence<Vec::vector_element_count()>{});
+                  }
+            };
    - |
       template<VectorProcessingStyle Vec>
             class test_memory_helper_t {

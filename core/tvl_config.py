@@ -1,3 +1,4 @@
+import argparse
 import copy
 import logging.config
 import pathlib
@@ -294,6 +295,46 @@ class TVLGeneratorConfig:
                 yield file
 
 
-
-
 config = TVLGeneratorConfig()
+
+
+def add_bool_arg(parser, name, dest, **kwargs):
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--' + name, dest=dest, action='store_true', **kwargs)
+    group.add_argument('--no-' + name, dest=dest, action='store_false', **kwargs)
+    parser.set_defaults(**{dest:True})
+
+
+
+def parse_args() -> dict:
+    parser = argparse.ArgumentParser(description="TVL Generator", epilog="To apply fine-tuned changes to the generator please change the config files (config/default_conf.yaml and config/log_conf.yaml).")
+    parser.add_argument('-o', '--out', type=pathlib.Path, help="Generation output path.", required=False,
+                                  dest='configuration:root_path', metavar="OutPath")
+    parser.add_argument('-i', '--in', type=pathlib.Path,
+                        help='Path where TVL primitive and extension files are located (relative to the script location or absolut).',
+                        dest='configuration_files:primitive_data:root_path', metavar="InPath")
+    parser.add_argument('--targets', default=None, nargs='*',
+                        help='List of target flags which match the lscpu_flags from the extension/primitive files.',
+                        dest='targets')
+    add_bool_arg(parser, 'cmake', 'configuration:expansions:cmake:enabled',
+                 help="(De)Activate CMake generation", required=False)
+    add_bool_arg(parser, 'testing', 'configuration:expansions:unit_tests:enabled',
+                 help="(De)Activate Unit test generation", required=False)
+
+    regex = re.compile(r"([^:]+):{0,1}")
+    args = parser.parse_args()
+    args_dict = dict()
+    for key, value in vars(args).items():
+        if value is not None:
+            current_dict = args_dict
+            matches = regex.findall(key)
+            for match in matches[:-1]:
+                if match not in current_dict:
+                    current_dict[match] = dict()
+                current_dict = current_dict[match]
+            current_dict[matches[-1]] = value
+
+    if "targets" not in args_dict:
+        args_dict["targets"] = None
+    return args_dict
+

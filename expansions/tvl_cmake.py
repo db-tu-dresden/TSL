@@ -47,7 +47,7 @@ class TVLCMakeGenerator:
         )
         print("To use TVL, apply the following changes:")
         print(f"   CMakeLists.txt (top-level):                 add_subdirectory({strip_path_prefix(config.generation_out_path)})")
-        print(f"                                               target_link_libraries(<<TARGET_NAME>> tvl)")
+        print(f"                                               target_link_libraries(<target> tvl)")
         print(f"   C++ Source/Header file which uses TVL:      #include <{strip_common_path_prefix(config.lib_root_header, config.lib_root_path)}>")
         print(f"General usage:")
         print(f"   Using namespace declaration:                /*...*/ ")

@@ -5,6 +5,15 @@ includes: &includes_schema
    entry_type: "str"
    brief: "A list of includes which are required."
 
+custom_type: &custom_type_schema
+   required:
+      name:
+         type: "str"
+         brief: "Name of custom type."
+         example: "gpu_reg_t"
+      struct_code:
+         type: "str"
+         brief: "Implementation code for custom type struct."
 extension:
    required:
       vendor:
@@ -32,6 +41,11 @@ extension:
          type: "str"
          brief: "Mask type, depending on the base type."
    optional:
+      custom_types:
+         type: "list"
+         entry_type: *custom_type_schema
+         brief: "List of custom types."
+         default: []
       simdT_default_size_in_bits:
          type: "int"
          brief: "Default size of a vector register for the specific extension in bits."

@@ -32,16 +32,6 @@ class TVLPrimitiveTestCaseData:
         self.__missing_previous_tests: Dict[str, Dict[str, List[str]]] = dict()
         self.__missing_required_primitive_definitions: Dict[str, Dict[str, List[str]]] = missing_primitive_definitions
         self.__complete = True
-        # print(f"{class_name}::{primitive_name}_{self.__test_name}")
-        # print("----")
-        # for key in self.__missing_previous_tests:
-        #     print(f"   {key.center(10)}: {self.__missing_previous_tests[key]}")
-        # print("====")
-        # for key in self.__missing_required_primitive_definitions:
-        #     for key2 in self.__missing_required_primitive_definitions[key]:
-        #         print(f"   {key.center(10)}: {key2.center(10)}: {self.__missing_required_primitive_definitions[key][key2]}")
-
-
 
     def set_missing_previous_tests(self, missing_tests: Dict[str, Dict[str, List[str]]]) -> None:
         self.__missing_previous_tests = copy.deepcopy(missing_tests)
@@ -260,11 +250,10 @@ class TVLTestSuite:
                                             non_fullfilled_requirements.append(
                                                 f"{TVLPrimitive.human_readable(requirement, ctype, target_extension)}")
                                     if len(non_fullfilled_requirements) > 0:
-                                        self.log(logging.WARN,
-                                                 f"Could not consider test \"{test['test_name']}\" for "
-                                                 f"{TVLPrimitive.human_readable(primitive.declaration.name, ctype, target_extension)}. The following requirements were not met: "
-                                                 f"{non_fullfilled_requirements}.")
-
+                                        # self.log(logging.WARN,
+                                        #          f"Could not create test case \"{test['test_name']}\" for "
+                                        #          f"{TVLPrimitive.human_readable(primitive.declaration.name, ctype, target_extension)}. The following requirements were not met: "
+                                        #          f"{non_fullfilled_requirements}.")
                                         if target_extension not in missing_primitive_definitions:
                                             missing_primitive_definitions[target_extension] = dict()
                                         if ctype not in missing_primitive_definitions[target_extension]:
@@ -274,20 +263,27 @@ class TVLTestSuite:
                                         valid_ctypes.append(ctype)
                                 if len(valid_ctypes) > 0:
                                     updated_primitive_definition_extension_ctype[target_extension] = valid_ctypes
-                                else:
-                                    self.log(logging.WARN,
-                                             f"Could not consider test \"{test['test_name']}\" for "
-                                             f"{primitive.declaration.name} using {target_extension}.")
+                                # else:
+                                #     self.log(logging.WARN,
+                                #              f"Could not create test case \"{test['test_name']}\" for "
+                                #              f"{TVLPrimitive.human_readable(primitive.declaration.name, 'typename T', target_extension)}. The following requirements were not met: "
+                                #              f"{non_fullfilled_requirements}.")
+                                #     self.log(logging.WARN,
+                                #              f"Could not create test case for {primitive_class.name}::{primitive.declaration.name}_{test['test_name']}<typename T, {target_extension}>")
                             if len(updated_primitive_definition_extension_ctype) > 0:
                                 self.__test_cases.append(
                                     TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.name, test, updated_primitive_definition_extension_ctype, missing_primitive_definitions))
-                                print(f"{primitive_class.name}::{primitive.declaration.name}_{test['test_name']}:")
                                 for ext in missing_primitive_definitions:
                                     for t in missing_primitive_definitions[ext]:
-                                        print(f"{ext.center(10)}{t.center(10)}: {missing_primitive_definitions[ext][t]}")
+                                        self.log(logging.WARN,
+                                                 f"Could not create test case \"{test['test_name']}\" for "
+                                                 f"{TVLPrimitive.human_readable(primitive.declaration.name, t, ext)}. The following requirements were not met: "
+                                                 f"{missing_primitive_definitions[ext][t]}.")
+                                        # self.log(logging.WARN,
+                                                 # f"Could not create test case for {primitive_class.name}::{primitive.declaration.name}_{test['test_name']}<{t}, {ext}>: {missing_primitive_definitions[ext][t]}")
                             else:
                                 self.log(logging.WARN,
-                                         f"Could not consider any tests for {primitive.declaration.name}")
+                                         f"Could not create test case \"{test['test_name']}\" for any type and extension.")
                         else:
                             self.__test_cases.append(TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.name, test, primitive_definition_extension_ctype, missing_primitive_definitions))
                             print(f"{primitive_class.name}::{primitive.declaration.name}_{test['test_name']}:")
@@ -519,8 +515,8 @@ class TVLTestGenerator:
         test_source_file.add_include(f"<{strip_common_path_prefix(config.lib_root_header, config.lib_root_path)}>")
 
         for static_yaml_file_path in config.static_expansion_files("unit_tests"):
-            print(static_yaml_file_path)
-            print(unit_test_config["static_files"]["root_path"])
+            # print(static_yaml_file_path)
+            # print(unit_test_config["static_files"]["root_path"])
             static_file_path_without_prefix = strip_common_path_prefix(static_yaml_file_path,
                                                                        Path(unit_test_config["static_files"][
                                                                                 "root_path"]))
