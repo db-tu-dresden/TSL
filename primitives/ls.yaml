@@ -446,6 +446,28 @@ parameters:
 returns:
    ctype: "typename Vec::register_type"
    description: "Vector register containing the values."
+testing:
+   -  requires: ["storeu"]
+      includes: ["<cstddef>", "<algorithm>", "<limits>"]
+      implementation: |
+         using T = typename Vec::base_type;
+               std::size_t element_count = 1024;
+               testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+               bool allOk = true;
+               auto reference_data_ptr = test_helper.data_ref();
+               auto reference_result_ptr = test_helper.result_ref();
+               auto test_data_ptr = test_helper.data_target();
+               auto test_result_ptr = test_helper.result_target();
+               for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+                  for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+                     reference_result_ptr[j-i] = reference_data_ptr[j];
+                  }
+                  auto loaded = testing::set_call_helper_t<Vec>::call_set(&test_data_ptr[i]);
+                  storeu<Vec>(test_result_ptr, loaded);
+                  test_helper.synchronize();
+                  allOk &= test_helper.validate();
+               }
+               return allOk;
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"
