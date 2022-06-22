@@ -68,6 +68,16 @@ testing: #optional
                }
                return allOk;
 definitions:
+#CUDA
+   - target_extension: "cuda"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ["cuda"]
+     vector_length_agnostic: True
+     implementation: |
+      typename Vec::register_type vec_c;
+                    size_t element_count = VectorSize / (sizeof({{ ctype }}) * 8);
+                    constexpr auto add = +[]({{ ctype }} a, {{ ctype }} b) { return a + b; };
+                    return launch_elemenwise_op<typename Vec::register_type, add>(vec_a, vec_b, VectorSize);
 #INTEL - AVX512
    - target_extension: "avx512"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]

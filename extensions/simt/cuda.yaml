@@ -3,6 +3,7 @@ description: "Definition of the SIMD TargetExtension for CUDA."
 vendor: "gpu"
 extension_name: "cuda"
 lscpu_flags: ["cuda"]
+needs_arch_flags: False
 includes: ["<cstddef>", "<cstdint>", "<type_traits>", "<utility>", "<memory>", "<variant>"]
 simdT_name: "cuda"
 simdT_default_size_in_bits: 128
