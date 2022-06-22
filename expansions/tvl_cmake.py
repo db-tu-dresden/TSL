@@ -4,7 +4,6 @@ from typing import List, Set, Dict, Tuple
 from core.ctrl.tvl_lib import TVLLib
 from core.ctrl.tvl_libfile_generator import TVLFileGenerator
 from core.model.tvl_extension import TVLExtension
-from core.model.tvl_file import TVLSourceFile, TVLHeaderFile
 from core.tvl_config import config
 from expansions.tvl_translation_unit import TVLTranslationUnitContainer
 from utils.file_utils import strip_common_path_prefix, strip_path_prefix
@@ -22,12 +21,13 @@ class TVLCMakeGenerator:
             for primitive_definition in lib.primitive_class_set.definitions():
                 extension: TVLExtension = lib.extension_set.get_extension_by_name(
                     primitive_definition.target_extension)
-                arch_flags: dict = extension.data["arch_flags"] if "arch_flags" in extension.data else dict()
-                for flag in primitive_definition.architecture_flags:
-                    f = flag
-                    if flag in arch_flags:
-                        f = arch_flags[flag]
-                    result.add(f"{config.compiler_architecture_prefix}{f}")
+                if extension.data["needs_arch_flags"]:
+                    arch_flags: dict = extension.data["arch_flags"] if "arch_flags" in extension.data else dict()
+                    for flag in primitive_definition.architecture_flags:
+                        f = flag
+                        if flag in arch_flags:
+                            f = arch_flags[flag]
+                        result.add(f"{config.compiler_architecture_prefix}{f}")
             return " ".join(result)
 
         header_files: List[Path] = [strip_common_path_prefix(hf.file_name, config.generation_out_path) for hf in file_generator.library_files]

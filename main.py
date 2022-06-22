@@ -16,7 +16,6 @@ def tvl_setup(config_path: Path, additional_config=None) -> None:
     config.setup(dict_update(config_file_cfg, additional_config))
 
 
-
 if __name__ == '__main__':
     args_dict = parse_args()
     tvl_setup(Path("config/default_conf.yaml"), args_dict)

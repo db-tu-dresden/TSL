@@ -142,7 +142,7 @@ class TVLFileGenerator:
             tvl_file: TVLHeaderFile = TVLHeaderFile.create_from_dict(file_path, data_dict)
             if "implementations" in data_dict:
                 for implementation in data_dict["implementations"]:
-                    tvl_file.add_code(implementation)
+                    tvl_file.add_code_to_be_rendered(implementation)
             self.__static_files.append(tvl_file)
 
     @LogInit()

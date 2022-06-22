@@ -1,10 +1,10 @@
    /*
-    * @brief {{ brief_description }}
-    * @details {{ detailed_description }}
+    * \brief {{ brief_description }}
+    * \details {{ detailed_description }}
     {% for param in parameters %}
-    * @param {{ param['name'] }} {{ param['description'] }}
+    * \param {{ param['name'] }} {{ param['description'] }}
     {% endfor %}
     {% if returns['ctype'] != 'void' %}
-    * @return {{ returns['description'] }}
+    * \return {{ returns['description'] }}
     {% endif %}
     */

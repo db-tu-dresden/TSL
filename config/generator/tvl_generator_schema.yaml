@@ -41,6 +41,10 @@ extension:
          type: "str"
          brief: "Mask type, depending on the base type."
    optional:
+      needs_arch_flags:
+         type: "bool"
+         brief: "Indicates, whether the lscpu-flags should be used as compiler flags."
+         default: True
       custom_types:
          type: "list"
          entry_type: *custom_type_schema

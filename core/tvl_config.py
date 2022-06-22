@@ -10,6 +10,7 @@ from jinja2 import Template, Environment
 
 from utils.file_template import load_template_from_file
 from utils.file_utils import StaticFileTree
+from utils.git_utils import GitUtils
 from utils.requirement import requirement
 from utils.yaml_schema import Schema
 from utils.yaml_utils import yaml_load
@@ -293,6 +294,14 @@ class TVLGeneratorConfig:
         if "static_files" in expansion_config:
             for file in Path(expansion_config["static_files"]["root_path"]).rglob("*.yaml"):
                 yield file
+
+    @property
+    def git_config_as_list(self) -> List[str]:
+        return GitUtils.get_git_data().create_indented_list()
+
+    @property
+    def get_version_str(self) -> str:
+        return GitUtils.get_git_data().create_version_str()
 
 
 config = TVLGeneratorConfig()

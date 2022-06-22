@@ -5,6 +5,8 @@ import datetime
 import os.path
 from pathlib import Path
 
+from jinja2 import Template
+
 from core.tvl_config import config
 from utils.log_utils import LogInit
 from utils.requirement import requirement
@@ -57,6 +59,9 @@ class TVLHeaderFile:
     def add_code(self, code: str) -> None:
         self.__data_dict["codes"].append(code)
 
+    def add_code_to_be_rendered(self, code: str) -> None:
+        self.__data_dict["codes"].append(Template(code).render(self.__data_dict))
+
     def get_relative_file_name(self) -> Path:
         return self.__filename
 
@@ -73,7 +78,7 @@ class TVLHeaderFile:
     @staticmethod
     def create_include_guard(filename: Path) -> str:
         subst_filename: str = config.include_guard_regex.sub("_", str(filename).upper())
-        return f"TUD_D2RG_TVL_{subst_filename}"
+        return f"TUD_D2RG_TVL{subst_filename}"
 
     @staticmethod
     @requirement(filename="NotNone", data_dict="NotNone")
@@ -85,9 +90,11 @@ class TVLHeaderFile:
                 {
                     "file_name": filename,
                     "date": datetime.date.today(),
-                    "file_description": data_dict["description"] if "description" in data_dict else ""
+                    "file_description": data_dict["description"] if "description" in data_dict else "",
+                    "git_information": config.git_config_as_list
                 }
             ),
+            "git_version_str" : config.get_version_str,
             "tvl_include_guard": TVLHeaderFile.create_include_guard(filename),
             "tvl_namespace": config.get_config_entry("namespace"),
             "tvl_file_includes": [],
