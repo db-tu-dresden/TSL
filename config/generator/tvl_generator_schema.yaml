@@ -41,6 +41,11 @@ extension:
          type: "str"
          brief: "Mask type, depending on the base type."
    optional:
+      language:
+         type: "str"
+         brief: "Language string used by cmake."
+         default: "CXX"
+         example: "'CXX' or 'CUDA'"
       needs_arch_flags:
          type: "bool"
          brief: "Indicates, whether the lscpu-flags should be used as compiler flags."
