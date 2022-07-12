@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.primitive_table tbody {
+  box-sizing: border-box;
+  border-bottom: 1px solid #e8e8e8;
+  .datatype {
+    width: 70px;
+    border: 1px solid #e8e8e8;
+    border-bottom: none;
+    text-align: center;
+  }
+  .primitive {
+    width: 70px;
+    padding-left: 5px;
+    border: 1px solid #e8e8e8;
+    text-align: right;
+  }
+  .primitive_class {
+    width: 70px;
+    border: 1px solid #e8e8e8;
+    text-align: center;
+  }
+  .reliable_test {
+    border: 1px solid #e8e8e8;
+    width: 70px;
+    height: 20px;
+    overflow: hidden;
+    background: #23cf62;
+  }
+  .unreliable_test {
+    border: 1px solid #e8e8e8;
+    width: 70px;
+    height: 20px;
+    overflow: hidden;
+    background: repeating-linear-gradient( 135deg, #23cf62, #23cf62 10px, #ffffff 10px, #ffffff 15px );
+  }
+  .no_test {
+    border: 1px solid #e8e8e8;
+    width: 70px;
+    height: 20px;
+    overflow: hidden;
+    background: #f5d536;
+  }
+  .not_implemented {
+    border: 1px solid #e8e8e8;
+    width: 70px;
+    height: 20px;
+    overflow: hidden;
+    background: #cc310e;
+  }
+}
+</style>
+</head>
+<body>
+
+<table class="primitive_table">
+  <tbody>
+    <tr>
+      <td></td>
+      <td></td>
+      <td class="datatype">uint8_t</td>
+      <td class="datatype">uint16_t</td>
+    </tr>
+    <tr>
+      <td rowspan="2" class="primitive_class">calc</td>
+      <td class="primitive">add</td>
+      <td class="reliable_test"></td>
+      <td class="unreliable_test"></td>
+    </tr>
+    <tr>
+      <td class="primitive">mull</td>
+      <td class="no_test"></td>
+      <td class="not_implemented"></td>
+    </tr>
+</table>
+
+</body>
+</html>

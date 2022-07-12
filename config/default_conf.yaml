@@ -1,0 +1,48 @@
+---
+configuration:
+   namespace:                     "tvl"
+   header_file_extension:         ".hpp"
+   source_file_extension:         ".cpp"
+   root_path:                     "../lib"
+   compiler_architecture_prefix:  "-m"
+   use_concepts:                  False
+   default_types:                 ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+   library:
+      root_path:                  "include"
+      top_level_header_fname:     "tvlintrin"
+      static_files:
+         root_path:               "static"
+      hardware_specific_files:
+         top_level_header_fname:  "tvl_generated"
+         root_path:               "generated"
+         extensions:              "extensions"
+         primitive_declarations:  "declarations"
+         primitive_definitions:   "definitions"
+   silent_warnings:               "-Wno-ignored-attributes"
+   expansions:
+      cmake:
+         enabled:                 True
+         minimum_version:         "3.13"
+         verbose_make_files:      True
+         tvl_lib_name:            "tvl"
+      unit_tests:
+         enabled:                 True
+         namespace:               "testing"
+         root_path:               "src/test"
+         test_header_url:         "https://github.com/catchorg/Catch2/releases/download/v2.13.9/catch.hpp"
+         draw_dependency_graph:   True
+         static_files:
+            root_path:            "static_files/expansions/tests"
+configuration_files:
+   log_config_file:               "config/log_conf.yaml"
+   schema_file:                   "config/generator/tvl_generator_schema.yaml"
+   jinja_templates:
+      root_path:                  "config/generator/tvl_templates"
+   primitive_data:
+      root_path:                  "primitive_data"
+      extensions_path:            "extensions"
+      primitives_path:            "primitives"
+   static_files:
+      root_path:                  "static_files"
+      lib:                        "core"
+...

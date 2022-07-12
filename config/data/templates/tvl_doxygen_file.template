@@ -1,7 +1,0 @@
-/*
- * @file {{ file_name }}
- * @date {{ date }}
-{% if file_description and file_description != '' %}
- * @brief {{ file_description }}
-{% endif %}
- */

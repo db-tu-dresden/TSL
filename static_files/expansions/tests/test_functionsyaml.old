@@ -1,0 +1,227 @@
+---
+file_description: "TODO."
+includes:
+   - "<random>"
+   - "<chrono>"
+   - "<cstdint>"
+   - "<cstddef>"
+   - "<cstdlib>"
+implementations:
+   - |
+      struct intel_extension_id_helper{};
+      struct arm_extension_id_helper{};
+      struct gpu_extension_id_helper{};
+      struct fpga_extension_id_helper{};
+      struct target_host_helper{};
+      struct target_gpu_helper{};
+      struct target_fpga_helper{};
+   - |
+      template<class Vec>
+         struct extension_helper {
+            using extension = typename Vec::target_extension;
+            using type =
+               std::conditional_t<
+                  (
+                     std::is_same_v<extension, sse> ||
+                     std::is_same_v<extension, avx2>
+                  ),
+                  intel_extension_id_helper,
+                  std::conditional_t<
+                     (
+                        std::is_same_v<extension, neon>
+                     ),
+                     arm_extension_id_helper,
+                     std::conditional_t<
+                        (
+                              std::is_same_v<extension, gpu>
+                        ),
+                        gpu_extension_id_helper,
+                        std::conditional_t<
+                           (
+                              std::is_same_v<extension, fpga>
+                           ),
+                           fpga_extension_id_helper,
+                           int
+                        >
+                     >
+                  >
+               >;
+         };
+   - |
+      template<typename T, class ExtHelper>
+         struct allocator_impl{
+            static T* allocate(std::size_t count_bytes) {
+               return reinterpret_cast<T *>(std::malloc(count_bytes));
+            }
+            static void dealloc(T* ptr) {
+               std::free(ptr);
+            }
+            static T* allocate_aligned(std::size_t count_bytes, std::size_t alignment) {
+               return reinterpret_cast<T *>(std::aligned_alloc(alignment, count_bytes));
+            }
+            static void dealloc_aligned(T* ptr) {
+               std::free(ptr);
+            }
+         };
+      template<typename T>
+         struct allocator_impl<T, intel_extension_id_helper>{
+            static T* allocate(std::size_t count_bytes) {
+               return reinterpret_cast<T *>(std::malloc(count_bytes));
+            }
+            static void deallocate(T* ptr) {
+               std::free(ptr);
+            }
+            static T* allocate_aligned(std::size_t count_bytes, std::size_t alignment) {
+               return reinterpret_cast<T *>(_mm_malloc(count_bytes, alignment));
+            }
+            static void deallocate_aligned(T* ptr) {
+               _mm_free(ptr);
+            }
+         };
+      template<typename T>
+         struct allocator_impl<T, arm_extension_id_helper>{
+            static T* allocate(std::size_t count_bytes) {
+               return reinterpret_cast<T *>(std::malloc(count_bytes));
+            }
+            static void deallocate(T* ptr) {
+               std::free(ptr);
+            }
+            static T* allocate_aligned(std::size_t count_bytes, std::size_t alignment) {
+               return reinterpret_cast<T *>(std::aligned_alloc(alignment, count_bytes));
+            }
+            static void deallocate_aligned(T* ptr) {
+               std::free(ptr);
+            }
+         };
+      template<typename T>
+         struct allocator_impl<T, gpu_extension_id_helper>{
+            static T* allocate(std::size_t count_bytes) {
+               return reinterpret_cast<T *>(std::malloc(count_bytes));
+            }
+            static void deallocate(T* ptr) {
+               std::free(ptr);
+            }
+            static T* allocate_aligned(std::size_t count_bytes, std::size_t alignment) {
+               return reinterpret_cast<T *>(std::aligned_alloc(alignment, count_bytes));
+            }
+            static void deallocate_aligned(T* ptr) {
+               std::free(ptr);
+            }
+         };
+      template<typename T>
+         struct allocator_impl<T, fpga_extension_id_helper>{
+            static T* alloc(std::size_t count_bytes) {
+               return reinterpret_cast<T *>(std::malloc(count_bytes));
+            }
+            static void deallocate(T* ptr) {
+               std::free(ptr);
+            }
+            static T* aligned_alloc(std::size_t count_bytes, std::size_t alignment) {
+               return reinterpret_cast<T *>(std::aligned_alloc(alignment, count_bytes));
+            }
+            static void deallocate_aligned(T* ptr) {
+               std::free(ptr);
+            }
+         };
+   - |
+      template<VectorProcessingStyle Vec>
+         typename Vec::base_type * allocate(std::size_t count_bytes) {
+            return allocator_impl<typename Vec::base_type, typename extension_helper<Vec>::type>::allocate(count_bytes);
+         }
+      template<VectorProcessingStyle Vec>
+         void deallocate(typename Vec::base_type * ptr) {
+            allocator_impl<typename Vec::base_type, typename extension_helper<Vec>::type>::deallocate(ptr);
+         }
+      template<VectorProcessingStyle Vec>
+         typename Vec::base_type * allocate_aligned(std::size_t count_bytes, std::size_t alignment) {
+            return allocator_impl<typename Vec::base_type, typename extension_helper<Vec>::type>::allocate_aligned(count_bytes, alignment);
+         }
+      template<VectorProcessingStyle Vec>
+         void deallocate_aligned(typename Vec::base_type * ptr) {
+            allocator_impl<typename Vec::base_type, typename extension_helper<Vec>::type>::deallocate_aligned(ptr, alignment);
+         }
+   - |
+      template<class Vec>
+         struct target_helper {
+            using extension = typename Vec::target_extension;
+            using type =
+               std::conditional_t<
+                  (
+                     std::is_same_v<extension, sse> ||
+                     std::is_same_v<extension, avx2> ||
+                     std::is_same_v<extension, avx512> ||
+                     std::is_same_v<extension, neon>
+                  ),
+                  target_host_helper,
+                  std::conditional_t<
+                     (
+                        std::is_same_v<extension, gpu>
+                     ),
+                     target_gpu_helper,
+                     std::conditional_t<
+                        (
+                              std::is_same_v<extension, fpga>
+                        ),
+                        target_fpga_helper,
+                        int
+                     >
+                  >
+               >;
+         };
+   - |
+      template<typename T, class TargetHelperFrom, class TargetHelperTo>
+         struct memory_transfer_impl {
+            static void memcpy(T* target, T const * src, std::size_t count_bytes) {
+               reinterpret_cast<T*>(std::memcpy(reinterpret_cast<void*>(target), reinterpret_cast<void*>(src), count_bytes));
+            }
+         };
+      template<typename T>
+         struct memory_transfer_impl<T, target_host_helper, target_gpu_helper> {
+            static void memcpy(T* target, T const * src, std::size_t count_bytes) {
+               cudaMemcpy(target, src, count_bytes, 1);
+            }
+         };
+      template<typename T>
+         struct memory_transfer_impl<T, target_gpu_helper, target_host_helper> {
+            static void memcpy(T* target, T const * src, std::size_t count_bytes) {
+               cudaMemcpy(target, src, count_bytes, 2);
+            }
+         };
+      template<typename T>
+         struct memory_transfer_impl<T, target_gpu_helper, target_gpu_helper> {
+            static void memcpy(T* target, T const * src, std::size_t count_bytes) {
+               cudaMemcpy(target, src, count_bytes, 3);
+            }
+         };
+   - |
+      template<VectorProcessingStyle Vec>
+         typename Vec::base_type * create_aligned_random_data(std::size_t element_count) {
+            auto * result = allocate<Vec>(element_count*sizeof(typename Vec::base_type));
+            auto std::mt19937 engine(std::chrono::high_resolution_clock::now.count());
+            using dist_type = std::conditional_t<std::is_floating_point_v<T>, std::uniform_real_distribution<T>, std::uniform_int_distribution<T>>;
+            auto dist_type dist(std::numeric_limits<T>::min(), std::numeric_limits<T>::max()-(T)1);
+            for(std::size_t i=0;i<element_count;++i) {
+               result[i] = dist(engine);
+            }
+            return result;
+         }
+   - |
+      template<VectorProcessingStyle Vec>
+         void deallocate(typename Vec::base_type * ptr) {
+            _mm_free(ptr);
+         }
+   - |
+      template<VectorProcessingStyle Vec>
+         void remove_aligned_random_data(typename Vec::base_type * ptr) {
+            deallocate(ptr);
+         }
+   - |
+      template<typename T>
+         bool check_value(T base, T to_be_examined) {
+         if constexpr(std::is_integral_v<T>) {
+            return (abs(base - to_be_examined) == std::numeric_limits<T>::epsilon());
+         } else {
+            return (abs(base - to_be_examined) < std::numeric_limits<T>::epsilon());
+         }
+      }
+...

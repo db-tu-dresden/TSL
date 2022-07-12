@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION {{ minimum_version }})
+{% if verbose_make_files %}
+set(CMAKE_VERBOSE_MAKEFILE ON)
+{% else %}
+set(CMAKE_VERBOSE_MAKEFILE OFF)
+{% endif %}
+
+{% for target in targets %}
+add_executable({{ target }}
+{% for header in targets[target][0] %}
+   {{ header }}
+{% endfor %}
+{% for source in targets[target][1] %}
+   {{ source }}
+{% endfor %}
+)
+target_link_libraries({{ target }} tvl)
+{% endfor %}

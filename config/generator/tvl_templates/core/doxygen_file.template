@@ -1,0 +1,12 @@
+/*
+ * \file {{ file_name }}
+ * \date {{ date }}
+{% if file_description and file_description != '' %}
+ * \brief {{ file_description }}
+{% endif %}
+ * \note
+{% for git_info in git_information %}
+ * {{ git_info }}
+{% endfor %}
+ *
+ */

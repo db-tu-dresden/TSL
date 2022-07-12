@@ -1,0 +1,83 @@
+{% macro abort(error) %}
+    {{ None['[ERROR] ' ~ error][0] }}
+{% endmacro %}
+{% if vector_length_agnostic and vector_length_bits != 0 %}
+{{ abort("A specialization can be either vector length agnostig or have a vector-length-dependent specialization.") }}
+{% endif %}
+{% set ns = namespace(
+   simd_register_length='',
+   partial_specialized=False,
+   contains_template_parameter=False,
+   contains_parameter_pack=False,
+   parameter_pack_typenames_str='',
+   full_qualified_parameters_str='',
+   parameters_str='') %}
+{% if vector_length_agnostic %}
+{% set ns.simd_register_length = ', VectorSize' %}
+{% elif vector_length_bits != 0 %}
+{% set ns.simd_register_length = ', {{ vector_length_bits }}' %}
+{% else %}
+{% set ns.simd_register_length = '' %}
+{% endif %}
+{% if ctype == 'T' %}
+{% set ns.partial_specialized = True %}
+{% endif %}
+{% for param in parameters %}
+   {% if not loop.last %}
+      {% set comma = ', ' %}
+   {% else %}
+      {% set comma = '' %}
+   {% endif %}
+   {% if param['is_parameter_pack'] %}
+      {% set ns.contains_parameter_pack = True %}
+      {% set ns.parameter_pack_typenames_str = ns.parameter_pack_typenames_str ~ 'typename... ' ~ param['ctype'] ~ comma %}
+      {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ param['ctype'] ~ '... ' ~ param['name'] ~ comma %}
+      {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ '...' ~ comma %}
+   {% else %}
+      {% if param['attributes'] %}
+      {% set attr = ' ' ~ param['attributes'] %}
+      {% else %}
+      {% set attr = '' %}
+      {% endif %}
+      {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ param['ctype'] ~ attr ~ ' ' ~ param['name'] ~ comma %}
+      {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ comma %}
+   {% endif %}
+{% endfor %}
+{# Every implementation is in the (nested) namespace "details" #}
+namespace {{ tvl_implementation_namespace }} {
+      /**
+       * @brief: Template specialization of implementation for "{{ primitive_name }}".
+       * @details:
+       * Target Extension: {{ target_extension }}.
+       *        Data Type: {{ ctype }}
+       *  Extension Flags: {{ lscpu_flags }}
+       {% if specialization_comment != "" %}
+       * @note: {{ specialization_comment }}
+       {% endif %}
+       */
+      template<{{ 'typename T, ' if ns.partial_specialized else '' }}{{ 'std::size_t VectorSize, ' if vector_length_agnostic else '' }}ImplementationDegreeOfFreedom {{ idof_name }}>
+{# If the vector_length_bits is specified in the yaml file, a specialization is generated. #}
+         struct {{ primitive_name }}_impl<simd<{{ ctype }}, {{ target_extension }}{{ ns.simd_register_length }}>, {{ idof_name }}> {
+            using {{ vector_name }} = simd<{{ ctype }}, {{ target_extension }}{{ ns.simd_register_length }}>;
+            static constexpr bool native_supported() {
+   {# If there is hardware support this function returns true, false otherwise. #}
+               return {{ 'true;' if is_native else 'false;' }}
+            }
+   {% if ns.contains_parameter_pack %}
+            template< {{ ns.parameter_pack_typenames_str }} >
+   {% endif %}
+   {# If the primitive returns something, the caller has to capture the result. #}
+            {{ '[[nodiscard]] ' if returns['ctype'] != 'void' else ''}}{{ '' if is_native else "TVL_NO_NATIVE_SUPPORT_WARNING" }}
+   {# If force_inline is set to True, we use TVL_FORCE_INLINE. #}
+            {{ 'TVL_FORCE_INLINE ' if force_inline else '' }}
+            static {{ returns['ctype'] }} apply(
+   {# Iterate over all parameters and write them out. #}
+               {{ ns.full_qualified_parameters_str }}
+            ) {
+               {% if not is_native %}
+               static_assert( !std::is_same_v< {{ idof_name }}, native >, "The primitive {{ primitive_name }} is not supported by your hardware natively while it is forced by using native" );
+               {% endif %}
+               {{ implementation }}
+            }
+         };
+   } // end of namespace {{ tvl_implementation_namespace }} for template specialization of {{ primitive_name }}_impl for {{ target_extension }} using {{ ctype }}.
