@@ -1,0 +1,17 @@
+---
+file_description: "TODO."
+includes:
+   - '"../utils/type_concepts.hpp"'
+implementations:
+   - |
+      
+      #ifdef TVL_USE_CONCEPTS
+         template< typename T >
+         concept SimdPrimitiveImpl = requires {
+            { T::native_supported() } -> std::same_as< bool >;
+         } &&
+            ( T::native_supported() || (! T::native_supported() ) );
+      #else
+      #define SimdPrimitiveImpl class
+      #endif
+...

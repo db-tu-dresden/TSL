@@ -2,3 +2,10 @@ PyYAML
 Jinja2
 wheel
 MarkupSafe
+networkx
+pygraphviz
+wget
+sphinx
+sphinx_rtd_theme
+breathe
+exhale
