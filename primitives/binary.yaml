@@ -1,4 +1,8 @@
 ---
+name: "binary"
+description: "Bit manipulation primitives."
+...
+---
 primitive_name: "binary_and"
 brief_description: "Binary ANDs two vector registers."
 parameters:
@@ -12,6 +16,34 @@ returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing result of the binary AND."
 definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_and_si512(a, b);"
+   - target_extension: "avx512"
+     ctype: ["float", "double"]
+     lscpu_flags: ["avx512dq"]
+     implementation: "return _mm512_and_{{ intrin_tp_full[ctype] }}(a, b);"
+   - target_extension: "avx512"
+     ctype: ["float", "double"]
+     lscpu_flags: ["avx512f"]
+     is_native: False
+     implementation: "return _mm512_and_si512(_mm512_castsi512_{{ intrin_tp_full[ctype] }}(a) ,_mm512_castsi512_{{ intrin_tp_full[ctype] }}(b));"
+#Intel - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+     lscpu_flags: ["avx2"]
+     implementation: "return _mm256_and_si256(a, b);"
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+     lscpu_flags: ["avx"]
+     is_native: False
+     implementation: "return _mm256_and_pd(_mm512_castsi256_pd(a),_mm512_castsi256_pd(b));"
+   - target_extension: "avx2"
+     ctype: ["float", "double"]
+     lscpu_flags: ["avx"]
+     implementation: "return _mm256_and_{{ intrin_tp_full[ctype] }}(a,b);"
    - target_extension: "sse"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
      lscpu_flags: ["sse2"]
@@ -21,7 +53,7 @@ definitions:
      lscpu_flags: ["sse"]
      implementation: "return _mm_and_ps(a, b);"
    - target_extension: "sse"
-     ctype: [ "float" ]
+     ctype: [ "double" ]
      lscpu_flags: [ "sse2" ]
      implementation: "return _mm_and_pd(a, b);"
    - target_extension: "neon"
@@ -34,7 +66,15 @@ definitions:
      note: "is it a good idea to support bitmanipulation for floats and doubles?"
      implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vandq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));"
    - target_extension: "scalar"
-     ctype: ["T"]
+     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
      lscpu_flags: []
      implementation: "return a & b;"
+   - target_extension: "scalar"
+     ctype: [ "float" ]
+     lscpu_flags: []
+     implementation: "return (uint32_t) a & (uint32_t)b;"
+   - target_extension: "scalar"
+     ctype: ["double"]
+     lscpu_flags: []
+     implementation: "return (uint64_t) a & (uint64_t)b;"
 ...

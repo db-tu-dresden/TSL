@@ -1,4 +1,8 @@
 ---
+name: "mask"
+description: "Mask related primitives."
+...
+---
 primitive_name: "to_integral"
 brief_description: "Forms an integral value from the most significant bits of every lane in a vector mask register."
 parameters:
