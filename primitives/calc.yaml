@@ -1,4 +1,8 @@
 ---
+name: "calc"
+description: "This file contains arithmetic primitives."
+...
+---
 primitive_name: "add"
 brief_description: "Adds two vector registers."
 parameters:
@@ -11,34 +15,113 @@ parameters:
 returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing result of the addition."
+testing: #optional
+   -  test_name: "zero_cornercase"
+      requires: ["set1", "loadu", "hadd"]
+      includes: ["<cstddef>"]
+      implementation: |
+         using T = typename Vec::base_type;
+               std::size_t element_count = 1024;
+               testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+               bool allOk = true;
+               auto reference_data_ptr = test_helper.data_ref();
+               auto reference_result_ptr = test_helper.result_ref();
+               auto test_data_ptr = test_helper.data_target();
+               auto test_result_ptr = test_helper.result_target();
+               for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+                  std::size_t tester_idx = 0;
+                  for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+                     reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+                  }
+                  auto vec = set1<Vec>( 0 );
+                  auto elements = loadu<Vec>(&test_data_ptr[i]);
+                  vec = add<Vec>(vec, elements);
+                  storeu<Vec>( test_result_ptr, vec );
+                  test_helper.synchronize();
+                  allOk &= test_helper.validate();
+               }
+               return allOk;
+   -  test_name: "running_sum_w_epsilon"
+      requires: ["set1", "loadu", "hadd"]
+      includes: ["<cstddef>"]
+      implementation: |
+         using T = typename Vec::base_type;
+               std::size_t element_count = 1024;
+               testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
+               bool allOk = true;
+               auto reference_data_ptr = test_helper.data_ref();
+               auto reference_result_ptr = test_helper.result_ref();
+               auto test_data_ptr = test_helper.data_target();
+               auto test_result_ptr = test_helper.result_target();
+               auto vec = set1<Vec>( 0 );
+               for(std::size_t i = 0; i < element_count - 2*Vec::vector_element_count(); i+=2*Vec::vector_element_count()) {
+                  std::size_t tester_idx = 0;
+                  for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
+                     reference_result_ptr[tester_idx++] = reference_data_ptr[j]+reference_data_ptr[j+Vec::vector_element_count()];
+                  }
+                  auto elements_vec1 = loadu<Vec>(&test_data_ptr[i]);
+                  auto elements_vec2 = loadu<Vec>(&test_data_ptr[i+Vec::vector_element_count()]);
+                  vec = add<Vec>(elements_vec1, elements_vec2);
+                  storeu<Vec>( test_result_ptr, vec );
+                  test_helper.synchronize();
+                  allOk &= test_helper.validate();
+               }
+               return allOk;
 definitions:
+#CUDA
+   - target_extension: "cuda"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ["cuda"]
+     vector_length_agnostic: True
+     implementation: |
+      typename Vec::register_type vec_c;
+                    size_t element_count = VectorSize / (sizeof({{ ctype }}) * 8);
+                    constexpr auto add = +[]({{ ctype }} a, {{ ctype }} b) { return a + b; };
+                    return launch_elemenwise_op<typename Vec::register_type, add>(vec_a, vec_b, VectorSize);
+#INTEL - AVX512
    - target_extension: "avx512"
-     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
-     ext: {uint8_t: 8, uint16_t: 16, uint32_t: 32, uint64_t: 64}
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
      lscpu_flags: ['avx512f']
-     implementation: "return _mm512_add_epi{{ ext[ctype] }}(vec_a, vec_b);"
+     specialization_comment: "Signed addition."
+     implementation: "return _mm512_add_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+   - target_extension: "avx512"
+     ctype: ["float", "double"]
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_add_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+     lscpu_flags: ['avx2']
+     specialization_comment: "Signed addition."
+     implementation: "return _mm256_add_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+   - target_extension: "avx2"
+     ctype: ["float", "double"]
+     lscpu_flags: ['avx']
+     implementation: "return _mm256_add_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#INTEL - SSE
    - target_extension: "sse"
-     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t" ]
-     lscpu_flags: [ 'sse2' ]
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+     lscpu_flags: ['sse2']
+     specialization_comment: "Signed addition."
      implementation: "return _mm_add_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
    - target_extension: "sse"
-     ctype: [ "float" ]
-     lscpu_flags: [ 'sse' ]
-     implementation: "return _mm_add_ps(vec_a, vec_b);"
+     ctype: ["float"]
+     lscpu_flags: ['sse']
+     implementation: "return _mm_add_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
    - target_extension: "sse"
-     ctype: [ "double" ]
-     lscpu_flags: [ 'sse2' ]
-     implementation: "return _mm_add_pd(vec_a, vec_b);"
-     #ARM - NEON
+     ctype: ["double"]
+     lscpu_flags: ['sse2']
+     implementation: "return _mm_add_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: [ 'neon' ]
      implementation: "return vaddq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );"
+#SCALAR
    - target_extension: "scalar"
-     ctype: ["T"]
+     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
      lscpu_flags: []
      implementation: "return vec_a + vec_b;"
-...
 ---
 primitive_name: "mul"
 brief_description: "Multiplies two vector registers."
@@ -52,19 +135,145 @@ parameters:
 returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing result of the multiplication."
+testing: #optional
+   -  requires: ["loadu", "storeu"]
+      includes: ["<cstddef>"]
+      implementation: |
+         using T = typename Vec::base_type;
+               std::size_t element_count = 1024;
+               testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
+               bool allOk = true;
+               auto reference_data_ptr = test_helper.data_ref();
+               auto reference_result_ptr = test_helper.result_ref();
+               auto test_data_ptr = test_helper.data_target();
+               auto test_result_ptr = test_helper.result_target();
+               for(std::size_t i = 0; i < element_count - (2*Vec::vector_element_count()); i+=(2*Vec::vector_element_count())) {
+                  std::size_t j = i;
+                  for(; j < i + Vec::vector_element_count(); ++j) {
+                     reference_result_ptr[j-i] = reference_data_ptr[j];
+                  }
+                  for(; j < i + (2*Vec::vector_element_count()); ++j) {
+                     reference_result_ptr[j-(i+Vec::vector_element_count())] *= reference_data_ptr[j];
+                  }
+                  auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+                  auto vec_b = loadu<Vec>(&test_data_ptr[i+Vec::vector_element_count()]);
+                  auto vec_result = mul<Vec>(vec_a, vec_b);
+                  storeu<Vec>(test_result_ptr, vec_result);
+                  test_helper.synchronize();
+                  allOk &= test_helper.validate();
+               }
+               return allOk;
 definitions:
-   -  target_extension: "scalar"
-      ctype: [ "T" ]
-      lscpu_flags: [ ]
-      implementation: "return vec_a * vec_b;"
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["float", "double"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_mul_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+   - target_extension: "avx512"
+     ctype: ["uint16_t"]
+     lscpu_flags: ["avx512bw"]
+     specialization_comment: "Signed multiplication."
+     implementation: "return _mm512_mullo_epi16(vec_a, vec_b);"
+   - target_extension: "avx512"
+     ctype: ["int16_t"]
+     lscpu_flags: ["avx512bw"]
+     implementation: "return _mm512_mullo_epi16(vec_a, vec_b);"
+   - target_extension: "avx512"
+     ctype: ["uint32_t", "int32_t"]
+     lscpu_flags: ["avx512f"]
+     specialization_comment: "Signed multiplication."
+     implementation: "return _mm512_mullo_epi32(vec_a, vec_b);"
+   - target_extension: "avx512"
+     ctype: ["uint64_t", "int64_t"]
+     lscpu_flags: ["avx512dq"]
+     specialization_comment: "Signed multiplication."
+     implementation: "return _mm512_mullo_epi64(vec_a, vec_b);"
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+     lscpu_flags: ["avx512f"]
+     is_native: False
+     includes: ["<array>", "<cstddef>"]
+     implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+                     alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+                     _mm512_store_si512(reinterpret_cast<void*>(buffer_a.data()), vec_a);
+                     _mm512_store_si512(reinterpret_cast<void*>(buffer_b.data()), vec_b);
+                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+                        buffer_a[i] *= buffer_b[i];
+                     }
+                     return _mm512_load_si512(reinterpret_cast<void const *>(buffer_a.data()));
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["float", "double"]
+     lscpu_flags: ["avx"]
+     implementation: "return _mm256_mul_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+   - target_extension: "avx2"
+     ctype: ["uint16_t", "int16_t"]
+     lscpu_flags: ["avx2"]
+     specialization_comment: "Signed multiplication."
+     implementation: "return _mm256_mullo_epi16(vec_a, vec_b);"
+   - target_extension: "avx2"
+     ctype: ["uint32_t", "int32_t"]
+     lscpu_flags: ["avx2"]
+     specialization_comment: "Signed multiplication."
+     implementation: "return _mm256_mullo_epi32(vec_a, vec_b);"
+   - target_extension: "avx2"
+     ctype: ["uint64_t", "int64_t"]
+     lscpu_flags: ["avx512dq", "avx512vl"]
+     specialization_comment: "Signed multiplication."
+     implementation: "return _mm256_mullo_epi64(vec_a, vec_b);"
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+     lscpu_flags: ["avx"]
+     is_native: False
+     includes: ["<array>", "<cstddef>"]
+     implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+                     alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+                     _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_a.data()), vec_a);
+                     _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_b.data()), vec_b);
+                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+                        buffer_a[i] *= buffer_b[i];
+                     }
+                     return _mm256_load_si256(reinterpret_cast<__m256i const *>(buffer_a.data()));
+#INTEL - SSE
    - target_extension: "sse"
      ctype: ["float"]
      lscpu_flags: ["sse"]
      implementation: "return _mm_mul_ps(vec_a, vec_b);"
    - target_extension: "sse"
-     ctype: [ "double" ]
-     lscpu_flags: [ "sse2" ]
+     ctype: ["double"]
+     lscpu_flags: ["sse2"]
      implementation: "return _mm_mul_pd(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: ["uint16_t", "int16_t"]
+     lscpu_flags: ["sse2"]
+     specialization_comment: "Signed multiplication."
+     implementation: "return _mm_mullo_epi16(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: ["uint32_t", "int32_t"]
+     lscpu_flags: ["sse4_1"]
+     specialization_comment: "Signed multiplication."
+     implementation: "return _mm_mullo_epi32(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: ["uint64_t", "int64_t"]
+     lscpu_flags: ["avx512dq", "avx512vl"]
+     specialization_comment: "Signed multiplication."
+     implementation: "return _mm_mullo_epi64(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+     lscpu_flags: ["sse2"]
+     is_native: False
+     includes: ["<array>", "<cstddef>"]
+     implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+                     alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+                     _mm_store_si128(reinterpret_cast<__m128i*>(buffer_a.data()), vec_a);
+                     _mm_store_si128(reinterpret_cast<__m128i*>(buffer_b.data()), vec_b);
+                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+                        buffer_a[i] *= buffer_b[i];
+                     }
+                     return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t", "float", "double"]
@@ -81,7 +290,11 @@ definitions:
                      const auto pr = vmovn_{{ intrin_tp[ctype][0] }}64(vec_b);
                      const auto hi = vmulq_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_b), vrev64q_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_a)));
                      return vmlal_{{ intrin_tp[ctype][0] }}32(vshlq_n_{{ intrin_tp[ctype][0] }}64(vpaddlq_{{ intrin_tp[ctype][0] }}32(hi), 32), ac, pr);
-...
+#SCALAR
+   - target_extension: "scalar"
+     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+     lscpu_flags: [ ]
+     implementation: "return vec_a * vec_b;"
 ---
 primitive_name: "hadd"
 brief_description: "Reduces the elements to a sum."
@@ -92,26 +305,156 @@ parameters:
 returns:
    ctype: "typename Vec::base_type"
    description: "Scalar value after adding all elements in the vector."
+testing:
+   -  requires: ["set1"]
+      includes: ["<cstddef>", "<algorithm>", "<limits>"]
+      implementation: |
+         using T = typename Vec::base_type;
+               testing::test_memory_helper_t<Vec> test_helper{1, false};
+               bool allOk = true;
+               auto reference_result_ptr = test_helper.result_ref();
+               auto test_result_ptr = test_helper.result_target();
+               const std::size_t limit = std::min( (size_t) 4096, (size_t) std::numeric_limits<T>::max() / Vec::vector_element_count() );
+               for(std::size_t i = 0; i < limit; ++i) {
+                  *reference_result_ptr =  Vec::vector_element_count() * i;
+                  auto vec = set1<Vec>(i);
+                  *test_result_ptr = hadd<Vec>(vec);
+                  test_helper.synchronize();
+                  allOk &= test_helper.validate();
+               }
+               return allOk;
 definitions:
-   - target_extension: "scalar"
-     ctype: [ "T" ]
-     lscpu_flags: [ ]
-     implementation: "return value;"
-   - target_extension: "sse"
-     ctype: ["float"]
-     lscpu_flags: ["sse3"]
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["float", "double"]
+     lscpu_flags: ["avx512f"]
+     specialization_comment: "Be aware, that this intrinsic is flagged as 'sequence' by INTEL."
+     implementation: "return _mm512_reduce_add_{{ intrin_tp_full[ctype] }}(value);"
+   - target_extension: "avx512"
+     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+     lscpu_flags: ["avx512f"]
+     specialization_comment: "Signed Addition. Be aware, that this intrinsic is flagged as 'sequence' by INTEL."
+     implementation: "return _mm512_reduce_add_epi{{ intrin_tp[ctype][1] }}(value);"
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+     lscpu_flags: ["avx512f"]
+     is_native: False
+     includes: ["<array>", "<cstddef>"]
      implementation: |
-      auto res = _mm_hadd_ps(value, value);
-      return res[1]+res[0];
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
+                     typename Vec::base_type result = 0;
+                     _mm512_store_si512(reinterpret_cast<void*>(buffer.data()), value);
+                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+                        result += buffer[i];
+                     }
+                     return result;
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["double"]
+     lscpu_flags: ["sse2", "sse3", "avx"]
+     is_native: False
+     implementation: |
+      //https://stackoverflow.com/questions/49941645/get-sum-of-values-stored-in-m256d-with-sse-avx
+                     __m128d vlow  = _mm256_castpd256_pd128(value);
+                     __m128d vhigh = _mm256_extractf128_pd(value, 1);
+                     vlow  = _mm_add_pd(vlow, vhigh);
+                     __m128d high64 = _mm_unpackhi_pd(vlow, vlow);
+                     return  _mm_cvtsd_f64(_mm_add_sd(vlow, high64));
+   - target_extension: "avx2"
+     ctype: ["float"]
+     lscpu_flags: ["sse", "sse2", "sse3", "avx"]
+     is_native: False
+     implementation: |
+      __m128 vlow  = _mm256_castps256_ps128(value);
+                     __m128 vhigh = _mm256_extractf128_ps(value, 1);
+                     vlow = _mm_add_ps(vlow, vhigh);
+                     __m128 res = _mm_hadd_ps(vlow, vlow);
+                     return _mm_cvtss_f32(res) + _mm_cvtss_f32(_mm_castsi128_ps(_mm_bsrli_si128(_mm_castps_si128(res),sizeof(float))));
+   - target_extension: "avx2"
+     ctype: ["uint64_t", "int64_t"]
+     lscpu_flags: ["sse2", "avx"]
+     specialization_comment: "Signed Addition."
+     is_native: False
+     implementation: |
+      __m128i vlow = _mm256_castsi256_si128(value);
+                     __m128i vhigh = _mm256_extractf128_si256(value, 1);
+                     vlow = _mm_add_epi64(vlow, vhigh);
+                     __m128i high64 = _mm_unpackhi_epi64(vlow, vlow);
+                     return _mm_cvtsi128_si64(_mm_add_epi64(vlow, high64));
+   - target_extension: "avx2"
+     ctype: ["uint32_t", "int32_t"]
+     lscpu_flags: ["sse2", "ssse3", "avx"]
+     specialization_comment: "Signed Addition."
+     is_native: False
+     implementation: |
+      __m128i vlow = _mm256_castsi256_si128(value);
+                     __m128i vhigh = _mm256_extractf128_si256(value, 1);
+                     vlow = _mm_add_epi32(vlow, vhigh);
+                     __m128i res = _mm_hadd_epi32(vlow, vlow);
+                     return _mm_cvtsi128_si32(res) + _mm_cvtsi128_si32(_mm_bsrli_si128(res,sizeof(uint32_t)));
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+     lscpu_flags: ["avx"]
+     is_native: False
+     includes: ["<array>", "<cstddef>"]
+     implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
+                     typename Vec::base_type result = 0;
+                     _mm256_store_si256(reinterpret_cast<__m256i*>(buffer.data()), value);
+                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+                        result += buffer[i];
+                     }
+                     return result;
+#INTEL - SSE
    - target_extension: "sse"
      ctype: ["double"]
-     lscpu_flags: ["sse3"]
+     lscpu_flags: ["sse2"]
+     is_native: False
      implementation: |
-      auto res = _mm_hadd_pd(value, value);
-      return res[0];
-     #ARM - NEON
+      return _mm_cvtsd_f64(value) + _mm_cvtsd_f64(_mm_castsi128_pd(_mm_bsrli_si128(_mm_castpd_si128(value),sizeof(double))));
+   - target_extension: "sse"
+     ctype: ["float"]
+     lscpu_flags: ["sse", "sse2", "sse3"]
+     is_native: False
+     implementation: |
+      auto res = _mm_hadd_ps(value, value);
+                     return _mm_cvtss_f32(res) + _mm_cvtss_f32(_mm_castsi128_ps(_mm_bsrli_si128(_mm_castps_si128(res),sizeof(float))));
+   - target_extension: "sse"
+     ctype: ["uint64_t", "int64_t"]
+     lscpu_flags: ["sse2", "avx"]
+     specialization_comment: "Signed Addition."
+     is_native: False
+     implementation: |
+      return _mm_cvtsi128_si64(value) + _mm_cvtsi128_si64(_mm_bsrli_si128(value,sizeof(uint64_t)));
+   - target_extension: "sse"
+     ctype: ["uint32_t", "int32_t"]
+     lscpu_flags: ["sse2", "ssse3", "avx"]
+     specialization_comment: "Signed Addition."
+     is_native: False
+     implementation: |
+      auto res = _mm_hadd_epi32(value, value);
+                     return _mm_cvtsi128_si32(res) + _mm_cvtsi128_si32(_mm_bsrli_si128(res,sizeof(uint32_t)));
+   - target_extension: "sse"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+     lscpu_flags: ["sse2"]
+     is_native: False
+     includes: ["<array>", "<cstddef>"]
+     implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
+                     typename Vec::base_type result = 0;
+                     _mm_store_si128(reinterpret_cast<__m128i *>(buffer.data()), value);
+                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+                        result += buffer[i];
+                     }
+                     return result;
+#ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: [ 'neon' ]
      implementation: "return vaddvq_{{ intrin_tp_full[ctype] }}( value );"
+#SCALAR
+   - target_extension: "scalar"
+     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+     lscpu_flags: [ ]
+     implementation: "return value;"
 ...

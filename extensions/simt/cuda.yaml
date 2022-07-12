@@ -1,41 +1,70 @@
 ---
-description: "Definition of the SIMD TargetExtension sse."
+description: "Definition of the SIMD TargetExtension for CUDA."
 vendor: "gpu"
-extension_name: "cude"
-#todo: these are not all lscpu flags but a sample
+extension_name: "cuda"
+language: "CUDA"
 lscpu_flags: ["cuda"]
-#includes: ['"cude_runtime.h"']
-includes: []
+needs_arch_flags: False
+includes: ["<cstddef>", "<cstdint>", "<type_traits>", "<utility>", "<memory>", "<variant>"]
 simdT_name: "cuda"
 simdT_default_size_in_bits: 128
-#i have no clue why vector_size has to be 8 instead of 64... since g++ defines __m512i as typedef long long __m512i __attribute__ ((__vector_size__ (64), __may_alias__));
-simdT_register_type_attributes: |-
-   __attribute__ ((
-               __vector_size__ (
-                  VectorSizeInBits/sizeof(
-                     TVL_DEP_TYPE(
-                        (std::is_integral_v< BaseType >),
-                        long long,
-                        TVL_DEP_TYPE(
-                           (sizeof( BaseType ) == 4),
-                           float,
-                           double
-                        )
-                     )
-                  )
-               ), 
-               __may_alias__, 
-               __aligned__(VectorSizeInBits/sizeof(char))
-               ))
-simdT_register_type: |-
-   TVL_DEP_TYPE(
-                  (std::is_integral_v< BaseType >),
-                  long long,
-                  TVL_DEP_TYPE(
-                     (sizeof( BaseType ) == 4),
-                     float,
-                     double
-                  )
-               )
+custom_types:
+   - name: "cuda_register_type"
+     struct_code: |
+      using vector_size_in_bytes_t = std::integral_constant<std::size_t, (VectorSizeInBits<<3)>;
+                  static inline constexpr std::size_t vector_size_in_bytes_v = vector_size_in_bytes_t::value;
+                  using vector_element_count_t = std::integral_constant<std::size_t, vector_size_in_bytes_v/sizeof(BaseType)>;
+                  static inline constexpr std::size_t vector_element_count_v = vector_element_count_t::value;
+                  std::variant<std::shared_ptr<BaseType>, BaseType *> data;
+                  cuda_register_type(void)
+                  : data{std::shared_ptr<BaseType>(reinterpret_cast<BaseType*>(malloc(vector_size_in_bytes_v)), [](void* p){ free(p); })}{}
+                  explicit cuda_register_type(BaseType * ptr)
+                  : data{ptr}{}
+                  cuda_register_type(cuda_register_type const & other)
+                  : data{other.data}{}
+                  cuda_register_type(cuda_register_type && other)
+                  : data{std::exchange(other.data, nullptr)}{}
+                  cuda_register_type & operator=(cuda_register_type const & other) {
+                     if(this != &other) {
+                         data = other.data;
+                     }
+                     return *this;
+                  }
+                  cuda_register_type & operator=(cuda_register_type && other) {
+                     if(this != &other) {
+                         data = std::exchange(other.data, nullptr);
+                     }
+                     return *this;
+                  }
+                  ~cuda_register_type(void) {}
+                  auto operator*() {
+                     if(std::holds_alternative<BaseType*>(data)) {
+                         return std::get<BaseType*>(data);
+                     } else {
+                         return (std::get<std::shared_ptr<BaseType>>(data)).get();
+                     }
+                  }
+simdT_register_type: cuda_register_type<BaseType, VectorSizeInBits>;
 simdT_mask_type: "register_t"
+#cmake_minimum_required(VERSION 3.13)
+#project(cmake_and_cuda LANGUAGES CXX CUDA)
+#
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+#
+#
+#add_library(tvl_gpu STATIC)
+#target_compile_features(tvl_gpu PUBLIC cxx_std_14)
+#target_sources(tvl_gpu
+#  PUBLIC include/gpu_test/randomize.cpp
+#  PUBLIC include/gpu_test/randomize.h
+#  PUBLIC include/gpu_test/particle.cu
+#  PUBLIC include/gpu_test/particle.h
+#  PUBLIC include/gpu_test/v3.cu
+#  PUBLIC include/gpu_test/v3.h
+#)
+#set_target_properties(tvl_gpu PROPERTIES
+#   CUDA_SEPARABLE_COMPILATION ON
+#   POSITION_INDEPENDENT_CODE ON
+#   CUDA_ARCHITECTURES OFF
+#)
 ...
