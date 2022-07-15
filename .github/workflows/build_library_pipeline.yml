@@ -1,0 +1,65 @@
+name: Building Library
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: "Install packages"
+      run: |
+        sudo apt-get update
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
+        sudo apt-get update
+        sudo apt-get install graphviz-dev util-linux build-essential clang-12 cmake g++-10
+    - name: "Run LSCPU"
+      run: |
+        lscpu
+    - name: Get branch names
+      id: branch-name
+      uses: tj-actions/branch-names@v4.9
+    - name: Checkout TVL repository (recursive)
+      uses: actions/checkout@v3
+      with:
+        repository: db-tu-dresden/TVLGen.git
+        ref: main
+        token: '${{ secrets.DHTVL_AT }}'
+    - name: Checkout TVL Primitive Data repository
+      uses: actions/checkout@v3
+      with:
+        repository: db-tu-dresden/TVLPrimitiveData.git
+        ref: ${{ github.event.pull_request.head.sha }}
+        token: '${{ secrets.DHTVL_AT }}'
+        path: primitive_data
+    - name: Setup Git Creds
+      run: |
+        git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+        git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+    - name: Set up Python 3.10.2
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.10.2"
+    - name: Install generator dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f ./requirements.txt ]; then pip install -r ./requirements.txt; fi
+    - name: CXX20 - Execute library generation, build
+      run: |
+        #!/bin/bash
+        set -x
+        python3 main.py --targets $(LANG=en;lscpu | grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' ') --no-workaround-warnings -o ./lib
+        mkdir lib/build_clang && mkdir lib/build_gcc
+        cd lib/build_clang && CC=clang CXX=clang++ cmake .. && make && cd -
+        cd lib/build_gcc && CC=gcc-10 CXX=g++-10 cmake .. && make && cd -
+        rm -rf lib
+    - name: CXX17 - Execute library generation, build
+      run: |
+        #!/bin/bash
+        python3 main.py --targets $(LANG=en;lscpu | grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' ') --no-workaround-warnings --no-concepts -o ./lib
+        mkdir lib/build_clang && mkdir lib/build_gcc
+        cd lib/build_clang && CC=clang CXX=clang++ cmake .. && make && cd -
+        cd lib/build_gcc && CC=gcc CXX=g++ cmake .. && make && cd -
