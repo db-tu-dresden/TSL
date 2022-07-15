@@ -1,5 +1,5 @@
 from core.tvl_config import config, parse_args
-
+import sys, os
 from pathlib import Path
 
 from core.tvl_generator import TVLGenerator
@@ -17,6 +17,7 @@ def tvl_setup(config_path: Path, additional_config=None) -> None:
 
 
 if __name__ == '__main__':
+    os.chdir(Path(os.path.realpath(__file__)).parent)
     args_dict = parse_args()
     tvl_setup(Path("config/default_conf.yaml"), args_dict)
     gen = TVLGenerator()
