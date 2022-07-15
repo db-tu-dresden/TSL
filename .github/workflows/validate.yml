@@ -13,7 +13,9 @@ jobs:
     - name: "Install packages"
       run: |
         sudo apt-get update
-        sudo apt-get install graphviz-dev util-linux build-essential clang-12 cmake
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
+        sudo apt-get update
+        sudo apt-get install graphviz-dev util-linux build-essential clang-12 cmake g++-10
     - name: "Run LSCPU"
       run: |
         lscpu
@@ -62,7 +64,7 @@ jobs:
         python3 main.py --targets $(LANG=en;lscpu | grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' ') --no-workaround-warnings -o ./lib
         mkdir lib/build_clang && mkdir lib/build_gcc
         cd lib/build_clang && CC=clang CXX=clang++ cmake .. && make && src/test/tvl_test && cd -
-        cd lib/build_gcc && CC=gcc CXX=g++ cmake .. && make && src/test/tvl_test && cd -
+        cd lib/build_gcc && CC=gcc-10 CXX=g++-10 cmake .. && make && src/test/tvl_test && cd -
         rm -rf lib
     - name: CXX17 - Execute library generation, build and run tests
       run: |
