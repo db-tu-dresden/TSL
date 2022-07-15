@@ -33,6 +33,10 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         token: '${{ secrets.DHTVL_AT }}'
         path: primitive_data
+    - name: Ls
+      run: |
+        #!/bin/bash
+        ls -halt
     - name: Setup Git Creds
       run: |
         git config --global user.email "johannes.pietrzyk@tu-dresden.de"
