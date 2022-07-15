@@ -13,11 +13,10 @@ jobs:
     - name: "Install packages"
       run: |
         sudo apt-get update
-        sudo apt-get install graphviz-dev
-        sudo apt-get install util-linux
+        sudo apt-get install graphviz-dev util-linux build-essential clang-14 cmake3         
     - name: "Run LSCPU"
       run: |
-        lscpu    
+        lscpu
     - name: Get branch names
       id: branch-name
       uses: tj-actions/branch-names@v4.9
@@ -46,9 +45,20 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f ./requirements.txt ]; then pip install -r ./requirements.txt; fi
-    - name: Execute code generation
+    - name: CXX20 - Execute library generation, build and run tests
       run: |
         #!/bin/bash
-        python tvlgen.py -o ./lib -c config -d primitive_data
+        python3 main.py --targets $(LANG=en;lscpu | grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' ') --no-workaround-warnings -o ./lib
+        mkdir lib/build_clang && mkdir lib/build_gcc
+        cd lib/build_clang && CC=clang CXX=clang++ cmake .. && make && src/test/tvl_test && cd -
+        cd lib/build_gcc && CC=gcc CXX=g++ cmake .. && make && src/test/tvl_test && cd -
+        rm -rf lib
+    - name: CXX17 - Execute library generation, build and run tests
+      run: |
+        #!/bin/bash
+        python3 main.py --targets $(LANG=en;lscpu | grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' ') --no-workaround-warnings --no-concepts -o ./lib
+        mkdir lib/build_clang && mkdir lib/build_gcc
+        cd lib/build_clang && CC=clang CXX=clang++ cmake .. && make && src/test/tvl_test && cd -
+        cd lib/build_gcc && CC=gcc CXX=g++ cmake .. && make && src/test/tvl_test && cd -
 #        cd - && cd primitive_data && ls -halt
 #        git status && git branch && cat .github/workflows/validate.yml
