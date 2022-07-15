@@ -13,7 +13,7 @@ jobs:
     - name: "Install packages"
       run: |
         sudo apt-get update
-        sudo apt-get install graphviz-dev util-linux build-essential clang-14 cmake3         
+        sudo apt-get install graphviz-dev util-linux build-essential clang-13 cmake        
     - name: "Run LSCPU"
       run: |
         lscpu
