@@ -13,7 +13,7 @@ jobs:
     - name: "Install packages"
       run: |
         sudo apt-get update
-        sudo apt-get install graphviz-dev util-linux build-essential clang-12 cmake        
+        sudo apt-get install graphviz-dev util-linux build-essential clang-12 cmake
     - name: "Run LSCPU"
       run: |
         lscpu
@@ -36,6 +36,7 @@ jobs:
     - name: Ls
       run: |
         #!/bin/bash
+        which dot
         ls -halt
     - name: Setup Git Creds
       run: |
