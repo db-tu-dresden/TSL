@@ -52,6 +52,7 @@ jobs:
     - name: CXX20 - Execute library generation, build and run tests
       run: |
         #!/bin/bash
+        set -x
         python3 main.py --targets $(LANG=en;lscpu | grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' ') --no-workaround-warnings -o ./lib
         mkdir lib/build_clang && mkdir lib/build_gcc
         cd lib/build_clang && CC=clang CXX=clang++ cmake .. && make && src/test/tvl_test && cd -
