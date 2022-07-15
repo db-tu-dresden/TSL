@@ -308,14 +308,32 @@ class TVLGeneratorConfig:
         return GitUtils.get_git_data().create_version_str()
 
 
+
+
 config = TVLGeneratorConfig()
 
 
-def add_bool_arg(parser, name, dest, **kwargs):
+def add_bool_arg(parser, name, dest, help_true_prefix="", help_false_prefix="", default=True, **kwargs):
+    true_args = copy.deepcopy(kwargs)
+    false_args = kwargs
+    if "help" in kwargs:
+        if default:
+            true_args["help"] = f"{help_true_prefix}{true_args['help']} (Default)"
+            false_args["help"] = f"{help_false_prefix}{true_args['help']}"
+        else:
+            true_args["help"] = f"{help_true_prefix}{true_args['help']}"
+            false_args["help"] = f"{help_false_prefix}{true_args['help']} (Default)"
+    else:
+        if default:
+            true_args["help"] = f"(Default)"
+            false_args["help"] = f""
+        else:
+            true_args["help"] = f""
+            false_args["help"] = f"(Default)"
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--' + name, dest=dest, action='store_true', **kwargs)
-    group.add_argument('--no-' + name, dest=dest, action='store_false', **kwargs)
-    parser.set_defaults(**{dest:True})
+    group.add_argument('--' + name, dest=dest, action='store_true', **true_args)
+    group.add_argument('--no-' + name, dest=dest, action='store_false', **false_args)
+    parser.set_defaults(**{dest:default})
 
 
 
@@ -329,13 +347,13 @@ def parse_args() -> dict:
     parser.add_argument('--targets', default=None, nargs='*',
                         help='List of target flags which match the lscpu_flags from the extension/primitive files.',
                         dest='targets')
-    add_bool_arg(parser, 'workaround-warnings', 'configuration:emit_workaround_warnings', help='Enable or disable workaround warnings (Default: True).', required=False)
-    add_bool_arg(parser, 'concepts', 'configuration:use_concepts', help='Enable or disable C++20 concepts (Default: True).', required=False)
-
-    add_bool_arg(parser, 'cmake', 'configuration:expansions:cmake:enabled',
-                 help="(De)Activate CMake generation", required=False)
-    add_bool_arg(parser, 'testing', 'configuration:expansions:unit_tests:enabled',
-                 help="(De)Activate Unit test generation", required=False)
+    add_bool_arg(parser, 'workaround-warnings', 'configuration:emit_workaround_warnings', "Enable ", "Disable ", True, help='workaround warnings', required=False)
+    add_bool_arg(parser, 'concepts', 'configuration:use_concepts', "Enable ", "Disable ", True, help='C++20 concepts.', required=False)
+    add_bool_arg(parser, 'draw-test-dependencies', 'configuration:expansions:unit_tests:draw_dependency_graph', "Enable ", "Disable ", False, help="draw dependency graph for test generation", required=False)
+    add_bool_arg(parser, 'cmake', 'configuration:expansions:cmake:enabled', "Activate ", "Deactivate ", True,
+                 help="CMake generation", required=False)
+    add_bool_arg(parser, 'testing', 'configuration:expansions:unit_tests:enabled', "Activate ", "Deactivate ", True,
+                 help="Unit test generation", required=False)
     regex = re.compile(r"([^:]+):{0,1}")
     args = parser.parse_args()
     args_dict = dict()
