@@ -55,19 +55,22 @@ class GitUtils:
     @staticmethod
     def get_git_data() -> GitUtils:
         local_path: Path = Path().resolve()
-        remote_url: str = subprocess.check_output(["git", "config", "--get", "remote.origin.url"]).strip().decode(
-            "utf-8")
-        branch: str = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).strip().decode("utf-8")
-        abbrev_hash: str = subprocess.check_output(["git", "describe", "--always"]).strip().decode("utf-8")
-        hash: str = subprocess.check_output(["git", "rev-parse", abbrev_hash]).strip().decode("utf-8")
-        submodules_status: List[str] = subprocess.check_output(["git", "submodule", "status"]).strip().decode(
-            "utf-8").split("\n")
-        submodules: List[GitUtils] = []
-        for submodule_str in submodules_status:
-            if len(submodule_str) == 0:
-                continue
-            submodule_path: str = GitUtils.submodule_regex_pattern.search(submodule_str).group(2)
-            os.chdir(local_path.joinpath(submodule_path))
-            submodules.append(GitUtils.get_git_data())
-            os.chdir(local_path)
-        return GitUtils(local_path, remote_url, branch, abbrev_hash, hash, submodules)
+        try:
+            remote_url: str = subprocess.check_output(["git", "config", "--get", "remote.origin.url"]).strip().decode(
+                "utf-8")
+            branch: str = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"]).strip().decode("utf-8")
+            abbrev_hash: str = subprocess.check_output(["git", "describe", "--always"]).strip().decode("utf-8")
+            hash: str = subprocess.check_output(["git", "rev-parse", abbrev_hash]).strip().decode("utf-8")
+            submodules_status: List[str] = subprocess.check_output(["git", "submodule", "status"]).strip().decode(
+                "utf-8").split("\n")
+            submodules: List[GitUtils] = []
+            for submodule_str in submodules_status:
+                if len(submodule_str) == 0:
+                    continue
+                submodule_path: str = GitUtils.submodule_regex_pattern.search(submodule_str).group(2)
+                os.chdir(local_path.joinpath(submodule_path))
+                submodules.append(GitUtils.get_git_data())
+                os.chdir(local_path)
+            return GitUtils(local_path, remote_url, branch, abbrev_hash, hash, submodules)
+        except:
+            return GitUtils(local_path, "unknown url", "unknown branch", "unknown commit", "unknown commit", [])
