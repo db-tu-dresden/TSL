@@ -44,13 +44,13 @@ definitions:
      lscpu_flags: ['avx', 'avx2']
      specialization_comment: "Signed comparison."
      is_native: False
-     implementation: "return _mm256_cmpeq_epi32(_mm256_castps_si256(vec_a), _mm256_castps_si256(vec_b));"
+     implementation: "return _mm256_castsi256_ps(_mm256_cmpeq_epi32(_mm256_castps_si256(vec_a), _mm256_castps_si256(vec_b)));"
    - target_extension: "avx2"
-     ctype: ["float"]
+     ctype: ["double"]
      lscpu_flags: ['avx', 'avx2']
      specialization_comment: "Signed comparison."
      is_native: False
-     implementation: "return _mm256_cmpeq_epi64(_mm256_castpd_si256(vec_a), _mm256_castpd_si256(vec_b));"
+     implementation: "return _mm256_castsi256_pd(_mm256_cmpeq_epi64(_mm256_castpd_si256(vec_a), _mm256_castpd_si256(vec_b)));"
 #INTEL - SSE
    - target_extension: "sse"
      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t"]
