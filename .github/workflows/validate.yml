@@ -41,6 +41,12 @@ jobs:
       run: |
         git config --global user.email "johannes.pietrzyk@tu-dresden.de"
         git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+    - name: Git stuff
+      run: |
+        #!/bin/bash
+        git config --get remote.origin.url
+        git rev-parse --abbrev-ref HEAD
+        git submodule status
     - name: Set up Python 3.10.2
       uses: actions/setup-python@v2
       with:
