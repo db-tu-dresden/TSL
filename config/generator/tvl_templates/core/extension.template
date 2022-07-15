@@ -7,12 +7,12 @@
 {% endif %}
 struct {{ simdT_name }} {
 {% for custom_type in custom_types %}
-      template<Arithmetic BaseType, std::size_t VectorSizeInBits = {{ ns.default_vector_size }}>
+      template<TVLArithmetic BaseType, std::size_t VectorSizeInBits = {{ ns.default_vector_size }}>
          struct {{ custom_type['name'] }} {
             {{ custom_type['struct_code'] }}
          };
 {% endfor %}
-      template<Arithmetic BaseType, std::size_t VectorSizeInBits = {{ ns.default_vector_size }}>
+      template<TVLArithmetic BaseType, std::size_t VectorSizeInBits = {{ ns.default_vector_size }}>
          struct types {
             using default_size_in_bits = std::integral_constant<std::size_t, VectorSizeInBits>;
             using register_t {{ simdT_register_type_attributes }} =

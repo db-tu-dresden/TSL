@@ -242,6 +242,10 @@ class TVLGeneratorConfig:
         return self.get_config_entry("use_concepts")
 
     @property
+    def emit_workaround_warnings(self) -> bool:
+        return self.get_config_entry("emit_workaround_warnings")
+
+    @property
     def static_files_root_path(self) -> Path:
         return Path(self.get_configuration_files_entry("static_files")["root_path"])
 
@@ -325,11 +329,13 @@ def parse_args() -> dict:
     parser.add_argument('--targets', default=None, nargs='*',
                         help='List of target flags which match the lscpu_flags from the extension/primitive files.',
                         dest='targets')
+    add_bool_arg(parser, 'workaround-warnings', 'configuration:emit_workaround_warnings', help='Enable or disable workaround warnings (Default: True).', required=False)
+    add_bool_arg(parser, 'concepts', 'configuration:use_concepts', help='Enable or disable C++20 concepts (Default: True).', required=False)
+
     add_bool_arg(parser, 'cmake', 'configuration:expansions:cmake:enabled',
                  help="(De)Activate CMake generation", required=False)
     add_bool_arg(parser, 'testing', 'configuration:expansions:unit_tests:enabled',
                  help="(De)Activate Unit test generation", required=False)
-
     regex = re.compile(r"([^:]+):{0,1}")
     args = parser.parse_args()
     args_dict = dict()

@@ -8,7 +8,7 @@ includes:
 implementations:
    - >
       template<
-            Arithmetic BaseType,
+            TVLArithmetic BaseType,
       #ifdef TVL_USE_CONCEPTS
             TargetExtension<BaseType> TargetExtensionType,
       #else

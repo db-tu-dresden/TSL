@@ -2,18 +2,19 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-{% for primitive_class_test in tests %}
-{%    for primitive_test in primitive_class_test['primitive_tests'] %}
-{%       for case in primitive_test['cases'] %}
-template<VectorProcessingStyle {{ primitive_test['vector_name'] }}>
-   bool test_{{ case['primitive_name'] }}_{{ case['test_name'] }}() {
-      using namespace {{ tvl_namespace }};
-      {{ case['implementation'] }}
-   }
-{%       endfor %}
-{%    endfor %}
-{% endfor %}
-
+namespace {{ tvl_namespace }} {
+  {% for primitive_class_test in tests %}
+  {%    for primitive_test in primitive_class_test['primitive_tests'] %}
+  {%       for case in primitive_test['cases'] %}
+  template<VectorProcessingStyle {{ primitive_test['vector_name'] }}>
+     bool test_{{ case['primitive_name'] }}_{{ case['test_name'] }}() {
+        using namespace {{ tvl_namespace }};
+        {{ case['implementation'] }}
+     }
+  {%       endfor %}
+  {%    endfor %}
+  {% endfor %}
+}
 
 {% for primitive_class_test in tests %}
 {%    for primitive_test in primitive_class_test['primitive_tests'] %}

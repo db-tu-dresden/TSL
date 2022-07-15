@@ -3,9 +3,10 @@ configuration:
    namespace:                     "tvl"
    header_file_extension:         ".hpp"
    source_file_extension:         ".cpp"
-   root_path:                     "../lib"
+   root_path:                     "../libs/tvl"
    compiler_architecture_prefix:  "-m"
-   use_concepts:                  False
+   use_concepts:                  True
+   emit_workaround_warnings:      True
    default_types:                 ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
    library:
       root_path:                  "include"

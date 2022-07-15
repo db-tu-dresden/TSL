@@ -203,7 +203,7 @@ primitive:
          example: "test_add"
       tvl_implementation_namespace:
          type: "str"
-         default: "details"
+         default: "functors"
          brief: "Namespace for template specializations."
       brief_description:
          type: "str"

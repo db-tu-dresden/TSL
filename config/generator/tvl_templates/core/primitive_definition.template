@@ -15,7 +15,7 @@
 {% if vector_length_agnostic %}
 {% set ns.simd_register_length = ', VectorSize' %}
 {% elif vector_length_bits != 0 %}
-{% set ns.simd_register_length = ', {{ vector_length_bits }}' %}
+{% set ns.simd_register_length = ', ' ~ vector_length_bits %}
 {% else %}
 {% set ns.simd_register_length = '' %}
 {% endif %}
@@ -57,7 +57,7 @@ namespace {{ tvl_implementation_namespace }} {
        */
       template<{{ 'typename T, ' if ns.partial_specialized else '' }}{{ 'std::size_t VectorSize, ' if vector_length_agnostic else '' }}ImplementationDegreeOfFreedom {{ idof_name }}>
 {# If the vector_length_bits is specified in the yaml file, a specialization is generated. #}
-         struct {{ primitive_name }}_impl<simd<{{ ctype }}, {{ target_extension }}{{ ns.simd_register_length }}>, {{ idof_name }}> {
+         struct {{ primitive_name }}<simd<{{ ctype }}, {{ target_extension }}{{ ns.simd_register_length }}>, {{ idof_name }}> {
             using {{ vector_name }} = simd<{{ ctype }}, {{ target_extension }}{{ ns.simd_register_length }}>;
             static constexpr bool native_supported() {
    {# If there is hardware support this function returns true, false otherwise. #}
@@ -80,4 +80,4 @@ namespace {{ tvl_implementation_namespace }} {
                {{ implementation }}
             }
          };
-   } // end of namespace {{ tvl_implementation_namespace }} for template specialization of {{ primitive_name }}_impl for {{ target_extension }} using {{ ctype }}.
+   } // end of namespace {{ tvl_implementation_namespace }} for template specialization of {{ primitive_name }} for {{ target_extension }} using {{ ctype }}.

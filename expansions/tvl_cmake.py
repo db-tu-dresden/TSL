@@ -29,6 +29,11 @@ class TVLCMakeGenerator:
                             f = arch_flags[flag]
                         result.add(f"{config.compiler_architecture_prefix}{f}")
             return " ".join(result)
+        def get_warning_options() -> str:
+            app = ''
+            if not config.emit_workaround_warnings:
+                app = "no-"
+            return f"-W{app}deprecated-declarations"
 
         header_files: List[Path] = [strip_common_path_prefix(hf.file_name, config.generation_out_path) for hf in file_generator.library_files]
 
@@ -38,7 +43,7 @@ class TVLCMakeGenerator:
                     **{
                         "header_files": header_files,
                         "library_root_path": f"{strip_common_path_prefix(config.lib_root_path, config.generation_out_path)}/",
-                        "tvl_target_compile_options": get_architecture_flags(lib),
+                        "tvl_target_compile_options": f"{get_architecture_flags(lib)} {get_warning_options()}",
                         "use_concepts": config.use_concepts,
                         "subdirectories": [strip_common_path_prefix(path, config.generation_out_path) for path, translation_units in translation_units.translation_units]
                     }
