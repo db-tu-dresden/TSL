@@ -36,7 +36,6 @@ jobs:
     - name: Ls
       run: |
         #!/bin/bash
-        which dot
         ls -halt
     - name: Setup Git Creds
       run: |
