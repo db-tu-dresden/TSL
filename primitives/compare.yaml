@@ -18,24 +18,59 @@ returns:
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"
-     ctype: "int64_t"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+     lscpu_flags: ['avx512bw']
+     specialization_comment: "Signed comparison."
+     implementation: "return _mm512_cmpeq_epi{{ intrin_tp[ctype][1] }}_mask(vec_a, vec_b);"
+   - target_extension: "avx512"
+     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
      lscpu_flags: ['avx512f']
-     implementation: "return _mm512_cmpeq_epi64_mask( vec_a, vec_b );"
+     specialization_comment: "Signed comparison."
+     implementation: "return _mm512_cmpeq_epi{{ intrin_tp[ctype][1] }}_mask(vec_a, vec_b);"
+   - target_extension: "avx512"
+     ctype: ["float", "double"]
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+#todo: Implement 128/256 bit variants.
+#todo: Conceptional challenge: simd<T, avx512, 256> as Processingstyle would require all primitives to have a related definition... Maybe implement a cast?
 #INTEL - AVX2
    - target_extension: "avx2"
-     ctype: "int64_t"
-     lscpu_flags: [ 'avx2' ]
-     implementation: "return _mm256_cmpeq_epi64( vec_a, vec_b );"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+     lscpu_flags: ['avx2']
+     specialization_comment: "Signed comparison."
+     implementation: "return _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+   - target_extension: "avx2"
+     ctype: ["float"]
+     lscpu_flags: ['avx', 'avx2']
+     specialization_comment: "Signed comparison."
+     is_native: False
+     implementation: "return _mm256_cmpeq_epi32(_mm256_castps_si256(vec_a), _mm256_castps_si256(vec_b));"
+   - target_extension: "avx2"
+     ctype: ["float"]
+     lscpu_flags: ['avx', 'avx2']
+     specialization_comment: "Signed comparison."
+     is_native: False
+     implementation: "return _mm256_cmpeq_epi64(_mm256_castpd_si256(vec_a), _mm256_castpd_si256(vec_b));"
 #INTEL - SSE
    - target_extension: "sse"
-     ctype: "int64_t"
-     lscpu_flags: [ 'sse4_1' ]
-     implementation: "return _mm_cmpeq_epi64( vec_a, vec_b );"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t"]
+     lscpu_flags: ['sse2']
+     implementation: "return _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: ["int64_t", "uint64_t"]
+     lscpu_flags: ['sse4_1']
+     specialization_comment: "Signed comparison."
+     implementation: "return _mm_cmpeq_epi64(vec_a,vec_b);"
 #ARM - NEON
    - target_extension: "neon"
-     ctype: "int64_t"
-     lscpu_flags: [ 'neon' ]
-     implementation: "return vceqq_s64( vec_a, vec_b );"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+     lscpu_flags: ['neon']
+     implementation: "return vceqq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return (vec_a == vec_b);"
 ...
 ---
 primitive_name: "between_inclusive"
