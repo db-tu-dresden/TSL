@@ -15,6 +15,32 @@ parameters:
 returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing result of the binary AND."
+testing: #optional
+   -  test_name: "and_as_compare"
+      requires: ["storeu", "loadu"]
+      includes: ["<cstddef>"]
+      implementation: |
+         using T = typename Vec::base_type;
+               std::size_t element_count = 1024;
+               testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+               bool allOk = true;
+               auto reference_data_ptr = test_helper.data_ref();
+               auto reference_result_ptr = test_helper.result_ref();
+               auto test_data_ptr = test_helper.data_target();
+               auto test_result_ptr = test_helper.result_target();
+               for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+                  std::size_t tester_idx = 0;
+                  for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+                     reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+                  }
+                  auto vec1 = loadu<Vec>( &test_data_ptr[i] );
+                  auto vec2 = loadu<Vec>( &test_data_ptr[i] );
+                  auto result = binary_and<Vec>( vec1, vec2 );
+                  storeu<Vec>( test_result_ptr, result );
+                  test_helper.synchronize();
+                  allOk &= test_helper.validate();
+               }
+               return allOk;
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"
