@@ -99,6 +99,7 @@ definitions:
      ctype: [ "float" ]
      lscpu_flags: []
      is_native: False
+     specialization_comment: "Benchmark what to use. Current implementation or: uint32_t c = (*((uint32_t *)&a) & *((uint32_t *)&b)); return *((float *)&c);"
      implementation: |
         float c = 0.0;
         unsigned char *a1 = reinterpret_cast<unsigned char *>(&a);
@@ -109,7 +110,6 @@ definitions:
         c1[2] = a1[2] & b1[2];
         c1[3] = a1[3] & b1[3];
         return c;
-     specialization_comment: "Benchmark what to use. Current implementation or: uint32_t c = (*((uint32_t *)&a) & *((uint32_t *)&b)); return *((float *)&c);"
    - target_extension: "scalar"
      ctype: ["double"]
      lscpu_flags: []
@@ -128,5 +128,5 @@ definitions:
         c1[6] = a1[6] & b1[6];
         c1[7] = a1[7] & b1[7];
         return c;
-      specialization_comment: "Benchmark what to use. Current implementation or: uint64_t c = (*((uint64_t *)&a) & *((uint64_t *)&b)); return *((double *)&c);"
+     specialization_comment: "Benchmark what to use. Current implementation or: uint64_t c = (*((uint64_t *)&a) & *((uint64_t *)&b)); return *((double *)&c);"
 ...

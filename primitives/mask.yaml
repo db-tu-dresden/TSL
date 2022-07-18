@@ -12,6 +12,51 @@ parameters:
 returns:
    ctype: "typename Vec::imask_type"
    description: "Integral value representing of the vector mask register."
+testing: #optional
+   -  test_name: "mask_match_zero_to_vec_count"
+      requires: ["loadu"]
+      includes: ["<cstddef>", "<array>"]
+      implementation: |
+         using T = typename Vec::base_type;
+               bool allOk = true;
+               /*
+               // For Vec::mask_type == Vec::register_type testing
+               std::array< T, Vec::vector_element_count() > pseudo_mask;
+               typename Vec::mask_type vec_mask;
+
+               for(std::size_t i = 0; i < Vec::vector_element_count() + 1; i++) {
+                  // To check if we are at AVX512/Scalar or any register type mask
+                  if constexpr (std::is_same_v<bool, typename Vec::imask_type>) {
+                     // e.g. Scalar (bool)
+                     for ( std::size_t j = 0; j < i; ++j ) {
+                        vec_mask = (vec_mask << 1) | 0b1;
+                     }
+                  } else if constexpr (std::is_same_v<typename Vec::mask_type, typename Vec::imask_type>) {
+                     // // e.g. AVX512
+                     vec_mask = 0;
+                     for ( std::size_t j = 0; j < i; ++j ) {
+                        vec_mask = (vec_mask << 1) | 0b1;
+                     }
+                  } else {
+                     // e.g. SSE, AVX2
+                     pseudo_mask.fill( 0 );
+                     for ( std::size_t j = 0; j < i; ++j ) {
+                        pseudo_mask[ i ] = -1;
+                     }
+                     vec_mask = loadu<Vec>( (typename Vec::base_type*) &pseudo_mask );
+                  }
+
+                  auto mask_integral = to_integral( vec_mask );
+                  std::size_t matches = 0;
+                  for ( std::size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+                    if ( ( mask_integral >> i ) & 0b1 == 1 ) {
+                      matches += 1;
+                    }
+                  }
+                  allOk &= (matches == i);
+               }
+               */
+               return false;
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"
