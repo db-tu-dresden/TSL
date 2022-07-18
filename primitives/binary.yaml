@@ -98,9 +98,33 @@ definitions:
    - target_extension: "scalar"
      ctype: [ "float" ]
      lscpu_flags: []
-     implementation: "return (uint32_t) a & (uint32_t)b;"
+     implementation: |
+        float c = 0.0;
+        unsigned char *a1 = reinterpret_cast<unsigned char *>(&a);
+        unsigned char *b1 = reinterpret_cast<unsigned char *>(&b);
+        unsigned char *c1 = reinterpret_cast<unsigned char *>(&c);
+
+        c1[0] = a1[0] & b1[0];
+        c1[1] = a1[1] & b1[1];
+        c1[2] = a1[2] & b1[2];
+        c1[3] = a1[3] & b1[3];
+        return c;
    - target_extension: "scalar"
      ctype: ["double"]
      lscpu_flags: []
-     implementation: "return (uint64_t) a & (uint64_t)b;"
+     implementation: |
+        double c = 0.0;
+        unsigned char *a1 = reinterpret_cast<unsigned char *>(&a);
+        unsigned char *b1 = reinterpret_cast<unsigned char *>(&b);
+        unsigned char *c1 = reinterpret_cast<unsigned char *>(&c);
+
+        c1[0] = a1[0] & b1[0];
+        c1[1] = a1[1] & b1[1];
+        c1[2] = a1[2] & b1[2];
+        c1[3] = a1[3] & b1[3];
+        c1[4] = a1[4] & b1[4];
+        c1[5] = a1[5] & b1[5];
+        c1[6] = a1[6] & b1[6];
+        c1[7] = a1[7] & b1[7];
+        return c;
 ...
