@@ -351,7 +351,8 @@ definitions:
 #INTEL - AVX2
    - target_extension: "avx2"
      ctype: ["double"]
-     lscpu_flags: ["sse2", "sse3", "avx"]
+     specialization_comment: "This instruction needs sse3. However, most intel cpus only provide ssse3 (which is a superset sse3)."
+     lscpu_flags: ["sse2", "ssse3", "avx"]
      is_native: False
      implementation: |
       //https://stackoverflow.com/questions/49941645/get-sum-of-values-stored-in-m256d-with-sse-avx
@@ -362,7 +363,8 @@ definitions:
                      return  _mm_cvtsd_f64(_mm_add_sd(vlow, high64));
    - target_extension: "avx2"
      ctype: ["float"]
-     lscpu_flags: ["sse", "sse2", "sse3", "avx"]
+     specialization_comment: "This instruction needs sse3. However, most intel cpus only provide ssse3 (which is a superset sse3)."
+     lscpu_flags: ["sse", "sse2", "ssse3", "avx"]
      is_native: False
      implementation: |
       __m128 vlow  = _mm256_castps256_ps128(value);
@@ -383,8 +385,8 @@ definitions:
                      return _mm_cvtsi128_si64(_mm_add_epi64(vlow, high64));
    - target_extension: "avx2"
      ctype: ["uint32_t", "int32_t"]
+     specialization_comment: "Signed Addition. This instruction needs sse3. However, most intel cpus only provide ssse3 (which is a superset sse3)."
      lscpu_flags: ["sse2", "ssse3", "avx"]
-     specialization_comment: "Signed Addition."
      is_native: False
      implementation: |
       __m128i vlow = _mm256_castsi256_si128(value);
@@ -414,7 +416,8 @@ definitions:
       return _mm_cvtsd_f64(value) + _mm_cvtsd_f64(_mm_castsi128_pd(_mm_bsrli_si128(_mm_castpd_si128(value),sizeof(double))));
    - target_extension: "sse"
      ctype: ["float"]
-     lscpu_flags: ["sse", "sse2", "sse3"]
+     specialization_comment: "This instruction needs sse3. However, most intel cpus only provide ssse3 (which is a superset sse3)."
+     lscpu_flags: ["sse", "sse2", "ssse3"]
      is_native: False
      implementation: |
       auto res = _mm_hadd_ps(value, value);
