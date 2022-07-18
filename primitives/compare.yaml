@@ -45,6 +45,35 @@ testing: #optional
                   allOk &= test_helper.validate();
                }
                return allOk;
+   -  test_name: "none_equal"
+      requires: ["to_integral", "loadu"]
+      includes: ["<cstddef>"]
+      implementation: |
+         using T = typename Vec::base_type;
+               std::size_t element_count = 1024;
+               testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+               bool allOk = true;
+               auto reference_data_ptr = test_helper.data_ref();
+               auto reference_result_ptr = test_helper.result_ref();
+               auto test_data_ptr = test_helper.data_target();
+               auto test_result_ptr = test_helper.result_target();
+               auto vec1 = set1<Vec>( -1 );
+               for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+                  reference_result_ptr[0] = 0;
+                  auto vec2 = loadu<Vec>( &test_data_ptr[i] );
+                  auto result_mask = equal<Vec>( vec1, vec2 );
+                  auto result_integral = to_integral<Vec>( result_mask );
+                  size_t matches = 0;
+                  for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+                    if ( ( result_integral >> i ) & 0b1 == 1 ) {
+                      matches += 1;
+                    }
+                  }
+                  test_result_ptr[0] = matches;
+                  test_helper.synchronize();
+                  allOk &= test_helper.validate();
+               }
+               return allOk;
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"
