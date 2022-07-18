@@ -146,6 +146,11 @@ definitions:
      lscpu_flags: [ 'neon' ]
      is_native: False
      implementation: "return ( ( vec_mask[ 1 ] >> 62 ) & 0b10 ) | ( vec_mask[ 0 ] >> 63 );"
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return (vec_mask)? 1 : 0;"
 ...
 ---
 primitive_name: "get_msb"
