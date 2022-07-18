@@ -98,6 +98,7 @@ definitions:
    - target_extension: "scalar"
      ctype: [ "float" ]
      lscpu_flags: []
+     is_native: False
      implementation: |
         float c = 0.0;
         unsigned char *a1 = reinterpret_cast<unsigned char *>(&a);
@@ -112,6 +113,7 @@ definitions:
    - target_extension: "scalar"
      ctype: ["double"]
      lscpu_flags: []
+     is_native: False
      implementation: |
         double c = 0.0;
         unsigned char *a1 = reinterpret_cast<unsigned char *>(&a);
