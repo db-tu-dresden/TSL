@@ -7,4 +7,5 @@ includes: []
 simdT_name: "scalar"
 simdT_register_type: "BaseType"
 simdT_mask_type: "bool"
+simdT_integral_mask_type: "uint8_t"
 ...
