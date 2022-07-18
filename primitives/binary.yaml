@@ -65,7 +65,7 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
      lscpu_flags: ["avx"]
      is_native: False
-     implementation: "return _mm256_and_pd(_mm256_castsi256_pd(a),_mm256_castsi256_pd(b));"
+     implementation: "return _mm256_castpd_si256(_mm256_and_pd(_mm256_castsi256_pd(a),_mm256_castsi256_pd(b)));"
    - target_extension: "avx2"
      ctype: ["float", "double"]
      lscpu_flags: ["avx"]
