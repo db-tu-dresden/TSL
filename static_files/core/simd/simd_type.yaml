@@ -22,6 +22,7 @@ implementations:
    
             using register_type = typename TargetExtensionType::template types<BaseType, VectorSizeInBits>::register_t;
             using mask_type = typename TargetExtensionType::template types<BaseType, VectorSizeInBits>::mask_t;
+            using imask_type = typename TargetExtensionType::template types<BaseType, VectorSizeInBits>::imask_t;
 
             using offset_register_type = typename TargetExtensionType::template types<offset_t, VectorSizeInBits>::register_t[sizeof(offset_t)/sizeof(BaseType)];
 

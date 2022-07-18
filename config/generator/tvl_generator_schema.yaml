@@ -41,6 +41,10 @@ extension:
          type: "str"
          brief: "Mask type, depending on the base type."
    optional:
+      simdT_integral_mask_type:
+         type: "str"
+         brief: "Integral type for a mask. This may differ from the mask_type."
+         default: "mask_t"
       language:
          type: "str"
          brief: "Language string used by cmake."
