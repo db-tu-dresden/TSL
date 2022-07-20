@@ -6,10 +6,10 @@ description: "This file contains arithmetic primitives."
 primitive_name: "add"
 brief_description: "Adds two vector registers."
 parameters:
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "vec_a"
      description: "First vector."
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "vec_b"
      description: "Second vector."
 returns:
@@ -126,10 +126,10 @@ definitions:
 primitive_name: "mul"
 brief_description: "Multiplies two vector registers."
 parameters:
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "vec_a"
      description: "First vector."
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "vec_b"
      description: "Second vector."
 returns:
@@ -299,7 +299,7 @@ definitions:
 primitive_name: "hadd"
 brief_description: "Reduces the elements to a sum."
 parameters:
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "value"
      description: "Input vector."
 returns:

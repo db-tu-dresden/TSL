@@ -6,8 +6,7 @@ description: "Mask related primitives."
 primitive_name: "to_integral"
 brief_description: "Forms an integral value from the most significant bits of every lane in a vector mask register."
 parameters:
-   - ctype: "typename Vec::mask_type"
-     attributes: "const"
+   - ctype: "const typename Vec::mask_type"
      name: "vec_mask"
      description: "Vector mask register containing mask style data."
 returns:
@@ -215,7 +214,7 @@ definitions:
 primitive_name: "get_msb"
 brief_description: "Retrieves the most significant bit of every element in a vector register and sets the corresponding bit in a base type."
 parameters:
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "vec"
      description: "Vector mask register containing mask style data."
 returns:
@@ -248,7 +247,7 @@ definitions:
 primitive_name: "to_vector"
 brief_description: "Forms an vector register from an integral where all bits are set in a lane if the corresponding mask bit is set to 1."
 parameters:
-   - ctype: "typename Vec::mask_type"
+   - ctype: "const typename Vec::mask_type"
      name: "mask"
      description: "Vector mask register containing mask style data."
 returns:
@@ -280,7 +279,7 @@ definitions:
 primitive_name: "mask_reduce"
 brief_description: "Masks out every non relevant bit."
 parameters:
-   - ctype: "typename Vec::base_type"
+   - ctype: "const typename Vec::base_type"
      name: "mask"
      description: "Integral value containing n (set) bits."
 returns:

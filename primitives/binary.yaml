@@ -6,10 +6,10 @@ description: "Bit manipulation primitives."
 primitive_name: "binary_and"
 brief_description: "Binary ANDs two vector registers."
 parameters:
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "a"
      description: "First vector."
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "b"
      description: "Second vector."
 returns:
@@ -102,9 +102,9 @@ definitions:
      specialization_comment: "Benchmark what to use. Current implementation or: uint32_t c = (*((uint32_t *)&a) & *((uint32_t *)&b)); return *((float *)&c);"
      implementation: |
         float c = 0.0;
-        unsigned char *a1 = reinterpret_cast<unsigned char *>(&a);
-        unsigned char *b1 = reinterpret_cast<unsigned char *>(&b);
-        unsigned char *c1 = reinterpret_cast<unsigned char *>(&c);
+        auto a1 = reinterpret_cast<const unsigned char *>(&a);
+        auto b1 = reinterpret_cast<const unsigned char *>(&b);
+        auto c1 = reinterpret_cast<unsigned char *>(&c);
         c1[0] = a1[0] & b1[0];
         c1[1] = a1[1] & b1[1];
         c1[2] = a1[2] & b1[2];
@@ -116,9 +116,9 @@ definitions:
      is_native: False
      implementation: |
         double c = 0.0;
-        unsigned char *a1 = reinterpret_cast<unsigned char *>(&a);
-        unsigned char *b1 = reinterpret_cast<unsigned char *>(&b);
-        unsigned char *c1 = reinterpret_cast<unsigned char *>(&c);
+        auto a1 = reinterpret_cast<const unsigned char *>(&a);
+        auto b1 = reinterpret_cast<const unsigned char *>(&b);
+        auto c1 = reinterpret_cast<unsigned char *>(&c);
         c1[0] = a1[0] & b1[0];
         c1[1] = a1[1] & b1[1];
         c1[2] = a1[2] & b1[2];
