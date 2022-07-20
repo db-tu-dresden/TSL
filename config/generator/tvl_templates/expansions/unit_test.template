@@ -41,7 +41,7 @@ TEST_CASE("Testing primitive {{ primitive_test['primitive_name'] }} for {{ exten
 {%                         endfor %}
 {%                      endif %}
 {%                      if not resolved %}
-      WARN("Primitive {{ case['primitive_name'] }} not implementend for {{ extension }}");
+      WARN("Primitive {{ case['primitive_name'] }} not implemented for {{ extension }}");
 {%                      endif %}
 {%                   else %}
 {%                      for ctype in known_ctypes %}
@@ -65,7 +65,7 @@ TEST_CASE("Testing primitive {{ primitive_test['primitive_name'] }} for {{ exten
 {%                               endif %}
 {%                            endif %}
 {%                            if not resolved %}
-      WARN("Primitive {{ case['primitive_name'] }}<simd<{{ ctype }}, {{ extension }}>> not implementend.");
+      WARN("Primitive {{ case['primitive_name'] }}<simd<{{ ctype }}, {{ extension }}>> not implemented.");
 {%                            endif %}
 {%                         endif %}
 {%                      endfor %}

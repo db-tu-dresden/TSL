@@ -246,6 +246,9 @@ class TVLGeneratorConfig:
         return self.get_config_entry("emit_workaround_warnings")
 
     @property
+    def silent_warnings(self) -> List[str]:
+        return self.get_config_entry("silent_warnings")
+    @property
     def static_files_root_path(self) -> Path:
         return Path(self.get_configuration_files_entry("static_files")["root_path"])
 

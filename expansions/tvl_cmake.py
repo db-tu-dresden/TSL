@@ -30,10 +30,11 @@ class TVLCMakeGenerator:
                         result.add(f"{config.compiler_architecture_prefix}{f}")
             return " ".join(result)
         def get_warning_options() -> str:
+            silent_warnings = " ".join(config.silent_warnings)
             app = ''
             if not config.emit_workaround_warnings:
                 app = "no-"
-            return f"-W{app}deprecated-declarations"
+            return f"{silent_warnings} -W{app}deprecated-declarations"
 
         header_files: List[Path] = [strip_common_path_prefix(hf.file_name, config.generation_out_path) for hf in file_generator.library_files]
 

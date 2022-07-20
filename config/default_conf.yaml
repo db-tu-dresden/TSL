@@ -19,7 +19,7 @@ configuration:
          extensions:              "extensions"
          primitive_declarations:  "declarations"
          primitive_definitions:   "definitions"
-   silent_warnings:               "-Wno-ignored-attributes"
+   silent_warnings:               ["-Wno-ignored-attributes"]
    expansions:
       cmake:
          enabled:                 True
