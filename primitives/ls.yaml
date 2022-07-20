@@ -6,7 +6,8 @@ description: "Load/Store primitives"
 primitive_name: "load"
 brief_description: "Loads data from aligned memory into a vector register."
 parameters:
-   - ctype: "typename Vec::base_type const *"
+   - ctype: "const typename Vec::base_type *"
+     attributes: "__restrict__"
      name: "memory"
      description: "Aligned memory which should be transferred into a vector register."
 returns:
@@ -81,7 +82,8 @@ definitions:
 primitive_name: "loadu"
 brief_description: "Loads data from (un)aligned memory into a vector register."
 parameters:
-   - ctype: "typename Vec::base_type const *"
+   - ctype: "const typename Vec::base_type *"
+     attributes: "__restrict__"
      name: "memory"
      description: "(Un)aligned memory which should be transferred into a vector register."
 returns:
@@ -157,9 +159,10 @@ primitive_name: "store"
 brief_description: "Stores data from a vector register to aligned memory."
 parameters:
    - ctype: "typename Vec::base_type *"
+     attributes: "__restrict__"
      name: "memory"
      description: "Aligned memory where the data should be stored into."
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "data"
      description: "Vector containing the data."
 testing:
@@ -232,9 +235,10 @@ primitive_name: "storeu"
 brief_description: "Stores data from a vector register to (un)aligned memory."
 parameters:
    - ctype: "typename Vec::base_type *"
+     attributes: "__restrict__"
      name: "memory"
      description: "(Un)aligned memory where the data should be stored into."
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "data"
      description: "Vector containing the data."
 testing:
@@ -304,7 +308,7 @@ definitions:
 primitive_name: "set1"
 brief_description: "Broadcasts a single value into all lanes of a vector register."
 parameters:
-   - ctype: "typename Vec::base_type"
+   - ctype: "const typename Vec::base_type"
      name: "value"
      description: "Value which should be broadcasted."
 returns:
@@ -389,16 +393,17 @@ definitions:
 primitive_name: "gather"
 brief_description: "Transfers data from arbitrary locations into a vector register."
 parameters:
-   - ctype: "typename Vec::register_type"
+   - ctype: "const typename Vec::register_type"
      name: "source"
      description: "Vector register containing values which should be preserved depending on the mask (if mask[i] == 0)."
-   - ctype: "typename Vec::base_type const *"
+   - ctype: "const typename Vec::base_type *"
+     attributes: "__restrict__"
      name: "memory"
      description: "(Start)pointer of the memory (which is used as base for address calculation)."
-   - ctype: "typename Vec::offset_register_type"
+   - ctype: "const typename Vec::offset_register_type"
      name: "index"
      description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
-   - ctype: "typename Vec::mask_type"
+   - ctype: "const typename Vec::mask_type"
      name: "mask"
      description: "Mask indicating which lanes should be gathered."
 returns:
@@ -514,3 +519,6 @@ definitions:
      lscpu_flags: []
      implementation: "return std::get<0>(std::make_tuple(args...));"
 ...
+#---
+#primitive_name: "vcompress"
+#brief_description: ""
