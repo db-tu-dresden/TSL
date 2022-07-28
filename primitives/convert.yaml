@@ -1,0 +1,78 @@
+---
+name: "convert"
+description: "Conversion primitives."
+...
+---
+primitive_name: "reinterpret"
+return_template_parameter: "ToType"
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+returns:
+  ctype: "typename ToType::register_type"
+  description: ""
+definitions:
+#INTEL - AVX2
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    return_vector_base_type: ["float"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512castsi512_ps(data);"
+  - target_extension: "avx512"
+    ctype: ["float"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_castps_si512(data);"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    return_vector_base_type: ["double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_castsi512_pd(data);"
+  - target_extension: "avx512"
+    ctype: ["double"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_castpd_si512(data);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    return_vector_base_type: ["float"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_castsi256_ps(data);"
+  - target_extension: "avx2"
+    ctype: ["float"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_castps_si256(data);"
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    return_vector_base_type: ["double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_castsi256_pd(data);"
+  - target_extension: "avx2"
+    ctype: ["double"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_castpd_si256(data);"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    return_vector_base_type: ["float"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_castsi128_ps(data);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_castps_si128(data);"
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    return_vector_base_type: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_castsi128_pd(data);"
+  - target_extension: "sse"
+    ctype: ["double"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_castpd_si128(data);"
+...
