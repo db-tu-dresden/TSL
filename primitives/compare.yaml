@@ -154,18 +154,34 @@ definitions:
      ctype: "int64_t"
      lscpu_flags: ['avx512f']
      implementation: "return _mm512_cmple_epu64_mask( vec_min, vec_data ) & _mm512_cmpge_epu64_mask( vec_max, vec_data );"
+   - target_extension: "avx512"
+     ctype: ["float", "double"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_cmple_{{ intrin_tp_full[ctype] }}(vec_min, vec_data) & _mm512_cmple_{{ intrin_full[ctype] }}(vec_data, vec_max);"
 #INTEL - AVX2
    - target_extension: "avx2"
      ctype: "int64_t"
      lscpu_flags: [ 'avx2' ]
      note: "EPI64 INSTEAD OF EPU64!!!"
      implementation: "return _mm256_andnot_si256( _mm256_cmpgt_epi64( vec_min, vec_data ), _mm256_andnot_si256( _mm256_cmpgt_epi64( vec_data, vec_max ), _mm256_set1_epi64x(-1)));"
+   - target_extension: "avx2"
+     ctype: ["float", "double"]
+     lscpu_flags: ['avx']
+     implementation: "return _mm256_and_{{ intrin_tp_full[ctype] }}(_mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_data, vec_min, _CMP_GE_OQ ), _mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_max, vec_data, _CMP_GE_OQ));"
 #INTEL - SSE
    - target_extension: "sse"
      ctype: "int64_t"
      lscpu_flags: [ 'sse2', 'sse4_2' ]
      note: "EPI64 INSTEAD OF EPU64!!!"
      implementation: "return _mm_andnot_si128( _mm_cmpgt_epi64( vec_min, vec_data ), _mm_andnot_si128( _mm_cmpgt_epi64( vec_data, vec_max ), _mm_set1_epi64x(-1)));"
+   - target_extension: "sse"
+     ctype: ["float"]
+     lscpu_flags: ['sse']
+     implementation: "return _mm_and_ps(_mm_cmpge_ps(vec_data, vec_min), _mm_cmpge_ps(vec_max, vec_data));"
+   - target_extension: "sse"
+     ctype: ["double"]
+     lscpu_flags: ['sse2']
+     implementation: "return _mm_and_pd(_mm_cmpge_pd(vec_data, vec_min), _mm_cmpge_pd(vec_max, vec_data));"
 #ARM - NEON
    - target_extension: "neon"
      ctype: "int64_t"
