@@ -17,7 +17,7 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     return_vector_base_type: ["float"]
     lscpu_flags: ["avx512f"]
-    implementation: "return _mm512castsi512_ps(data);"
+    implementation: "return _mm512_castsi512_ps(data);"
   - target_extension: "avx512"
     ctype: ["float"]
     return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]

@@ -49,7 +49,7 @@ testing: #optional
                   auto mask_integral = to_integral<Vec>( vec_mask );
                   std::size_t matches = 0;
                   for ( std::size_t k = 0; k < Vec::vector_element_count(); ++k ) {
-                    if ( ( mask_integral >> k ) & 0b1 == 1 ) {
+                    if(((mask_integral >> k) & 0b1) == 1 ) {
                       ++matches;
                     }
                   }
@@ -210,39 +210,39 @@ definitions:
      lscpu_flags: []
      implementation: "return (vec_mask)? 1 : 0;"
 ...
----
-primitive_name: "get_msb"
-brief_description: "Retrieves the most significant bit of every element in a vector register and sets the corresponding bit in a base type."
-parameters:
-   - ctype: "const typename Vec::register_type"
-     name: "vec"
-     description: "Vector mask register containing mask style data."
-returns:
-   ctype: "typename Vec::base_type"
-   description: "Integral value representing the vector mask register."
-definitions:
-#INTEL - AVX512
-   - target_extension: "avx512"
-     ctype: "int64_t"
-     lscpu_flags: ['avx512f', 'avx512dq']
-     implementation: "return _mm512_movepi64_mask( vec );"
-#INTEL - AVX2
-   - target_extension: "avx2"
-     ctype: "int64_t"
-     lscpu_flags: [ 'avx' ]
-     implementation: "return _mm256_movemask_pd( _mm256_castsi256_pd( vec ) );"
-#INTEL - SSE
-   - target_extension: "sse"
-     ctype: "int64_t"
-     lscpu_flags: [ 'sse2' ]
-     implementation: "return _mm_movemask_pd( _mm_castsi128_pd( vec ) );"
-#ARM - NEON
-   - target_extension: "neon"
-     ctype: "int64_t"
-     lscpu_flags: [ 'neon' ]
-     is_native: False
-     implementation: "return ( ( vec[ 1 ] >> 62 ) & 0b10 ) | ( vec[ 0 ] >> 63 );"
-...
+#---
+#primitive_name: "get_msb"
+#brief_description: "Retrieves the most significant bit of every element in a vector register and sets the corresponding bit in a base type."
+#parameters:
+#   - ctype: "const typename Vec::register_type"
+#     name: "vec"
+#     description: "Vector mask register containing mask style data."
+#returns:
+#   ctype: "typename Vec::base_type"
+#   description: "Integral value representing the vector mask register."
+#definitions:
+##INTEL - AVX512
+#   - target_extension: "avx512"
+#     ctype: "int64_t"
+#     lscpu_flags: ['avx512f', 'avx512dq']
+#     implementation: "return _mm512_movepi64_mask( vec );"
+##INTEL - AVX2
+#   - target_extension: "avx2"
+#     ctype: "int64_t"
+#     lscpu_flags: [ 'avx' ]
+#     implementation: "return _mm256_movemask_pd( _mm256_castsi256_pd( vec ) );"
+##INTEL - SSE
+#   - target_extension: "sse"
+#     ctype: "int64_t"
+#     lscpu_flags: [ 'sse2' ]
+#     implementation: "return _mm_movemask_pd( _mm_castsi128_pd( vec ) );"
+##ARM - NEON
+#   - target_extension: "neon"
+#     ctype: "int64_t"
+#     lscpu_flags: [ 'neon' ]
+#     is_native: False
+#     implementation: "return ( ( vec[ 1 ] >> 62 ) & 0b10 ) | ( vec[ 0 ] >> 63 );"
+#...
 ---
 primitive_name: "to_vector"
 brief_description: "Forms an vector register from an integral where all bits are set in a lane if the corresponding mask bit is set to 1."
@@ -256,18 +256,30 @@ returns:
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"
-     ctype: "int64_t"
+     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
      lscpu_flags: ['avx512f']
-     implementation: "return _mm512_maskz_set1_epi64( mask, -1 );"
+     implementation: "return _mm512_maskz_set1_epi{{ intrin_tp[ctype][1] }}( mask, -1 );"
+   - target_extension: "avx512"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+     lscpu_flags: ["avx512bw"]
+     implementation: "return _mm512_maskz_set1_epi{{ intrin_tp[ctype][1] }}( mask, -1 );"
+   - target_extension: "avx512"
+     ctype: ["float"]
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_castsi512_ps(_mm512_maskz_set1_epi32(mask, -1));"
+   - target_extension: "avx512"
+     ctype: ["double"]
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_castsi512_pd(_mm512_maskz_set1_epi64(mask, -1));"
 #INTEL - AVX2
    - target_extension: "avx2"
-     ctype: "int64_t"
-     lscpu_flags: [ 'avx' ]
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+     lscpu_flags: ['avx']
      implementation: "return mask; //mask is a vector already."
 #INTEL - SSE
    - target_extension: "sse"
-     ctype: "int64_t"
-     lscpu_flags: [ 'sse2' ]
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+     lscpu_flags: ['sse2']
      implementation: "return mask; //mask is a vector already."
 #ARM - NEON
    - target_extension: "neon"
@@ -275,38 +287,38 @@ definitions:
      lscpu_flags: [ 'neon' ]
      implementation: "return vreinterpretq_s64_u64( mask ); //mask is a vector already."
 ...
----
-primitive_name: "mask_reduce"
-brief_description: "Masks out every non relevant bit."
-parameters:
-   - ctype: "const typename Vec::base_type"
-     name: "mask"
-     description: "Integral value containing n (set) bits."
-returns:
-   ctype: "typename Vec::base_type"
-   description: "Integral value with only relevant bits set (or not)."
-definitions:
-#INTEL - AVX512
-   - target_extension: "avx512"
-     ctype: "int64_t"
-     lscpu_flags: ['avx512f']
-     implementation: "return mask & 0xFF; //mask is integral already."
-#INTEL - AVX2
-   - target_extension: "avx2"
-     ctype: "int64_t"
-     lscpu_flags: [ 'avx' ]
-     implementation: "return mask & 0xF;"
-#INTEL - SSE
-   - target_extension: "sse"
-     ctype: "int64_t"
-     lscpu_flags: [ 'sse2' ]
-     implementation: "return mask & 0x3;"
-#ARM - NEON
-   - target_extension: "neon"
-     ctype: "int64_t"
-     lscpu_flags: [ 'neon' ]
-     implementation: "return mask & 0x3;"
-...
+#---
+#primitive_name: "mask_reduce"
+#brief_description: "Masks out every non relevant bit."
+#parameters:
+#   - ctype: "const typename Vec::base_type"
+#     name: "mask"
+#     description: "Integral value containing n (set) bits."
+#returns:
+#   ctype: "typename Vec::base_type"
+#   description: "Integral value with only relevant bits set (or not)."
+#definitions:
+##INTEL - AVX512
+#   - target_extension: "avx512"
+#     ctype: "int64_t"
+#     lscpu_flags: ['avx512f']
+#     implementation: "return mask & 0xFF; //mask is integral already."
+##INTEL - AVX2
+#   - target_extension: "avx2"
+#     ctype: "int64_t"
+#     lscpu_flags: [ 'avx' ]
+#     implementation: "return mask & 0xF;"
+##INTEL - SSE
+#   - target_extension: "sse"
+#     ctype: "int64_t"
+#     lscpu_flags: [ 'sse2' ]
+#     implementation: "return mask & 0x3;"
+##ARM - NEON
+#   - target_extension: "neon"
+#     ctype: "int64_t"
+#     lscpu_flags: [ 'neon' ]
+#     implementation: "return mask & 0x3;"
+#...
 #---
 #primitive_name: "insert_delim_zero"
 #brief_description: "Inserts 0 into bitmask using provided mask."

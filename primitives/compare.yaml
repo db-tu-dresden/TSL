@@ -36,7 +36,7 @@ testing: #optional
                   auto result_integral = to_integral<Vec>( result_mask );
                   size_t matches = 0;
                   for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-                    if ( ( result_integral >> i ) & 0b1 == 1 ) {
+                    if(((result_integral >> i) & 0b1) == 1 ) {
                       matches += 1;
                     }
                   }
@@ -65,7 +65,7 @@ testing: #optional
                   auto result_integral = to_integral<Vec>( result_mask );
                   size_t matches = 0;
                   for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-                    if ( ( result_integral >> i ) & 0b1 == 1 ) {
+                    if(((result_integral >> i) & 0b1) == 1 ) {
                       matches += 1;
                     }
                   }
@@ -157,7 +157,7 @@ definitions:
    - target_extension: "avx512"
      ctype: ["float", "double"]
      lscpu_flags: ["avx512f"]
-     implementation: "return _mm512_cmple_{{ intrin_tp_full[ctype] }}(vec_min, vec_data) & _mm512_cmple_{{ intrin_full[ctype] }}(vec_data, vec_max);"
+     implementation: "return _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_min, vec_data) & _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_data, vec_max);"
 #INTEL - AVX2
    - target_extension: "avx2"
      ctype: "int64_t"
