@@ -11,7 +11,9 @@
    contains_parameter_pack=False,
    parameter_pack_typenames_str='',
    full_qualified_parameters_str='',
-   parameters_str='') %}
+   parameters_str='',
+   using_return_type='',
+   return_template_type='') %}
 {% if vector_length_agnostic %}
    {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ', VectorSize>' %}
 {% elif vector_length_bits != 0 %}
@@ -48,6 +50,10 @@
       {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ comma %}
    {% endif %}
 {% endfor %}
+{% if return_template_parameter != "" %}
+{% set ns.using_return_type = 'using ' ~ return_template_parameter ~ ' = simd<' ~ return_vector_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>;' %}
+{% set ns.return_template_type = 'simd<' ~ return_vector_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>, ' %}
+{% endif %}
 {# Every implementation is in the (nested) namespace "details" #}
 namespace {{ tvl_implementation_namespace }} {
       /**

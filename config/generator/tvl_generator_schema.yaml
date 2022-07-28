@@ -163,6 +163,11 @@ primitive_specialization_optionals: &definition_optionals_schema
       type: "str"
       default: ""
       brief: "Brief description of the primitive."
+   return_vector_base_type:
+      type: "list"
+      entry_type: "str"
+      default: []
+      brief: "Return vector base type, which is used for conversion."
    includes: *includes_schema
 
 primitive_definition: &definition_schema
@@ -245,6 +250,10 @@ primitive:
          entry_type: *return_schema
          default: {"ctype": "void", "description": ""}
          brief: "The return type of the primitive. (default = void)"
+      return_template_parameter:
+         type: "str"
+         default: ""
+         brief: "Additional template parameter which may be used for conversion operations."
       includes: *includes_schema
       definitions:
          type: "list"

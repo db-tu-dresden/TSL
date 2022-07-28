@@ -74,6 +74,15 @@ class TVLPrimitive:
                 return [self.ctype]
             return self.ctype
 
+        @property
+        def return_vector_base_types(self) -> List[str]:
+            if isinstance(self.__data_dict["return_vector_base_type"], str):
+                if len(self.__data_dict["return_vector_base_type"] > 0):
+                    return [self.__data_dict["return_vector_base_type"]]
+                else:
+                    return []
+            return self.__data_dict["return_vector_base_type"]
+
         def __deepcopy__(self, memodict={}):
             cls = self.__class__
             result = cls.__new__(cls)
