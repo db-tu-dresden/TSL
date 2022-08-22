@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Generator
+from typing import Dict, Generator, Tuple
 
 
 class StaticFileTree:
@@ -27,6 +27,20 @@ class StaticFileTree:
                 self.__files[file] = last_accessed_time
                 yield file
 
+    def build(self) -> None:
+        for file in self.__path.rglob(self.__pattern):
+            if file.is_file():
+                last_accessed_time = file.stat().st_mtime_ns
+                self.__files[file] = last_accessed_time
+
+    @property
+    def items(self) -> Generator[Tuple[Path,int], None, None]:
+        for k, v in self.__files.items():
+            yield [k,v]
+
+    @property
+    def files(self) -> Dict[Path, int]:
+        return self.__files
 
 def strip_common_path_prefix(file: Path, prefix: Path) -> Path:
     prefix_parts = prefix.parts

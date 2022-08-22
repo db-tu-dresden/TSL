@@ -93,26 +93,28 @@ class TVLGenerator:
         relevant_primitives_class_set: TVLPrimitiveClassSet = slicer.slice_primitives(self.__tvl_primitiveclass_set)
 
         lib: TVLLib = TVLLib(relevant_extensions_set, relevant_primitives_class_set)
-
         file_generator: TVLFileGenerator = TVLFileGenerator(lib)
-        for path in file_generator.out_pathes:
-            self.log(logging.INFO, f"Creating directory {path}")
-            path.mkdir(parents=True, exist_ok=True)
-        for tvl_file in file_generator.library_files:
-            self.log(logging.INFO, f"Creating file {tvl_file.file_name}")
-            tvl_file.render_to_file()
+        if not config.print_output_only:
+            for path in file_generator.out_pathes:
+                self.log(logging.INFO, f"Creating directory {path}")
+                path.mkdir(parents=True, exist_ok=True)
+            for tvl_file in file_generator.library_files:
+                self.log(logging.INFO, f"Creating file {tvl_file.file_name}")
+                tvl_file.render_to_file()
 
-        cmake_config = config.get_expansion_config("cmake")
+            cmake_config = config.get_expansion_config("cmake")
 
 
-        tvl_translation_units: TVLTranslationUnitContainer = TVLTranslationUnitContainer()
-        for path, tu in TVLTestGenerator.generate(lib):
-            tvl_translation_units.add_tu(path, tu)
+            tvl_translation_units: TVLTranslationUnitContainer = TVLTranslationUnitContainer()
+            for path, tu in TVLTestGenerator.generate(lib):
+                tvl_translation_units.add_tu(path, tu)
 
-        if cmake_config["enabled"]:
-            TVLCMakeGenerator.generate_lib(lib, file_generator, tvl_translation_units, cmake_config)
+            if cmake_config["enabled"]:
+                TVLCMakeGenerator.generate_lib(lib, file_generator, tvl_translation_units, cmake_config)
 
-        if cmake_config["enabled"]:
-            TVLCMakeGenerator.generate_source_file(tvl_translation_units, cmake_config)
+            if cmake_config["enabled"]:
+                TVLCMakeGenerator.generate_source_file(tvl_translation_units, cmake_config)
+        else:
+            print(";".join(f"{tvl_file.file_name}" for tvl_file in file_generator.library_files))
 
 

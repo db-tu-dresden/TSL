@@ -310,6 +310,10 @@ class TVLGeneratorConfig:
     def get_version_str(self) -> str:
         return GitUtils.get_git_data().create_version_str()
 
+    @property
+    def print_output_only(self) -> bool:
+        return self.get_config_entry("print_output_only")
+
 
 
 
@@ -350,6 +354,9 @@ def parse_args() -> dict:
     parser.add_argument('--targets', default=None, nargs='*',
                         help='List of target flags which match the lscpu_flags from the extension/primitive files.',
                         dest='targets')
+
+    parser.add_argument('--print-outputs-only', dest='configuration:print_output_only', action="store_true", help="Print only the files which would be generated as list (separator by semicolon)")
+
     add_bool_arg(parser, 'workaround-warnings', 'configuration:emit_workaround_warnings', "Enable ", "Disable ", True, help='workaround warnings', required=False)
     add_bool_arg(parser, 'concepts', 'configuration:use_concepts', "Enable ", "Disable ", True, help='C++20 concepts.', required=False)
     add_bool_arg(parser, 'draw-test-dependencies', 'configuration:expansions:unit_tests:draw_dependency_graph', "Enable ", "Disable ", False, help="draw dependency graph for test generation", required=False)

@@ -8,6 +8,7 @@ configuration:
    use_concepts:                  True
    emit_workaround_warnings:      True
    default_types:                 ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+   print_output_only:             False
    library:
       root_path:                  "include"
       top_level_header_fname:     "tvlintrin"
