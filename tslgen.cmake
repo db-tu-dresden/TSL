@@ -2,6 +2,9 @@
 find_package(Python3 COMPONENTS Interpreter Development)
 
 set(TSLGenerator ${CMAKE_CURRENT_LIST_DIR}/main.py)
+set(TSLGeneratorFilesNeedsGenerationCommand ${CMAKE_CURRENT_LIST_DIR}/needs_rebuild.py)
+set(TSLAfterGenerationCommand ${CMAKE_CURRENT_LIST_DIR}/rebuild_fileslist.py)
+
 execute_process(
         COMMAND bash -c "LANG=en;lscpu|grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' '"
         OUTPUT_VARIABLE TSLHardwareTargets
@@ -25,26 +28,19 @@ function(TSLOutputFilesAsList Outputs)
 endfunction()
 
 function(TSLGenerate TSLDir)
-    set(Outputs "")
-    TSLOutputFilesAsList(Outputs)
-
-    FILE(GLOB tslfiles "${TSLDir}/*")
-    if(tslfiles)
-        message("YOLO")
-        add_custom_command(
-                OUTPUT ${Outputs}
-                DEPENDS ${CMAKE_CURRENT_LIST_DIR}
+    execute_process(
+            COMMAND python3 ${TSLGeneratorFilesNeedsGenerationCommand}
+            COMMAND_ECHO STDOUT
+            RESULT_VARIABLE NeedsGeneration
+    )
+    if(NeedsGeneration EQUAL 0)
+        execute_process(
                 COMMAND python3 ${TSLGenerator} --targets ${TSLHardwareTargets} --no-workaround-warnings --draw-test-dependencies -o ${TSLDir}
+                COMMAND_ECHO STDOUT
         )
-    else()
-        message("WOLO")
-        add_custom_command(
-                OUTPUT ${Outputs}
-                COMMAND python3 ${TSLGenerator} --targets ${TSLHardwareTargets} --no-workaround-warnings --draw-test-dependencies -o ${TSLDir}
-                
+        execute_process(
+                COMMAND python3 ${TSLAfterGenerationCommand}
+                COMMAND_ECHO STDOUT
         )
     endif()
-
-
-
 endfunction()
