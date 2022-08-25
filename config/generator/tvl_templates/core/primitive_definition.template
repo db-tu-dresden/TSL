@@ -24,7 +24,7 @@
 {% endif %}
 {% for param in parameters %}
    {% if not loop.last %}
-      {% set comma = ', ' %}
+      {% set comma = ',' %}
    {% else %}
       {% set comma = '' %}
    {% endif %}
@@ -34,12 +34,17 @@
       {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ param['ctype'] ~ '... ' ~ param['name'] ~ comma %}
       {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ '...' ~ comma %}
    {% else %}
-      {% if param['attributes'] %}
-      {% set attr = ' ' ~ param['attributes'] %}
+      {% if param['declaration_attributes'] == "" %}
+      {% set decl_attribs = ' ' %}
       {% else %}
-      {% set attr = '' %}
+      {% set decl_attribs = ' ' ~ param['declaration_attributes'] ~ ' ' %}
       {% endif %}
-      {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ param['ctype'] ~ attr ~ ' ' ~ param['name'] ~ comma %}
+      {% if param['attributes'] == "" %}
+      {% set attribs = ' ' %}
+      {% else %}
+      {% set attribs = ' ' ~ param['attributes'] ~ ' ' %}
+      {% endif %}
+      {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ decl_attribs ~ param['ctype'] ~ attribs ~ param['name'] ~ dv ~ comma %}
       {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ comma %}
    {% endif %}
 {% endfor %}

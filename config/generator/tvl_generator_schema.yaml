@@ -116,6 +116,11 @@ parameter: &parameter_schema
          type: "str"
          brief: "A default value."
          default: ""
+      declaration_attributes:
+         type: "str"
+         brief: "Parameter declaration attributes"
+         example: "[[maybe_unused]]"
+         default: ""
       attributes:
          type: "str"
          brief: "Parameter attributes."

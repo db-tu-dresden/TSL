@@ -8,7 +8,7 @@ implementations:
 
       #ifdef TVL_USE_CONCEPTS
          template< typename T, typename U >
-         concept TargetExtension = TVLArithmetic< U > && requires {
+         concept TargetExtension = TVLArithmetic<U> && requires {
             typename T:: template types< U >;
             typename T:: template types< U >::default_size_in_bits;
             typename T:: template types< U >::register_t;
@@ -27,7 +27,7 @@ implementations:
             { T::vector_mask_ratio() } -> std::same_as< std::size_t >;
             { T::mask_shift() } -> std::same_as< std::size_t >;
          } &&
-            TVLArithmetic< typename T::base_type > &&
+            TVLArithmetic<typename T::base_type> &&
             TargetExtension< typename T::target_extension, typename T::base_type > &&
             ( T::vector_size_b() > 0 ) &&
             ( T::vector_size_B() > 0 ) &&
