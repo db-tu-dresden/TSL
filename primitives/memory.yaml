@@ -45,6 +45,7 @@ parameters:
      name: "alignment"
      declaration_attributes: "[[maybe_unused]]"
      description: "Alignment bytes."
+     declaration_attributes: "[[maybe_unused]]"
 returns:
    ctype: "typename Vec::base_type *"
    description: "Pointer to allocated memory."
@@ -118,6 +119,7 @@ parameters:
      default_value: "0"
      declaration_attributes: "[[maybe_unused]]"
      description: "Which type of copy should be performed: {0: host->host, 1: host->device, 2: device->host, 3: device->device}"
+     declaration_attributes: "[[maybe_unused]]"
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"
