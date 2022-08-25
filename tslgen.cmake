@@ -6,7 +6,7 @@ set(TSLGeneratorFilesNeedsGenerationCommand ${CMAKE_CURRENT_LIST_DIR}/needs_rebu
 set(TSLAfterGenerationCommand ${CMAKE_CURRENT_LIST_DIR}/rebuild_fileslist.py)
 
 execute_process(
-        COMMAND bash -c "LANG=en;lscpu|grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' '"
+        COMMAND bash -c "LANG=en;lscpu|grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ';'"
         OUTPUT_VARIABLE TSLHardwareTargets
         RESULT_VARIABLE TSLHardwareReturnValue
 )
@@ -28,6 +28,8 @@ function(TSLOutputFilesAsList Outputs)
 endfunction()
 
 function(TSLGenerate TSLDir)
+    message("TSL Lib will be in: ${TSLDir}")
+    message("Detected Hardware:  ${TSLHardwareTargets}")
     execute_process(
             COMMAND python3 ${TSLGeneratorFilesNeedsGenerationCommand}
             COMMAND_ECHO STDOUT
