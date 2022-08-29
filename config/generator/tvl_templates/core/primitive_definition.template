@@ -1,24 +1,18 @@
 {% macro abort(error) %}
     {{ None['[ERROR] ' ~ error][0] }}
 {% endmacro %}
+{% import 'core/extension_helper.template' as tslExtMacros %}
+
 {% if vector_length_agnostic and vector_length_bits != 0 %}
 {{ abort("A specialization can be either vector length agnostig or have a vector-length-dependent specialization.") }}
 {% endif %}
 {% set ns = namespace(
-   simd_register_length='',
    partial_specialized=False,
    contains_template_parameter=False,
    contains_parameter_pack=False,
    parameter_pack_typenames_str='',
    full_qualified_parameters_str='',
    parameters_str='') %}
-{% if vector_length_agnostic %}
-{% set ns.simd_register_length = ', VectorSize' %}
-{% elif vector_length_bits != 0 %}
-{% set ns.simd_register_length = ', ' ~ vector_length_bits %}
-{% else %}
-{% set ns.simd_register_length = '' %}
-{% endif %}
 {% if ctype == 'T' %}
 {% set ns.partial_specialized = True %}
 {% endif %}
@@ -62,8 +56,8 @@ namespace {{ tvl_implementation_namespace }} {
        */
       template<{{ 'typename T, ' if ns.partial_specialized else '' }}{{ 'std::size_t VectorSize, ' if vector_length_agnostic else '' }}ImplementationDegreeOfFreedom {{ idof_name }}>
 {# If the vector_length_bits is specified in the yaml file, a specialization is generated. #}
-         struct {{ primitive_name }}<simd<{{ ctype }}, {{ target_extension }}{{ ns.simd_register_length }}>, {{ idof_name }}> {
-            using {{ vector_name }} = simd<{{ ctype }}, {{ target_extension }}{{ ns.simd_register_length }}>;
+         struct {{ primitive_name }}<{{ tslExtMacros.TSLCPPExtensionName(ctype, target_extension, vector_length_bits, vector_length_agnostic) }}, {{ idof_name }}> {
+            using {{ vector_name }} = {{ tslExtMacros.TSLCPPExtensionName(ctype, target_extension, vector_length_bits, vector_length_agnostic) }};
             static constexpr bool native_supported() {
    {# If there is hardware support this function returns true, false otherwise. #}
                return {{ 'true;' if is_native else 'false;' }}

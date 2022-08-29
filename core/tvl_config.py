@@ -141,6 +141,11 @@ class TVLGeneratorConfig:
         return self.__jinja_config.env.from_string(self.__jinja_templates[template_name])
 
     @requirement(entry_name="NonEmptyString")
+    def create_template(self, template: str) -> Template:
+        return self.__jinja_config.env.from_string(template)
+
+
+    @requirement(entry_name="NonEmptyString")
     def get_schema(self, schema_entry_name: str) -> Schema:
         """
         Retrieves a specific schema used for Jinja2 templates.

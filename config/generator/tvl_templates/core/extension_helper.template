@@ -1,0 +1,9 @@
+{% macro TSLCPPExtensionName(data_type, extension_name, vector_length_bits, vector_length_agnostic=False) -%}
+{% if vector_length_agnostic %}
+simd<{{ data_type }}, {{ extension_name }}, VectorSize>
+{% elif vector_length_bits != 0 %}
+simd<{{ data_type }}, {{ extension_name }}, {{ vector_length_bits }}>
+{% else %}
+simd<{{ data_type }}, {{ extension_name }}>
+{% endif %}
+{%- endmacro -%}

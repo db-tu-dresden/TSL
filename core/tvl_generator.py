@@ -91,8 +91,25 @@ class TVLGenerator:
 
         relevant_extensions_set: TVLExtensionSet = slicer.slice_extensions(self.__tvl_extension_set)
         if config.emit_tsl_extensions_to_file:
-            extensions_list = {"generated_extensions": [extension.data for extension in relevant_extensions_set]}
-            yaml_store(config.tsl_extensions_yaml_output_path, extensions_list)
+            tsl_extension_name = "{% import 'core/extension_helper.template' as xht %}{{ xht.TSLCPPExtensionName(data_type, extension_name, register_size) }}"
+            template = config.create_template(tsl_extension_name)
+            extensions_list = []
+            for extension in relevant_extensions_set:
+                for dtype in config.default_types:
+                    extensions_list.append(
+                        {
+                            "tsl_extension_name": template.render({
+                                "data_type": dtype,
+                                "extension_name": extension.name,
+                                "register_size": 0
+                            }).strip(),
+                            "register_size": extension.data["simdT_default_size_in_bits"]
+                        }
+                    )
+
+
+            extensions_dict = {"generated_extensions": extensions_list}
+            yaml_store(config.tsl_extensions_yaml_output_path, extensions_dict)
         relevant_primitives_class_set: TVLPrimitiveClassSet = slicer.slice_primitives(self.__tvl_primitiveclass_set)
 
         lib: TVLLib = TVLLib(relevant_extensions_set, relevant_primitives_class_set)
