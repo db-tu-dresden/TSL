@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Dict, Any, Generator, List
 
-from jinja2 import Template, Environment
+from jinja2 import Template, Environment, FileSystemLoader
 
 from utils.file_template import load_template_from_file
 from utils.file_utils import StaticFileTree
@@ -18,7 +18,12 @@ from utils.yaml_utils import yaml_load
 
 class TVLGeneratorConfig:
     class JinjaConfig:
-        env = Environment(trim_blocks=True, lstrip_blocks=True)
+        def __init__(self, root_path: Path):
+            self.__env = Environment(trim_blocks=True, lstrip_blocks=True, loader=FileSystemLoader(root_path))
+
+        @property
+        def env(self) -> Environment:
+            return self.__env
 
     def __init__(self) -> None:
         self.include_guard_regex = re.compile(r"[/\.\\: ]")
@@ -31,6 +36,7 @@ class TVLGeneratorConfig:
         self.__extensions_file_tree: StaticFileTree = None
         self.__primitives_file_tree: StaticFileTree = None
         self.__configuration_files_dict: Dict[str, Any] = None
+        self.__jinja_config = None
 
     def __setup(self, config_dict: dict) -> None:
         self.__general_configuration_dict = copy.deepcopy(config_dict["configuration"])
@@ -75,6 +81,7 @@ class TVLGeneratorConfig:
                 self.__jinja_templates[template_name] = load_template_from_file(template_file)
                 self.__logger.info(f"Loaded template {template_name} (from file {template_file}).",
                                    extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
+            self.__jinja_config = TVLGeneratorConfig.JinjaConfig(template_root_path)
 
         def create_file_tress_for_primitive_data():
             """
@@ -130,8 +137,8 @@ class TVLGeneratorConfig:
                                        extra={"decorated_funcName": "get_template",
                                               "decorated_filename": "tvl_config.py"})
                 raise ValueError
-            return TVLGeneratorConfig.JinjaConfig.env.from_string(self.__jinja_templates[result_keys[0]])
-        return TVLGeneratorConfig.JinjaConfig.env.from_string(self.__jinja_templates[template_name])
+            return self.__jinja_config.env.from_string(self.__jinja_templates[result_keys[0]])
+        return self.__jinja_config.env.from_string(self.__jinja_templates[template_name])
 
     @requirement(entry_name="NonEmptyString")
     def get_schema(self, schema_entry_name: str) -> Schema:
@@ -156,6 +163,17 @@ class TVLGeneratorConfig:
         if entry_name not in self.__general_configuration_dict:
             self.__logger.critical(f"Entry {entry_name} not found.",
                                    extra={"decorated_funcName": "get_schema", "decorated_filename": "tvl_config.py"})
+            raise ValueError
+        return copy.deepcopy(self.__general_configuration_dict[entry_name])
+
+    @requirement(entry_name="NonEmptyString")
+    def get_config_entry_silent(self, entry_name: str) -> bool:
+        """
+        Retrieves a specific configuration value.
+        :param entry_name: Name of an entry (e.g., 'lib_generation_out_path').
+        :return: Copy of the requested configuration object.
+        """
+        if entry_name not in self.__general_configuration_dict:
             raise ValueError
         return copy.deepcopy(self.__general_configuration_dict[entry_name])
 
@@ -312,9 +330,23 @@ class TVLGeneratorConfig:
 
     @property
     def print_output_only(self) -> bool:
-        return self.get_config_entry("print_output_only")
+        try:
+            result = self.get_config_entry_silent("print_output_only")
+            return result
+        except ValueError:
+            return False
 
+    @property
+    def emit_tsl_extensions_to_file(self) -> bool:
+        try:
+            result = self.get_config_entry_silent("emit_tsl_extensions_to")
+            return True
+        except ValueError:
+            return False
 
+    @property
+    def tsl_extensions_yaml_output_path(self) -> Path:
+        return Path(self.get_config_entry("emit_tsl_extensions_to"))
 
 
 config = TVLGeneratorConfig()
@@ -355,7 +387,10 @@ def parse_args() -> dict:
                         help='List of target flags which match the lscpu_flags from the extension/primitive files.',
                         dest='targets')
 
-    parser.add_argument('--print-outputs-only', dest='configuration:print_output_only', action="store_true", help="Print only the files which would be generated as list (separator by semicolon)")
+    parser.add_argument('--print-outputs-only', dest='configuration:print_output_only', action="store_true",
+                        help="Print only the files which would be generated as list (separator by semicolon)")
+    parser.add_argument('--emit-tsl-extensions-to', type=pathlib.Path, dest='configuration:emit_tsl_extensions_to', required=False,
+                        help="", metavar="ExOutPath")
 
     add_bool_arg(parser, 'workaround-warnings', 'configuration:emit_workaround_warnings', "Enable ", "Disable ", True, help='workaround warnings', required=False)
     add_bool_arg(parser, 'concepts', 'configuration:use_concepts', "Enable ", "Disable ", True, help='C++20 concepts.', required=False)

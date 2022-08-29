@@ -84,16 +84,14 @@ class TVLHeaderFile:
     @requirement(filename="NotNone", data_dict="NotNone")
     def create_from_dict(filename: Path, data_dict: YamlDataType) -> TVLHeaderFile:
         new_data_dict: YamlDataType = {
+            # "file_name": filename,
+            "year": datetime.date.today().year,
+            "date": datetime.date.today(),
+            "file_description": data_dict["description"] if "description" in data_dict else "",
+            "git_information": config.git_config_as_list,
             "file_name": filename,
-            "tvl_license": config.get_template("license").render({"year": datetime.date.today().year}),
-            "tvl_file_doxygen": config.get_template("core::doxygen_file").render(
-                {
-                    "file_name": filename,
-                    "date": datetime.date.today(),
-                    "file_description": data_dict["description"] if "description" in data_dict else "",
-                    "git_information": config.git_config_as_list
-                }
-            ),
+
+
             "git_version_str" : config.get_version_str,
             "tvl_include_guard": TVLHeaderFile.create_include_guard(filename),
             "tvl_namespace": config.get_config_entry("namespace"),

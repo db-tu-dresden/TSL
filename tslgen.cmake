@@ -27,9 +27,10 @@ function(TSLOutputFilesAsList Outputs)
     set(${Outputs} ${FilesList} PARENT_SCOPE)
 endfunction()
 
-function(TSLGenerate TSLDir)
+function(TSLGenerate TSLDir ExtensionsFile)
     message("TSL Lib will be in: ${TSLDir}")
     message("Detected Hardware:  ${TSLHardwareTargets}")
+    set(ExtensionOutputFile ${TSLDir}/avail_extensions.yaml)
     execute_process(
             COMMAND python3 ${TSLGeneratorFilesNeedsGenerationCommand}
             COMMAND_ECHO STDOUT
@@ -37,7 +38,7 @@ function(TSLGenerate TSLDir)
     )
     if(NeedsGeneration EQUAL 0)
         execute_process(
-                COMMAND python3 ${TSLGenerator} --targets ${TSLHardwareTargets} --no-workaround-warnings --draw-test-dependencies -o ${TSLDir}
+                COMMAND python3 ${TSLGenerator} --targets ${TSLHardwareTargets} --no-workaround-warnings --draw-test-dependencies -o ${TSLDir} --emit-tsl-extensions-to ${ExtensionOutputFile}
                 COMMAND_ECHO STDOUT
         )
         execute_process(
@@ -45,4 +46,17 @@ function(TSLGenerate TSLDir)
                 COMMAND_ECHO STDOUT
         )
     endif()
+    set(${ExtensionsFile} ${ExtensionOutputFile} PARENT_SCOPE)
 endfunction()
+
+#function(TSLExtensions Extension)
+#    execute_process(
+#            COMMAND python3 ${TSLGenerator} --targets ${TSLHardwareTargets} --print-tsl-extensions-only
+#            OUTPUT_VARIABLE ExtensionsList
+#            RESULT_VARIABLE ReturnValue
+#    )
+#    if(NOT ReturnValue EQUAL 0)
+#        message(FATAL_ERROR "Failed to get the extensions-to-be-generated from tsl.")
+#    endif()
+#    set(${Extension} ${ExtensionsList} PARENT_SCOPE)
+#endfunction()

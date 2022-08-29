@@ -12,8 +12,8 @@ def tvl_setup(config_path: Path, additional_config=None) -> None:
         additional_config = dict()
     config_file_cfg = yaml_load(config_path)
     # overwrite / extend config file entries with additional config dict entries
-
-    config.setup(dict_update(config_file_cfg, additional_config))
+    merged_config = dict_update(config_file_cfg, additional_config)
+    config.setup(merged_config)
 
 
 if __name__ == '__main__':

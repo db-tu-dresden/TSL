@@ -57,3 +57,12 @@ def yaml_load(file: Path) -> YamlDataType:
             raise ValueError
     else:
         print(f"{error_msg}. File does not exist.")
+
+def yaml_store(file: Path, data: dict) -> None:
+    rfile = file.resolve()
+    if not file.parent.exists():
+        file.parent.mkdir(parents=True, exist_ok=True)
+    if rfile.suffix != ".yaml":
+        rfile.with_suffix(".yaml")
+    with open(rfile, 'w') as file:
+        yaml.dump(data, file)

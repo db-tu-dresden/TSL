@@ -1,5 +1,8 @@
-{{ tvl_license }}
-{{ tvl_file_doxygen }}
+{% include 'core/license.template' %}
+
+{% include 'core/doxygen_file.template' %}
+
+
 #ifndef {{ tvl_include_guard }}
 #define {{ tvl_include_guard }}
 

@@ -14,7 +14,7 @@ from expansions.tvl_translation_unit import TVLTranslationUnitContainer
 from expansions.tvl_unit_test import TVLTestSuite, TVLTestDependencyGraph, TVLTestGenerator
 from utils.log_utils import LogInit
 from utils.requirement import requirement
-from utils.yaml_utils import yaml_load, yaml_load_all
+from utils.yaml_utils import yaml_load, yaml_load_all, yaml_store
 
 
 class TVLGenerator:
@@ -90,6 +90,9 @@ class TVLGenerator:
         slicer = TVLSlicer(relevant_hardware_flags)
 
         relevant_extensions_set: TVLExtensionSet = slicer.slice_extensions(self.__tvl_extension_set)
+        if config.emit_tsl_extensions_to_file:
+            extensions_list = {"generated_extensions": [extension.data for extension in relevant_extensions_set]}
+            yaml_store(config.tsl_extensions_yaml_output_path, extensions_list)
         relevant_primitives_class_set: TVLPrimitiveClassSet = slicer.slice_primitives(self.__tvl_primitiveclass_set)
 
         lib: TVLLib = TVLLib(relevant_extensions_set, relevant_primitives_class_set)
