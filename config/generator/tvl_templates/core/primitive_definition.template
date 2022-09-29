@@ -1,18 +1,24 @@
 {% macro abort(error) %}
     {{ None['[ERROR] ' ~ error][0] }}
 {% endmacro %}
-{% import 'core/extension_helper.template' as tslExtMacros %}
-
 {% if vector_length_agnostic and vector_length_bits != 0 %}
 {{ abort("A specialization can be either vector length agnostig or have a vector-length-dependent specialization.") }}
 {% endif %}
 {% set ns = namespace(
+   full_extension_name = '',
    partial_specialized=False,
    contains_template_parameter=False,
    contains_parameter_pack=False,
    parameter_pack_typenames_str='',
    full_qualified_parameters_str='',
    parameters_str='') %}
+{% if vector_length_agnostic %}
+   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ', VectorSize>' %}
+{% elif vector_length_bits != 0 %}
+   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ', ' ~ vector_length_bits  ~ '>' %}
+{% else %}
+   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ '>' %}
+{% endif %}
 {% if ctype == 'T' %}
 {% set ns.partial_specialized = True %}
 {% endif %}
@@ -56,8 +62,8 @@ namespace {{ tvl_implementation_namespace }} {
        */
       template<{{ 'typename T, ' if ns.partial_specialized else '' }}{{ 'std::size_t VectorSize, ' if vector_length_agnostic else '' }}ImplementationDegreeOfFreedom {{ idof_name }}>
 {# If the vector_length_bits is specified in the yaml file, a specialization is generated. #}
-         struct {{ primitive_name }}<{{ tslExtMacros.TSLCPPExtensionName(ctype, target_extension, vector_length_bits, vector_length_agnostic) }}, {{ idof_name }}> {
-            using {{ vector_name }} = {{ tslExtMacros.TSLCPPExtensionName(ctype, target_extension, vector_length_bits, vector_length_agnostic) }};
+         struct {{ primitive_name }}<{{ ns.full_extension_name }}, {{ idof_name }}> {
+            using {{ vector_name }} = {{ ns.full_extension_name }};
             static constexpr bool native_supported() {
    {# If there is hardware support this function returns true, false otherwise. #}
                return {{ 'true;' if is_native else 'false;' }}
