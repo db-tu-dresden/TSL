@@ -29,6 +29,7 @@ simdT_integral_mask_type: |-
                         uint8_t
                      )
                   )
+
 intrin_tp: {uint8_t: ["epu", 8], uint16_t: ["epu", 16], uint32_t: ["epu", 32], uint64_t: ["epu", 64], int8_t: ["epi", 8], int16_t: ["epi", 16], int32_t: ["epi", 32], int64_t: ["epi", 64], float: ["p", "s"], double: ["p", "d"]}
 intrin_tp_full: {uint8_t: "epu8", uint16_t: "epu16", uint32_t: "epu32", uint64_t: "epi64", int8_t: "epi8", int16_t: "epi16", int32_t: "epi32", int64_t: "epi64", float: "ps", double: "pd"}
 ...

@@ -20,7 +20,8 @@ testing: #optional
       requires: ["storeu", "loadu"]
       includes: ["<cstddef>"]
       implementation: |
-         using T = typename Vec::base_type;
+        //a & a == a ?
+              using T = typename Vec::base_type;
                std::size_t element_count = 1024;
                testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
                bool allOk = true;
@@ -55,7 +56,7 @@ definitions:
      ctype: ["float", "double"]
      lscpu_flags: ["avx512f"]
      is_native: False
-     implementation: "return _mm512_and_si512(_mm512_castsi512_{{ intrin_tp_full[ctype] }}(a) ,_mm512_castsi512_{{ intrin_tp_full[ctype] }}(b));"
+     implementation: "return _mm512_cast{{ intrin_tp_full[ctype] }}_si512(_mm512_and_si512(_mm512_castsi512_{{ intrin_tp_full[ctype] }}(a), _mm512_castsi512_{{ intrin_tp_full[ctype] }}(b)));"
 #Intel - AVX2
    - target_extension: "avx2"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -65,7 +66,7 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
      lscpu_flags: ["avx"]
      is_native: False
-     implementation: "return _mm256_castpd_si256(_mm256_and_pd(_mm256_castsi256_pd(a),_mm256_castsi256_pd(b)));"
+     implementation: "return _mm256_castpd_si256(_mm256_and_pd(_mm256_castsi256_pd(a), _mm256_castsi256_pd(b)));"
    - target_extension: "avx2"
      ctype: ["float", "double"]
      lscpu_flags: ["avx"]
@@ -91,6 +92,7 @@ definitions:
      lscpu_flags: ['neon']
      note: "is it a good idea to support bitmanipulation for floats and doubles?"
      implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vandq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));"
+  #SCALAR
    - target_extension: "scalar"
      ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
      lscpu_flags: []
@@ -129,4 +131,233 @@ definitions:
         c1[7] = a1[7] & b1[7];
         return c;
      specialization_comment: "Benchmark what to use. Current implementation or: uint64_t c = (*((uint64_t *)&a) & *((uint64_t *)&b)); return *((double *)&c);"
+...
+---
+primitive_name: "binary_xor"
+brief_description: "Binary XORs two vector registers."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "a"
+    description: "First vector."
+  - ctype: "const typename Vec::register_type"
+    name: "b"
+    description: "Second vector."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the binary XOR."
+testing: #optional
+  -  test_name: "xor_as_compare"
+     requires: ["storeu", "loadu"]
+     includes: ["<cstddef>"]
+     implementation: |
+       //a ^ a == 0 ?
+             using T = typename Vec::base_type;
+             std::size_t element_count = 1024;
+             testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+             bool allOk = true;
+             auto reference_data_ptr = test_helper.data_ref();
+             auto reference_result_ptr = test_helper.result_ref();
+             auto test_data_ptr = test_helper.data_target();
+             auto test_result_ptr = test_helper.result_target();
+             for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+                std::size_t tester_idx = 0;
+                for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+                   reference_result_ptr[tester_idx++] = 0;
+                }
+                auto vec1 = loadu<Vec>(&test_data_ptr[i]);
+                auto vec2 = loadu<Vec>(&test_data_ptr[i]);
+                auto result = binary_xor<Vec>(vec1, vec2);
+                storeu<Vec>(test_result_ptr, result);
+                test_helper.synchronize();
+                allOk &= test_helper.validate();
+             }
+             return allOk;
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_xor_si512(a, b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512dq"]
+    implementation: "return _mm512_xor_{{ intrin_tp_full[ctype] }}(a, b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: "return _mm512_cast{{ intrin_tp_full[ctype] }}_si512(_mm512_xor_si512(_mm512_castsi512_{{ intrin_tp_full[ctype] }}(a), _mm512_castsi512_{{ intrin_tp_full[ctype] }}(b)));"
+  #Intel - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_xor_si256(a, b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    is_native: False
+    implementation: "return _mm256_castpd_si256(_mm256_xor_pd(_mm256_castsi256_pd(a),_mm256_castsi256_pd(b)));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_xor_{{ intrin_tp_full[ctype] }}(a,b);"
+  #Intel - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_xor_si128(a, b);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse"]
+    implementation: "return _mm_xor_ps(a, b);"
+  - target_extension: "sse"
+    ctype: [ "double" ]
+    lscpu_flags: [ "sse2" ]
+    implementation: "return _mm_xor_pd(a, b);"
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return veorq_{{ intrin_tp_full[ctype] }}( a, b );"
+  - target_extension: "neon"
+    ctype: ["float", "double"]
+    lscpu_flags: ['neon']
+    note: "is it a good idea to support bitmanipulation for floats and doubles?"
+    implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(veorq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ 
+    intrin_tp_full[ctype] }}(b)));"
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: "return a ^ b;"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "float" ]
+    lscpu_flags: []
+    is_native: False
+    specialization_comment: "Benchmark what to use. Current implementation or: uint32_t c = (*((uint32_t *)&a) ^ *((uint32_t *)&b)); return *((float *)&c);"
+    implementation: |
+      float c = 0.0;
+      auto a1 = reinterpret_cast<const unsigned char *>(&a);
+      auto b1 = reinterpret_cast<const unsigned char *>(&b);
+      auto c1 = reinterpret_cast<unsigned char *>(&c);
+      c1[0] = a1[0] ^ b1[0];
+      c1[1] = a1[1] ^ b1[1];
+      c1[2] = a1[2] ^ b1[2];
+      c1[3] = a1[3] ^ b1[3];
+      return c;
+  - target_extension: "scalar"
+    ctype: ["double"]
+    lscpu_flags: []
+    is_native: False
+    implementation: |
+      double c = 0.0;
+      auto a1 = reinterpret_cast<const unsigned char *>(&a);
+      auto b1 = reinterpret_cast<const unsigned char *>(&b);
+      auto c1 = reinterpret_cast<unsigned char *>(&c);
+      c1[0] = a1[0] ^ b1[0];
+      c1[1] = a1[1] ^ b1[1];
+      c1[2] = a1[2] ^ b1[2];
+      c1[3] = a1[3] ^ b1[3];
+      c1[4] = a1[4] ^ b1[4];
+      c1[5] = a1[5] ^ b1[5];
+      c1[6] = a1[6] ^ b1[6];
+      c1[7] = a1[7] ^ b1[7];
+      return c;
+    specialization_comment: "Benchmark what to use. Current implementation or: uint64_t c = (*((uint64_t *)&a) ^ *((uint64_t *)&b)); return *((double *)&c);"
+...
+---
+primitive_name: "shift_right"
+brief_description: "Shifts data to right by n bits (shifting in 0)."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Data."
+  - ctype: "const int"
+    name: "shift"
+    description: "Amount of bits, data should be shifted."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the right shift."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx512"
+    ctype: ["uin16_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx512"
+    ctype: ["float"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: "return _mm512_castsi512_ps(_mm512_srli_epi32(_mm512_castps_si512(data), shift));"
+  - target_extension: "avx512"
+    ctype: ["double"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: "return _mm512_castsi512_pd(_mm512_srli_epi64(_mm512_castpd_si512(data), shift));"
+  #Intel - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx2"
+    ctype: ["float"]
+    lscpu_flags: ["avx", "avx2"]
+    is_native: False
+    implementation: "return _mm256_castsi256_ps(_mm256_srli_epi32(_mm256_castps_si256(data), shift));"
+  - target_extension: "avx2"
+    ctype: ["double"]
+    lscpu_flags: ["avx", "avx2"]
+    is_native: False
+    implementation: "return _mm256_castsi256_pd(_mm256_srli_epi64(_mm256_castpd_si256(data), shift));"
+  #Intel - SSE
+  - target_extension: "sse"
+    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse2"]
+    is_native: False
+    implementation: "return _mm_castsi128_ps(_mm_srli_epi32(_mm_castps_si128(data), shift));"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    is_native: False
+    implementation: "return _mm_castsi128_pd(_mm_srli_epi64(_mm_castpd_si128(data), shift));"
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);"
+  - target_extension: "neon"
+    ctype: ["float", "double"]
+    lscpu_flags: ['neon']
+    note: "is it a good idea to support bitmanipulation for floats and doubles?"
+    implementation: "vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vshrq_n_{{ intrin_tp[ctype][1] }}(vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a), vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ 
+    intrin_tp_full[ctype] }}(b)));"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: "return data >> shift;"
+  - target_extension: "scalar"
+    ctype: ["float"]
+    lscpu_flags: []
+    is_native: False
+    implementation: |
+      uint32_t x = *reinterpret_cast<uint32_t const *>(&data);
+                      x >>= shift;
+                      return *reinterpret_cast<float*>(&x);
+  - target_extension: "scalar"
+    ctype: ["double"]
+    lscpu_flags: []
+    is_native: False
+    implementation: |
+      uint64_t x = *reinterpret_cast<uint64_t const *>(&data);
+                      x >>= shift;
+                      return *reinterpret_cast<double*>(&x);
 ...

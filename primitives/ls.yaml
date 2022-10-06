@@ -390,9 +390,94 @@ definitions:
      implementation: "return value;"
 ...
 ---
-primitive_name: "gather"
-brief_description: "Transfers data from arbitrary locations into a vector register."
+primitive_name: "set"
+brief_description: "Transfers provided elements into a vector register."
 parameters:
+  - ctype: "Ts"
+    name: "args"
+    description: "Values which should be transferred."
+    is_parameter_pack: True
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector register containing the values."
+testing:
+  -  requires: ["storeu"]
+     includes: ["<cstddef>", "<algorithm>", "<limits>"]
+     implementation: |
+       using T = typename Vec::base_type;
+             std::size_t element_count = 1024;
+             testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+             bool allOk = true;
+             auto reference_data_ptr = test_helper.data_ref();
+             auto reference_result_ptr = test_helper.result_ref();
+             auto test_data_ptr = test_helper.data_target();
+             auto test_result_ptr = test_helper.result_target();
+             for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+                for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+                   reference_result_ptr[j-i] = reference_data_ptr[j];
+                }
+                auto loaded = testing::set_call_helper_t<Vec>::call_set(&test_data_ptr[i]);
+                storeu<Vec>(test_result_ptr, loaded);
+                test_helper.synchronize();
+                allOk &= test_helper.validate();
+             }
+             return allOk;
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_set_epi{{ intrin_tp[ctype][1] }}(args...);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_set_{{ intrin_tp_full[ctype] }}(args...);"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_set_epi{{ intrin_tp[ctype][1] }}(args...);"
+  - target_extension: "avx2"
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_set_epi64x( args... );"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_set_{{ intrin_tp_full[ctype] }}(args...);"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_set_epi{{ intrin_tp[ctype][1] }}(args...);"
+  - target_extension: "sse"
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_set_epi{{ intrin_tp[ctype][1] }}x(args...);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse"]
+    implementation: "return _mm_set_{{ intrin_tp_full[ctype] }}(args...);"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_set_{{ intrin_tp_full[ctype] }}(args...);"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return std::get<0>(std::make_tuple(args...));"
+...
+---
+primitive_name: "mask_gather"
+brief_description: "Transfers data from arbitrary locations into a vector register."
+additional_template_parameters:
+  - ctype: "int"
+    name: "N"
+parameters:
+   - ctype: "const typename Vec::mask_type"
+     name: "mask"
+     description: "Mask indicating which lanes should be gathered."
    - ctype: "const typename Vec::register_type"
      name: "source"
      description: "Vector register containing values which should be preserved depending on the mask (if mask[i] == 0)."
@@ -400,31 +485,43 @@ parameters:
      attributes: "__restrict__"
      name: "memory"
      description: "(Start)pointer of the memory (which is used as base for address calculation)."
-   - ctype: "const typename Vec::offset_register_type"
+   - ctype: "const typename Vec::offset_base_register_type"
      name: "index"
      description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
-   - ctype: "const typename Vec::mask_type"
-     name: "mask"
-     description: "Mask indicating which lanes should be gathered."
+   - ctype: "std::integral_constant<int, N>"
+     name: "scale"
+     description: "Scale."
 returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing gathered data."
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"
-     ctype: "int64_t"
+     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
      lscpu_flags: ['avx512f']
-     implementation: "return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), 8 );"
+     implementation: "return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), scale() );"
 #INTEL - AVX2
    - target_extension: "avx2"
-     ctype: "int64_t"
+     ctype: ["uint64_t", "int64_t"]
      lscpu_flags: ["avx2"]
-     implementation: "return _mm256_mask_i64gather_epi64( source, reinterpret_cast< long long int const * >( memory ), index[0], mask, 8 );"
+     implementation: "return _mm256_mask_i64gather_epi64(source, reinterpret_cast<long long int const *>(memory), index, mask, scale());"
+   - target_extension: "avx2"
+     ctype: ["uint32_t", "int32_t"]
+     lscpu_flags: ["avx2"]
+     implementation: "return _mm256_mask_i32gather_epi32(source, reinterpret_cast<long long int const *>(memory), index, mask, scale());"
+   - target_extension: "avx2"
+     ctype: ["float"]
+     lscpu_flags: ["avx2"]
+     implementation: "return _mm256_mask_i32gather_ps(source, reinterpret_cast<float const *>(memory), index, mask, scale());"
+   - target_extension: "avx2"
+     ctype: ["double"]
+     lscpu_flags: ["avx2"]
+     implementation: "return _mm256_mask_i64gather_pd(source, reinterpret_cast<double const *>(memory), index, mask, scale());"
 #INTEL - SSE
    - target_extension: "sse"
-     ctype: "int64_t"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: [ 'sse2' ]
-     implementation: "return _mm_set_epi64x( ( mask[ 1 ] == 0 ) ? source[ 1 ] : memory[ index[ 0 ][ 1 ] ], ( mask[ 0 ] == 0 ) ? source[ 0 ] : memory[ index[ 0 ][ 0 ] ] );"
+     implementation: "return tvl::set<Vec>((mask[1] == 0) ? source[1] : memory[index[1]], (mask[0] == 0) ? source[0] : memory[index[0]]);"
      is_native: False
 #ARM - NEON
    - target_extension: "neon"
@@ -438,86 +535,7 @@ definitions:
    - target_extension: "scalar"
      ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
      lscpu_flags: [ ]
-     implementation: "return (mask&1)==1 ? memory[index[0]] : source;"
-...
----
-primitive_name: "set"
-brief_description: "Transfers provided elements into a vector register."
-parameters:
-   - ctype: "Ts"
-     name: "args"
-     description: "Values which should be transferred."
-     is_parameter_pack: True
-returns:
-   ctype: "typename Vec::register_type"
-   description: "Vector register containing the values."
-testing:
-   -  requires: ["storeu"]
-      includes: ["<cstddef>", "<algorithm>", "<limits>"]
-      implementation: |
-         using T = typename Vec::base_type;
-               std::size_t element_count = 1024;
-               testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
-               bool allOk = true;
-               auto reference_data_ptr = test_helper.data_ref();
-               auto reference_result_ptr = test_helper.result_ref();
-               auto test_data_ptr = test_helper.data_target();
-               auto test_result_ptr = test_helper.result_target();
-               for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
-                  for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
-                     reference_result_ptr[j-i] = reference_data_ptr[j];
-                  }
-                  auto loaded = testing::set_call_helper_t<Vec>::call_set(&test_data_ptr[i]);
-                  storeu<Vec>(test_result_ptr, loaded);
-                  test_helper.synchronize();
-                  allOk &= test_helper.validate();
-               }
-               return allOk;
-definitions:
-#INTEL - AVX512
-   - target_extension: "avx512"
-     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
-     lscpu_flags: ["avx512f"]
-     implementation: "return _mm512_set_epi{{ intrin_tp[ctype][1] }}(args...);"
-   - target_extension: "avx512"
-     ctype: ["float", "double"]
-     lscpu_flags: ["avx512f"]
-     implementation: "return _mm512_set_{{ intrin_tp_full[ctype] }}(args...);"
-#INTEL - AVX2
-   - target_extension: "avx2"
-     ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t"]
-     lscpu_flags: ["avx"]
-     implementation: "return _mm256_set_epi{{ intrin_tp[ctype][1] }}(args...);"
-   - target_extension: "avx2"
-     ctype: ["uint64_t", "int64_t"]
-     lscpu_flags: ["avx"]
-     implementation: "return _mm256_set_epi64x( args... );"
-   - target_extension: "avx2"
-     ctype: ["float", "double"]
-     lscpu_flags: ["avx"]
-     implementation: "return _mm256_set_{{ intrin_tp_full[ctype] }}(args...);"
-#INTEL - SSE
-   - target_extension: "sse"
-     ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t"]
-     lscpu_flags: ["sse2"]
-     implementation: "return _mm_set_epi{{ intrin_tp[ctype][1] }}(args...);"
-   - target_extension: "sse"
-     ctype: ["uint64_t", "int64_t"]
-     lscpu_flags: ["sse2"]
-     implementation: "return _mm_set_epi{{ intrin_tp[ctype][1] }}x(args...);"
-   - target_extension: "sse"
-     ctype: ["float"]
-     lscpu_flags: ["sse"]
-     implementation: "return _mm_set_{{ intrin_tp_full[ctype] }}(args...);"
-   - target_extension: "sse"
-     ctype: ["double"]
-     lscpu_flags: ["sse2"]
-     implementation: "return _mm_set_{{ intrin_tp_full[ctype] }}(args...);"
-#SCALAR
-   - target_extension: "scalar"
-     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-     lscpu_flags: []
-     implementation: "return std::get<0>(std::make_tuple(args...));"
+     implementation: "return (mask&1)==1 ? memory[index] : source;"
 ...
 #---
 #primitive_name: "vcompress"

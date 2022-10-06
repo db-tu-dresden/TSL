@@ -12,7 +12,12 @@ returns:
   ctype: "typename ToType::register_type"
   description: ""
 definitions:
-#INTEL - AVX2
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return data;"
   - target_extension: "avx512"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     return_vector_base_type: ["float"]
@@ -35,6 +40,51 @@ definitions:
     implementation: "return _mm512_castpd_si512(data);"
 #INTEL - AVX2
   - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["int8_t"]
+    return_vector_base_type: ["uint8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["uint8_t"]
+    return_vector_base_type: ["int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["int16_t"]
+    return_vector_base_type: ["int8_t", "uint8_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["uint16_t"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["int32_t"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["uint32_t"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["int64_t"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["uint64_t"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     return_vector_base_type: ["float"]
     lscpu_flags: ["avx"]
@@ -56,6 +106,11 @@ definitions:
     implementation: "return _mm256_castpd_si256(data);"
 #INTEL - SSE
   - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ["sse"]
+    implementation: "return data;"
+  - target_extension: "sse"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     return_vector_base_type: ["float"]
     lscpu_flags: ["sse2"]
@@ -75,4 +130,10 @@ definitions:
     return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_castpd_si128(data);"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return data;"
 ...

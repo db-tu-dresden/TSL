@@ -5,7 +5,7 @@ description: "Input/Output primitives."
 ---
 primitive_name: "to_ostream"
 brief_description: "Loads data from aligned memory into a vector register."
-includes: ['<ostream>']
+includes: ['<ostream>', '<iomanip>']
 parameters:
    - ctype: "std::ostream &"
      name: "out"
@@ -29,14 +29,32 @@ definitions:
          return out;
 #INTEL - AVX2
    - target_extension: "avx2"
-     ctype: "int64_t"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t", "float", "double"]
      lscpu_flags: [ 'avx' ]
      implementation: |
-        for(auto idx = 0; idx < 4; ++idx ) {
-                       out << data[3-idx] << "|";
+        for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
+                       out << std::setw(20) << (Vec::base_type) data[(Vec::vector_element_count()-1)-idx] << "|";
                     }
                     out << "\n";
                     return out;
+   - target_extension: "avx2"
+     ctype: ["int8_t", "int16_t"]
+     lscpu_flags: [ 'avx' ]
+     implementation: |
+       for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
+                      out << std::setw(20) << (int)data[(Vec::vector_element_count()-1)-idx] << "|";
+                   }
+                   out << "\n";
+                   return out;
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t"]
+     lscpu_flags: [ 'avx' ]
+     implementation: |
+       for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
+                      out << std::setw(20) << (unsigned)data[(Vec::vector_element_count()-1)-idx] << "|";
+                   }
+                   out << "\n";
+                   return out;
 #INTEL - SSE
    - target_extension: "sse"
      ctype: "int64_t"
