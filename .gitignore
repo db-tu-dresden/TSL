@@ -2,3 +2,9 @@
 /**/__pycache__/
 /**/.idea/
 tvlgen.zip
+
+*.log
+
+tvlgen.log.1
+
+tvlgen.log.2
