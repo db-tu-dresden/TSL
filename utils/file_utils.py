@@ -6,10 +6,14 @@ class StaticFileTree:
     def __init__(self, path: Path, pattern: str = ""):
         self.__files: Dict[Path, int] = dict()
         self.__path = path
-        self.__pattern = pattern
+        self.__pattern = pattern.split("|")
+
+    def __glob(self) -> Generator[Path, None, None]:
+        for p in self.__pattern:
+            yield from self.__path.rglob(p)
 
     def get_recently_updated_files(self) -> Generator[Path, None, None]:
-        for file in self.__path.rglob(self.__pattern):
+        for file in self.__glob():
             if file.is_file():
                 last_accessed_time = file.stat().st_mtime_ns
                 if file not in self.__files:
@@ -21,14 +25,14 @@ class StaticFileTree:
                         yield file
 
     def get_files(self) -> Generator[Path, None, None]:
-        for file in self.__path.rglob(self.__pattern):
+        for file in self.__glob():
             if file.is_file():
                 last_accessed_time = file.stat().st_mtime_ns
                 self.__files[file] = last_accessed_time
                 yield file
 
     def build(self) -> None:
-        for file in self.__path.rglob(self.__pattern):
+        for file in self.__glob():
             if file.is_file():
                 last_accessed_time = file.stat().st_mtime_ns
                 self.__files[file] = last_accessed_time

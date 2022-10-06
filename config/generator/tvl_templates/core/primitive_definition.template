@@ -13,7 +13,9 @@
    full_qualified_parameters_str='',
    parameters_str='',
    using_return_type='',
-   return_template_type='') %}
+   return_template_type='',
+   additional_templates='',
+   additional_template_params='') %}
 {% if vector_length_agnostic %}
    {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ', VectorSize>' %}
 {% elif vector_length_bits != 0 %}
@@ -54,6 +56,16 @@
 {% set ns.using_return_type = 'using ' ~ return_template_parameter ~ ' = simd<' ~ return_vector_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>;' %}
 {% set ns.return_template_type = 'simd<' ~ return_vector_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>, ' %}
 {% endif %}
+{% if additional_template_parameters|length > 0 %}
+{% set types_joiner = joiner(",") %}
+{% set params_joiner = joiner(",") %}
+{% for parameter_dict in additional_template_parameters %}
+{% set ns.additional_templates = ns.additional_templates ~ types_joiner() ~ parameter_dict["ctype"] ~ ' ' ~ parameter_dict["name"] %}
+{% set ns.additional_template_params = ns.additional_template_params ~ params_joiner() ~ parameter_dict["name"] %}
+{% endfor %}
+{% set ns.additional_templates = ns.additional_templates ~ ", " %}
+{% set ns.additional_template_params = ns.additional_template_params ~ ", " %}
+{% endif %}
 {# Every implementation is in the (nested) namespace "details" #}
 namespace {{ tvl_implementation_namespace }} {
       /**
@@ -66,10 +78,11 @@ namespace {{ tvl_implementation_namespace }} {
        * @note: {{ specialization_comment }}
        {% endif %}
        */
-      template<{{ 'typename T, ' if ns.partial_specialized else '' }}{{ 'std::size_t VectorSize, ' if vector_length_agnostic else '' }}ImplementationDegreeOfFreedom {{ idof_name }}>
+      template<{{ 'typename T, ' if ns.partial_specialized else '' }}{{ 'std::size_t VectorSize, ' if vector_length_agnostic else '' }}{{ ns.additional_templates }}ImplementationDegreeOfFreedom {{ idof_name }}>
 {# If the vector_length_bits is specified in the yaml file, a specialization is generated. #}
-         struct {{ primitive_name }}<{{ ns.full_extension_name }}, {{ idof_name }}> {
+         struct {{ primitive_name }}<{{ ns.full_extension_name }}, {{ ns.return_template_type }}{{ ns.additional_template_params }}{{ idof_name }}> {
             using {{ vector_name }} = {{ ns.full_extension_name }};
+            {{ ns.using_return_type }}
             static constexpr bool native_supported() {
    {# If there is hardware support this function returns true, false otherwise. #}
                return {{ 'true;' if is_native else 'false;' }}

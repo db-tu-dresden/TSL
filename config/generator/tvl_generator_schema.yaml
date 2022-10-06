@@ -199,6 +199,15 @@ test_definition: &testing_schema
          default: []
          brief: "A list of required primitives for this test (excluded the current tested primitive)."
 
+template_parameter: &template_parameter_schema
+   required:
+      ctype:
+         type: "str"
+         brief: "Type of template."
+      name:
+         type: "str"
+         brief: "Name of template parameter."
+
 primitive:
    required:
       primitive_name:
@@ -254,6 +263,11 @@ primitive:
          type: "str"
          default: ""
          brief: "Additional template parameter which may be used for conversion operations."
+      additional_template_parameters:
+         type: "list"
+         entry_type: *template_parameter_schema
+         default: []
+         brief: "Additional template parameters which may be needed"
       includes: *includes_schema
       definitions:
          type: "list"

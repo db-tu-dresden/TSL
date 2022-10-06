@@ -1,6 +1,7 @@
 
 find_package(Python3 COMPONENTS Interpreter Development)
-
+message("                                            ")
+set(TSLSourceDir ${CMAKE_CURRENT_LIST_DIR})
 set(TSLGenerator ${CMAKE_CURRENT_LIST_DIR}/main.py)
 set(TSLGeneratorFilesNeedsGenerationCommand ${CMAKE_CURRENT_LIST_DIR}/needs_rebuild.py)
 set(TSLAfterGenerationCommand ${CMAKE_CURRENT_LIST_DIR}/rebuild_fileslist.py)
@@ -30,9 +31,10 @@ endfunction()
 function(TSLGenerate TSLDir ExtensionsFile)
     message("TSL Lib will be in: ${TSLDir}")
     message("Detected Hardware:  ${TSLHardwareTargets}")
+    message("BLUB:  ${TSLSourceDir}")
     set(ExtensionOutputFile ${TSLDir}/avail_extensions.yaml)
     execute_process(
-            COMMAND python3 ${TSLGeneratorFilesNeedsGenerationCommand}
+            COMMAND python3 ${TSLGeneratorFilesNeedsGenerationCommand} "${TSLSourceDir}/"
             COMMAND_ECHO STDOUT
             RESULT_VARIABLE NeedsGeneration
     )
@@ -42,7 +44,7 @@ function(TSLGenerate TSLDir ExtensionsFile)
                 COMMAND_ECHO STDOUT
         )
         execute_process(
-                COMMAND python3 ${TSLAfterGenerationCommand}
+                COMMAND python3 ${TSLAfterGenerationCommand} "${TSLSourceDir}/"
                 COMMAND_ECHO STDOUT
         )
     endif()

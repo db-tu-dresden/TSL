@@ -4,7 +4,7 @@ import copy
 import logging
 from copy import deepcopy
 from pathlib import Path
-from typing import Set, List, Generator, Dict
+from typing import Set, List, Generator, Dict, Tuple
 
 from core.tvl_config import config
 from utils.log_utils import LogInit
@@ -41,6 +41,9 @@ class TVLPrimitive:
             self.__data_dict = data_dict
             self.log(logging.INFO,
                      f"Created Primitive Definition for {self.__data_dict['target_extension']} using {self.__data_dict['ctype']}")
+
+        def __str__(self) -> str:
+            return f"<{self.target_extension} -> {self.ctypes}>"
 
         @staticmethod
         def schema_identifier() -> str:
@@ -83,6 +86,26 @@ class TVLPrimitive:
                     return []
             return self.__data_dict["return_vector_base_type"]
 
+        @property
+        def types(self) -> Generator[Tuple[str, str], None, None]:
+            ctypes_list = self.ctypes
+            return_vector_basetypes_list = self.return_vector_base_types
+            if (len(ctypes_list) > 1) and (len(return_vector_basetypes_list) > 1):
+                if len(ctypes_list) != len(return_vector_basetypes_list):
+                    self.log(logging.CRITICAL, f"{self.human_readable}: {ctypes_list} -- {return_vector_basetypes_list}")
+                    raise ValueError("Multiple ctypes and return_vector_base_types must have the same length (1:1 mapping).")
+                for idx in range(len(ctypes_list)):
+                    yield [ctypes_list[idx], return_vector_basetypes_list[idx]]
+            elif len(return_vector_basetypes_list) > 1:
+                for rvb in return_vector_basetypes_list:
+                    yield [ctypes_list[0], rvb]
+            else:
+                rvb = ""
+                if len(return_vector_basetypes_list) == 1:
+                    rvb = return_vector_basetypes_list[0]
+                for t in ctypes_list:
+                    yield [t, rvb]
+
         def __deepcopy__(self, memodict={}):
             cls = self.__class__
             result = cls.__new__(cls)
@@ -94,7 +117,9 @@ class TVLPrimitive:
         def is_similar(self, other_definition: TVLPrimitive.Definition) -> bool:
             if other_definition.target_extension != self.target_extension:
                 return False
-            return len(set(self.ctypes) & set(other_definition.ctypes)) > 0
+            selfset = set([f"{x},{y}" for x,y in self.types])
+            otherset = set([f"{x},{y}" for x,y in other_definition.types])
+            return len(selfset & otherset) > 0
 
         def greater_than(self, other_definition:TVLPrimitive.Definition, relevant_architecture_flags: Set[str]) -> bool:
             if not self.is_native and other_definition.is_native:
@@ -110,8 +135,14 @@ class TVLPrimitive:
                 if self.ctype in ctypes:
                     self.__data_dict["ctype"] = ""
             else:
+                if (len(self.return_vector_base_types)) > 1:
+                    tmp_return_types = [self.return_vector_base_types[idx] for idx in range(self.ctypes) if self.ctypes[idx] not in ctypes]
+                    self.__data_dict["return_vector_base_type"] = tmp_return_types
                 tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
                 self.__data_dict["ctype"] = tmptypes
+
+    def __str__(self) -> str:
+        return f"{self.declaration.name}"
 
     @staticmethod
     def human_readable(name: str, ctype: str, target_extension: str) -> str:
@@ -130,6 +161,7 @@ class TVLPrimitive:
     def definitions(self) -> Generator[TVLPrimitive.Definition, None, None]:
         for definition in self.__definitions:
             yield definition
+
 
     def has_test(self) -> bool:
         if "testing" in self.declaration.data:
@@ -150,8 +182,13 @@ class TVLPrimitive:
         if TVLPrimitive.Definition.schema_identifier() in data_dict:
             definitions_dict_list = data_dict.pop(TVLPrimitive.Definition.schema_identifier())
         declaration: TVLPrimitive.Declaration = TVLPrimitive.Declaration(data_dict)
+        # print("=========================================================")
+        # print(declaration.name)
         definitions: List[TVLPrimitive.Definition] = [TVLPrimitive.Definition(definition_dict) for definition_dict in
                                                       definitions_dict_list]
+        # print("\n".join([f"{d.data}" for d in definitions]))
+        # print("=========================================================")
+
         return TVLPrimitive(declaration, definitions)
 
     def __deepcopy__(self, memodict={}):
