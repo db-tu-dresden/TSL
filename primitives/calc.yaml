@@ -122,6 +122,19 @@ definitions:
      ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
      lscpu_flags: []
      implementation: "return vec_a + vec_b;"
+#INTEL - FPGA
+   - target_extension: "fpga"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: []
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+                T result; //initialize the result
+                #pragma unroll
+                for(int i = 0; i < Vec::vector_element_count(); ++i) {
+                  result[i] = vec_a[i] + vec_b[i];
+                }
+                return result;
 ---
 primitive_name: "mask_add"
 brief_description: "Adds two vector registers, depending on a mask: result[*] = (m[*])? vec_a[*]+vec_b[*] : vec_a[*]."
@@ -360,7 +373,19 @@ testing:
                }
                return allOk;
 definitions:
-   - target_extension: "avx2"
+#INTEL - FPGA
+   - target_extension: "fpga"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: []
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::base_type;
+                T result = 0; //initialize the result
+                #pragma unroll
+                for(int i = 0; i < Vec::vector_element_count(); ++i) {
+                  result += value[i];
+                }
+                return result;
 #INTEL - AVX512
    - target_extension: "avx512"
      ctype: ["float", "double"]
