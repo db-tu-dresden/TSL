@@ -69,6 +69,21 @@ extension:
          brief: "Additional attributes of vector type."
          example: "__attribute__((vector_size(64), __may_alias__, _aligned_(64)))"
          default: ""
+      simdT_register_type_compiler_attributes:
+         type: "str"
+         brief: "Additional attributes of vector type."
+         example: "__attribute__((register))"
+         default: ""
+      simdT_mask_type_attributes:
+         type: "str"
+         brief: "Additional attributes of vector type."
+         example: "__attribute__((vector_size(64), __may_alias__, _aligned_(64)))"
+         default: ""
+      simdT_mask_type_compiler_attributes:
+         type: "str"
+         brief: "Additional attributes of vector type."
+         example: "__attribute__((register))"
+         default: ""
       description:
          type: "str"
          brief: "A description of the SIMD extension which is used for doxygen generation."
