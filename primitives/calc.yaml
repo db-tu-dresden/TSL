@@ -360,6 +360,18 @@ testing:
                }
                return allOk;
 definitions:
+#INTEL - FPGA
+   - target_extension: "fpga"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: []
+     vector_length_agnostic: True
+     implementation: |
+        typename Vec::base_type result = (typename Vec::base_type) 0; //initialize the result
+                        #pragma unroll
+                        for(int i = 0; i < Vec::vector_element_count(); ++i) {
+                           result += value[i];
+                        }
+                        return result;
 #INTEL - AVX512
    - target_extension: "avx512"
      ctype: ["float", "double"]
