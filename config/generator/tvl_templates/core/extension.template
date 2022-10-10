@@ -17,7 +17,7 @@ struct {{ simdT_name }} {
             using default_size_in_bits = std::integral_constant<std::size_t, VectorSizeInBits>;
             using register_t {{ simdT_register_type_attributes }} = {{ simdT_register_type_compiler_attributes }}
                {{ simdT_register_type }};
-            using mask_t {{       simdT_mask_type_attributes }} = {{ simdT_mask_type_compiler_attributes }}
+            using mask_t {{ simdT_mask_type_attributes }} = {{ simdT_mask_type_compiler_attributes }}
                {{ simdT_mask_type }};
             using imask_t =
                {{ simdT_integral_mask_type }};
