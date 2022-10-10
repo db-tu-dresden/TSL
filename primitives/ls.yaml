@@ -475,67 +475,67 @@ additional_template_parameters:
   - ctype: "int"
     name: "N"
 parameters:
-   - ctype: "const typename Vec::mask_type"
-     name: "mask"
-     description: "Mask indicating which lanes should be gathered."
-   - ctype: "const typename Vec::register_type"
-     name: "source"
-     description: "Vector register containing values which should be preserved depending on the mask (if mask[i] == 0)."
-   - ctype: "const typename Vec::base_type *"
-     attributes: "__restrict__"
-     name: "memory"
-     description: "(Start)pointer of the memory (which is used as base for address calculation)."
-   - ctype: "const typename Vec::offset_base_register_type"
-     name: "index"
-     description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
-   - ctype: "std::integral_constant<int, N>"
-     name: "scale"
-     description: "Scale."
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Mask indicating which lanes should be gathered."
+  - ctype: "const typename Vec::register_type"
+    name: "source"
+    description: "Vector register containing values which should be preserved depending on the mask (if mask[i] == 0)."
+  - ctype: "const typename Vec::base_type *"
+    attributes: "__restrict__"
+    name: "memory"
+    description: "(Start)pointer of the memory (which is used as base for address calculation)."
+  - ctype: "const typename Vec::offset_base_register_type"
+    name: "index"
+    description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
+  - ctype: "std::integral_constant<int, N>"
+    name: "scale"
+    description: "Scale."
 returns:
-   ctype: "typename Vec::register_type"
-   description: "Vector containing gathered data."
+  ctype: "typename Vec::register_type"
+  description: "Vector containing gathered data."
 definitions:
-#INTEL - AVX512
-   - target_extension: "avx512"
-     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
-     lscpu_flags: ['avx512f']
-     implementation: "return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), scale() );"
-#INTEL - AVX2
-   - target_extension: "avx2"
-     ctype: ["uint64_t", "int64_t"]
-     lscpu_flags: ["avx2"]
-     implementation: "return _mm256_mask_i64gather_epi64(source, reinterpret_cast<long long int const *>(memory), index, mask, scale());"
-   - target_extension: "avx2"
-     ctype: ["uint32_t", "int32_t"]
-     lscpu_flags: ["avx2"]
-     implementation: "return _mm256_mask_i32gather_epi32(source, reinterpret_cast<long long int const *>(memory), index, mask, scale());"
-   - target_extension: "avx2"
-     ctype: ["float"]
-     lscpu_flags: ["avx2"]
-     implementation: "return _mm256_mask_i32gather_ps(source, reinterpret_cast<float const *>(memory), index, mask, scale());"
-   - target_extension: "avx2"
-     ctype: ["double"]
-     lscpu_flags: ["avx2"]
-     implementation: "return _mm256_mask_i64gather_pd(source, reinterpret_cast<double const *>(memory), index, mask, scale());"
-#INTEL - SSE
-   - target_extension: "sse"
-     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-     lscpu_flags: [ 'sse2' ]
-     implementation: "return tvl::set<Vec>((mask[1] == 0) ? source[1] : memory[index[1]], (mask[0] == 0) ? source[0] : memory[index[0]]);"
-     is_native: False
-#ARM - NEON
-   - target_extension: "neon"
-     ctype: "int64_t"
-     lscpu_flags: [ 'neon' ]
-     is_native: False
-     implementation: >
-         auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : memory[ index[ 0 ][ 0 ] ] );
-                     return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : memory[ index[ 0 ][ 1 ] ] ), tmp, 1 );
-#SCALAR
-   - target_extension: "scalar"
-     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
-     lscpu_flags: [ ]
-     implementation: "return (mask&1)==1 ? memory[index[0]] : source;"
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ['avx512f']
+    implementation: "return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), scale() );"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_mask_i64gather_epi64(source, reinterpret_cast<long long int const *>(memory), index, mask, scale());"
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_mask_i32gather_epi32(source, reinterpret_cast<long long int const *>(memory), index, mask, scale());"
+  - target_extension: "avx2"
+    ctype: ["float"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_mask_i32gather_ps(source, reinterpret_cast<float const *>(memory), index, mask, scale());"
+  - target_extension: "avx2"
+    ctype: ["double"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_mask_i64gather_pd(source, reinterpret_cast<double const *>(memory), index, mask, scale());"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: [ 'sse2' ]
+    implementation: "return tvl::set<Vec>((mask[1] == 0) ? source[1] : memory[index[1]], (mask[0] == 0) ? source[0] : memory[index[0]]);"
+    is_native: False
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: "int64_t"
+    lscpu_flags: [ 'neon' ]
+    is_native: False
+    implementation: >
+      auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : memory[ index[ 0 ][ 0 ] ] );
+                  return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : memory[ index[ 0 ][ 1 ] ] ), tmp, 1 );
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ ]
+    implementation: "return (mask&1)==1 ? memory[index] : source;"
 ...
 #---
 #primitive_name: "vcompress"
