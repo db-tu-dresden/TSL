@@ -3,7 +3,7 @@ name: "convert"
 description: "Conversion primitives."
 ...
 ---
-primitive_name: "reinterpret"
+primitive_name: "cast_reinterpret"
 return_template_parameter: "ToType"
 parameters:
   - ctype: "const typename Vec::register_type"
@@ -136,4 +136,53 @@ definitions:
     return_vector_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return data;"
+...
+---
+primitive_name: "cast_static"
+return_template_parameter: "ToType"
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+returns:
+  ctype: "typename ToType::offset_register_type"
+  description: "test"
+definitions:
+  #INTEL - AVX52
+  - target_extension: "avx2"
+    ctype: ["int16_t", "uint16_t"]
+    return_vector_base_type: ["int64_t", "uint64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      auto x = _mm256_extracti128_si256(data, 0);
+        auto y = _mm256_extracti128_si256(data, 1);  
+        return { {
+        _mm256_cvtepi16_epi64(x),
+        _mm256_cvtepi16_epi64(_mm_bsrli_si128(x, 8)),
+        _mm256_cvtepi16_epi64(y),
+        _mm256_cvtepi16_epi64(_mm_bsrli_si128(y, 8)),
+      } };
+#  v2
+#  auto shift = _mm256_set_epi64x(48 , 32, 16, 0);
+#      auto andv  = _mm256_set1_epi64x(0xffff);
+#      auto first  = _mm256_permute4x64_epi64(data, 0b00000000);
+#      auto second = _mm256_permute4x64_epi64(data, 0b01010101);
+#      auto third  = _mm256_permute4x64_epi64(data, 0b10101010);
+#      auto fourth = _mm256_permute4x64_epi64(data, 0b11111111);
+#      return
+#        { {
+#          _mm256_and_si256(_mm256_srlv_epi64(first, shift), andv),
+#          _mm256_and_si256(_mm256_srlv_epi64(second, shift), andv),
+#          _mm256_and_si256(_mm256_srlv_epi64(third, shift), andv),
+#          _mm256_and_si256(_mm256_srlv_epi64(fourth, shift), andv)
+#        } };
+#  v3
+#    alignas(32) std::array<uint16_t, 16> tmp{};
+#    _mm256_store_si256(reinterpret_cast<__m256i *>(tmp.data()), data);
+#    return {{
+#    _mm256_set_epi64x(tmp[ 3], tmp[ 2], tmp[ 1], tmp[ 0]),
+#    _mm256_set_epi64x(tmp[ 7], tmp[ 6], tmp[ 5], tmp[ 4]),
+#    _mm256_set_epi64x(tmp[11], tmp[10], tmp[ 9], tmp[ 8]),
+#    _mm256_set_epi64x(tmp[15], tmp[14], tmp[13], tmp[12])
+#  }};
+
 ...
