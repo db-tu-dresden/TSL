@@ -112,9 +112,9 @@ class TVLFileGenerator:
 
                     definition_copy = copy.deepcopy(definition.data)
 
-                    for ctype, return_vector_base_type in definition.types:
+                    for ctype, additional_simd_template_base_type in definition.types:
                         definition_copy["ctype"] = ctype
-                        definition_copy["return_vector_base_type"] = return_vector_base_type
+                        definition_copy["additional_simd_template_base_type"] = additional_simd_template_base_type
                         decl_and_def_combined_data = { **extension_set.get_extension_by_name(
                             definition.target_extension).data, **declaration_data, **definition_copy }
                         decl_and_def_combined_data["implementation"] = Template(

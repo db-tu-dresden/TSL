@@ -52,14 +52,14 @@
       {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ comma %}
    {% endif %}
 {% endfor %}
-{% if return_template_parameter != "" %}
-{% set ns.using_return_type = 'using ' ~ return_template_parameter ~ ' = simd<' ~ return_vector_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>;' %}
-{% set ns.return_template_type = 'simd<' ~ return_vector_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>, ' %}
+{% if additional_simd_template_parameter != "" %}
+{% set ns.using_return_type = 'using ' ~ additional_simd_template_parameter ~ ' = simd<' ~ additional_simd_template_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>;' %}
+{% set ns.return_template_type = 'simd<' ~ additional_simd_template_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>, ' %}
 {% endif %}
-{% if additional_template_parameters|length > 0 %}
+{% if additional_non_specialized_template_parameters|length > 0 %}
 {% set types_joiner = joiner(",") %}
 {% set params_joiner = joiner(",") %}
-{% for parameter_dict in additional_template_parameters %}
+{% for parameter_dict in additional_non_specialized_template_parameters %}
 {% set ns.additional_templates = ns.additional_templates ~ types_joiner() ~ parameter_dict["ctype"] ~ ' ' ~ parameter_dict["name"] %}
 {% set ns.additional_template_params = ns.additional_template_params ~ params_joiner() ~ parameter_dict["name"] %}
 {% endfor %}
@@ -101,7 +101,9 @@ namespace {{ tvl_implementation_namespace }} {
                {% if not is_native %}
                static_assert( !std::is_same_v< {{ idof_name }}, native >, "The primitive {{ primitive_name }} is not supported by your hardware natively while it is forced by using native" );
                {% endif %}
-               {{ implementation }}
+               {%- filter indent(width=15) +%}
+{{ implementation }}
+               {% endfilter %}
             }
          };
    } // end of namespace {{ tvl_implementation_namespace }} for template specialization of {{ primitive_name }} for {{ target_extension }} using {{ ctype }}.

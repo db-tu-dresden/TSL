@@ -178,7 +178,7 @@ primitive_specialization_optionals: &definition_optionals_schema
       type: "str"
       default: ""
       brief: "Brief description of the primitive."
-   return_vector_base_type:
+   additional_simd_template_base_type:
       type: "list"
       entry_type: "str"
       default: []
@@ -274,11 +274,11 @@ primitive:
          entry_type: *return_schema
          default: {"ctype": "void", "description": ""}
          brief: "The return type of the primitive. (default = void)"
-      return_template_parameter:
+      additional_simd_template_parameter:
          type: "str"
          default: ""
          brief: "Additional template parameter which may be used for conversion operations."
-      additional_template_parameters:
+      additional_non_specialized_template_parameters:
          type: "list"
          entry_type: *template_parameter_schema
          default: []

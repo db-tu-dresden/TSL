@@ -78,22 +78,22 @@ class TVLPrimitive:
             return self.ctype
 
         @property
-        def return_vector_base_types(self) -> List[str]:
-            if isinstance(self.__data_dict["return_vector_base_type"], str):
-                if len(self.__data_dict["return_vector_base_type"] > 0):
-                    return [self.__data_dict["return_vector_base_type"]]
+        def additional_simd_template_base_type(self) -> List[str]:
+            if isinstance(self.__data_dict["additional_simd_template_base_type"], str):
+                if len(self.__data_dict["additional_simd_template_base_type"] > 0):
+                    return [self.__data_dict["additional_simd_template_base_type"]]
                 else:
                     return []
-            return self.__data_dict["return_vector_base_type"]
+            return self.__data_dict["additional_simd_template_base_type"]
 
         @property
         def types(self) -> Generator[Tuple[str, str], None, None]:
             ctypes_list = self.ctypes
-            return_vector_basetypes_list = self.return_vector_base_types
+            return_vector_basetypes_list = self.additional_simd_template_base_type
             if (len(ctypes_list) > 1) and (len(return_vector_basetypes_list) > 1):
                 if len(ctypes_list) != len(return_vector_basetypes_list):
                     self.log(logging.CRITICAL, f"{self.human_readable}: {ctypes_list} -- {return_vector_basetypes_list}")
-                    raise ValueError("Multiple ctypes and return_vector_base_types must have the same length (1:1 mapping).")
+                    raise ValueError("Multiple ctypes and additional_simd_template_base_type must have the same length (1:1 mapping).")
                 for idx in range(len(ctypes_list)):
                     yield [ctypes_list[idx], return_vector_basetypes_list[idx]]
             elif len(return_vector_basetypes_list) > 1:
@@ -135,9 +135,9 @@ class TVLPrimitive:
                 if self.ctype in ctypes:
                     self.__data_dict["ctype"] = ""
             else:
-                if (len(self.return_vector_base_types)) > 1:
-                    tmp_return_types = [self.return_vector_base_types[idx] for idx in range(self.ctypes) if self.ctypes[idx] not in ctypes]
-                    self.__data_dict["return_vector_base_type"] = tmp_return_types
+                if (len(self.additional_simd_template_base_type)) > 1:
+                    tmp_return_types = [self.additional_simd_template_base_type[idx] for idx in range(self.ctypes) if self.ctypes[idx] not in ctypes]
+                    self.__data_dict["additional_simd_template_base_type"] = tmp_return_types
                 tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
                 self.__data_dict["ctype"] = tmptypes
 
