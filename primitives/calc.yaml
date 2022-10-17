@@ -130,7 +130,7 @@ definitions:
      implementation: |
         using T = typename Vec::register_type;
                 T result; //initialize the result
-                #pragma unroll
+                #pragma unroll 16
                 for(int i = 0; i < Vec::vector_element_count(); ++i) {
                   result[i] = vec_a[i] + vec_b[i];
                 }
@@ -381,10 +381,18 @@ definitions:
      implementation: |
         using T = typename Vec::base_type;
                 T result = 0; //initialize the result
-                #pragma unroll
-                for(int i = 0; i < Vec::vector_element_count(); ++i) {
-                  result += value[i];
-                }
+                #pragma unroll 16
+                  for(int i = 0; i < Vec::vector_element_count(); i+=8) {
+                    T add_1_1 = value[0] + value[1];
+                    T add_1_2 = value[2] + value[3];
+                    T add_1_3 = value[4] + value[5];
+                    T add_1_4 = value[6] + value[7];
+
+                    T add_2_1 = add_1_1 + add_1_2;
+                    T add_2_2 = add_1_3 + add_1_4;
+
+                    result += add_2_1 + add_2_2;
+                  }
                 return result;
 #INTEL - AVX512
    - target_extension: "avx512"
