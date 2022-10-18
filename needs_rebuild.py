@@ -15,7 +15,7 @@ if __name__ == '__main__':
         with open(helper_file.resolve(), "r") as fl:
             files_with_timestamps = yaml.safe_load(fl)
         print(f"Scanning library path {str(lib_path)}... ")
-        sft = StaticFileTree(lib_path, "*.yaml|*.template|*.py")
+        sft = StaticFileTree(lib_path, "*.yaml|*.template|*.py", [r"\.github", r"\.idea", "venv"])
         sft.build()
         needs_rebuild = False
         for file, time_stamp in sft.items:

@@ -23,7 +23,7 @@ implementations:
             typename T::imask_type;
             typename T::offset_base_type;
             typename T::offset_base_register_type;
-            typename T::offset_register_type;
+            //typename T::offset_register_type;
             { T::is_register_type_pointer() } -> std::same_as<bool>;
             { T::vector_size_b() } -> std::same_as<std::size_t>;
             { T::vector_size_B() } -> std::same_as<std::size_t>;

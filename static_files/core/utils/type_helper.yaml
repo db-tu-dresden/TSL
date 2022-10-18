@@ -9,7 +9,15 @@ includes:
    - '<string>'
    - '<cstdlib>'
    - '<limits>'
+   - '<iostream>'
 implementations:
+   - >
+      enum class modifier {
+              HEX,
+              DEC,
+              OCT,
+              BIN
+      };
    - >
       template< class T >
          std::string type_name( ) {
