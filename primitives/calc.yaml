@@ -129,12 +129,12 @@ definitions:
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;
-                T result; //initialize the result
-                #pragma unroll
-                for(int i = 0; i < Vec::vector_element_count(); ++i) {
-                  result[i] = vec_a[i] + vec_b[i];
-                }
-                return result;
+        T result; //initialize the result
+        #pragma unroll
+        for(int i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = vec_a[i] + vec_b[i];
+        }
+        return result;
 ---
 primitive_name: "mask_add"
 brief_description: "Adds two vector registers, depending on a mask: result[*] = (m[*])? vec_a[*]+vec_b[*] : vec_a[*]."
@@ -375,54 +375,64 @@ testing:
 definitions:
 #INTEL - FPGA
    - target_extension: "fpga"
-     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
      lscpu_flags: []
      vector_length_agnostic: True
      implementation: |
-        using T = typename Vec::base_type;
-                T result = 0; //initialize the result
-                #pragma unroll
-                for(int i = 0; i < Vec::vector_element_count(); i+=16) {
-                  T add_1_1 = value[ 0] + value[ 1];
-                  T add_1_2 = value[ 2] + value[ 3];
-                  T add_1_3 = value[ 4] + value[ 5];
-                  T add_1_4 = value[ 6] + value[ 7];
-                  T add_1_5 = value[ 8] + value[ 9];
-                  T add_1_6 = value[10] + value[11];
-                  T add_1_7 = value[12] + value[13];
-                  T add_1_8 = value[14] + value[15];
+        typename Vec::register_type result{};
+        #pragma unroll
+        for(size_t i = 0; i < Vec::vector_element_count(); ++i) { result[i] = value[i]; }
+        #pragma unroll cilog2(Vec::vector_element_count())
+        for(size_t current_width = (Vec::vector_element_count()>>1); current_width >= 1; current_width>>=1) {
+            for(size_t i = 0; i < current_width; ++i) {
+                result[i] = result[(i<<1)] + result[(i<<1)+1];
+            }
+        }
+        return result[0];
+# using T = typename Vec::base_type;
+# T result = 0; //initialize the result
+# #pragma unroll
+# for(int i = 0; i < Vec::vector_element_count(); i+=16) {
+#   T add_1_1 = value[ 0] + value[ 1];
+#   T add_1_2 = value[ 2] + value[ 3];
+#   T add_1_3 = value[ 4] + value[ 5];
+#   T add_1_4 = value[ 6] + value[ 7];
+#   T add_1_5 = value[ 8] + value[ 9];
+#   T add_1_6 = value[10] + value[11];
+#   T add_1_7 = value[12] + value[13];
+#   T add_1_8 = value[14] + value[15];
 
-                  T add_2_1 = add_1_1 + add_1_2;
-                  T add_2_2 = add_1_3 + add_1_4;
-                  T add_2_3 = add_1_5 + add_1_6;
-                  T add_2_4 = add_1_7 + add_1_8;
+#   T add_2_1 = add_1_1 + add_1_2;
+#   T add_2_2 = add_1_3 + add_1_4;
+#   T add_2_3 = add_1_5 + add_1_6;
+#   T add_2_4 = add_1_7 + add_1_8;
 
-                  T add_3_1 = add_2_1 + add_2_2;
-                  T add_3_2 = add_2_3 + add_2_4;
+#   T add_3_1 = add_2_1 + add_2_2;
+#   T add_3_2 = add_2_3 + add_2_4;
 
-                  result += add_3_1 + add_3_2;
-                }
-                return result;
+#   result += add_3_1 + add_3_2;
+# }
+# return result;
    - target_extension: "fpga"
      ctype: ["uint64_t", "int64_t", "double"]
      lscpu_flags: []
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::base_type;
-                T result = 0; //initialize the result
-                #pragma unroll
-                for(int i = 0; i < Vec::vector_element_count(); i+=16) {
-                  T add_1_1 = value[ 0] + value[ 1];
-                  T add_1_2 = value[ 2] + value[ 3];
-                  T add_1_3 = value[ 4] + value[ 5];
-                  T add_1_4 = value[ 6] + value[ 7];
+        T result = 0; //initialize the result
+        #pragma unroll
+        for(int i = 0; i < Vec::vector_element_count(); i+=16) {
+          T add_1_1 = value[ 0] + value[ 1];
+          T add_1_2 = value[ 2] + value[ 3];
+          T add_1_3 = value[ 4] + value[ 5];
+          T add_1_4 = value[ 6] + value[ 7];
 
-                  T add_2_1 = add_1_1 + add_1_2;
-                  T add_2_2 = add_1_3 + add_1_4;
+          T add_2_1 = add_1_1 + add_1_2;
+          T add_2_2 = add_1_3 + add_1_4;
 
-                  result += add_2_1 + add_2_2;
-                }
-                return result;
+          result += add_2_1 + add_2_2;
+        }
+        return result;
 #INTEL - AVX512
    - target_extension: "avx512"
      ctype: ["float", "double"]

@@ -201,7 +201,7 @@ definitions:
 
         #pragma unroll
         for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-            result[i] = ((data_vec[i] >= lower_vec[i]) && (data_vec[i] <= upper_vec[i])) ? checker : 0;
+            result[i] = ((vec_data[i] >= vec_min[i]) && (vec_data[i] <= vec_max[i])) ? checker : 0;
         }
         return result;
 ...

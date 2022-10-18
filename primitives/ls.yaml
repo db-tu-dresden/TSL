@@ -77,6 +77,19 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: []
      implementation: "return *memory;"
+#FPGA
+   - target_extension: "fpga"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: []
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        T reg; //initialize the result
+        #pragma unroll
+        for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+          reg[idx] = memory[idx];
+        }
+        return reg;
 ...
 ---
 primitive_name: "loadu"
@@ -160,12 +173,12 @@ definitions:
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;
-                T reg; //initialize the result
-                #pragma unroll
-                for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
-                  reg[idx] = memory[idx];
-                }
-                return reg;
+        T reg; //initialize the result
+        #pragma unroll
+        for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+          reg[idx] = memory[idx];
+        }
+        return reg;
 ...
 ---
 primitive_name: "store"

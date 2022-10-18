@@ -136,6 +136,19 @@ definitions:
     additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return data;"
+#INTEL - FPGA
+  - target_extension: "fpga"
+    ctype: ["float","double"]
+    additional_simd_template_base_type_mapping_dict: {"float":["int32_t", "uint32_t"],"double":["int64_t", "uint64_t"]}
+    lscpu_flags: []
+    implementation: |
+      using U = typename ToType::register_type;
+      U result{};
+      #pragma unroll
+      for (size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+        result[i] = *reinterpret_cast< typename ToType::base_type const * >( &(data[i]) );
+      }
+      return result;
 ...
 ---
 primitive_name: "convert_up"
