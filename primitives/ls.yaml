@@ -497,7 +497,7 @@ definitions:
 ---
 primitive_name: "mask_gather"
 brief_description: "Transfers data from arbitrary locations into a vector register."
-additional_template_parameters:
+additional_non_specialized_template_parameters:
   - ctype: "int"
     name: "N"
 parameters:
@@ -562,6 +562,38 @@ definitions:
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ ]
     implementation: "return (mask&1)==1 ? memory[index] : source;"
+...
+---
+primitive_name: "gather"
+additional_simd_template_parameter: "OffsetType"
+brief_description: "Transfers data from arbitrary locations into a vector register."
+additional_non_specialized_template_parameters:
+  - ctype: "int"
+    name: "N"
+parameters:
+  - ctype: "const typename Vec::base_type *"
+    attributes: "__restrict__"
+    name: "memory"
+    description: "(Start)pointer of the memory (which is used as base for address calculation)."
+  - ctype: "const std::array<typename OffsetType::register_type, sizeof(typename OffsetType::base_type)/sizeof(Vec::base_type)> &"
+    name: "indices"
+    description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
+  - ctype: "std::integral_constant<int, N>"
+    name: "scale"
+    description: "Scale."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing gathered data."
+definitions:
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t"]
+    additional_simd_template_base_type: ["uint32_t"]
+    lscpu_flags: ['avx2']
+    implementation: |
+      auto base_addr = reinterpret_cast<int const*>(memory);
+      _mm256_i32gather_epi32(base_addr, indices[0], scale())
+      return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), scale() );
 ...
 #---
 #primitive_name: "vcompress"
