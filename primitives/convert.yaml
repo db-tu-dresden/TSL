@@ -168,11 +168,11 @@ testing:
       using lower_type = typename Vec::base_type;
       using upper_type = typename ToType::base_type;
       std::size_t element_count = Vec::vector_element_count();
-      testing::test_memory_helper_t<Vec> test_helper_lower{Vec::vector_element_count(), 1, false, seq_init_start_low<lower_type>};
+      testing::test_memory_helper_t<Vec> test_helper_lower{Vec::vector_element_count(), 1, false, testing::seq_init_start_low<lower_type>};
       auto lower_value_vec = loadu<Vec>(test_helper_lower.data_target());
       auto const lower_inc_vec = set1<Vec>(Vec::vector_element_count());
       
-      testing::test_memory_helper_t<ToType> test_helper_upper{ToType::vector_element_count(), ToType::vector_element_count(), false, seq_init_start_low<upper_type>};
+      testing::test_memory_helper_t<ToType> test_helper_upper{ToType::vector_element_count(), ToType::vector_element_count(), false, testing::seq_init_start_low<upper_type>};
       auto test_upper_result_ptr = reinterpret_cast<lower_type*>(test_helper_upper.result_target());
       auto test_upper_ref_ptr = test_helper_upper.result_ref();
       
