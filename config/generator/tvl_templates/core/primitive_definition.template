@@ -15,12 +15,16 @@
    using_return_type='',
    return_template_type='',
    additional_templates='',
-   additional_template_params='') %}
+   additional_template_params='',
+   simd_register_length='') %}
 {% if vector_length_agnostic %}
-   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ', VectorSize>' %}
+   {% set ns.simd_register_length = ', VectorSize' %}
+   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>' %}
 {% elif vector_length_bits != 0 %}
-   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ', ' ~ vector_length_bits  ~ '>' %}
+   {% set ns.simd_register_length = ', ' ~ vector_length_bits %}
+   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ns.simd_register_length~ '>' %}
 {% else %}
+   {% set ns.simd_register_length = '' %}
    {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ '>' %}
 {% endif %}
 {% if ctype == 'T' %}
