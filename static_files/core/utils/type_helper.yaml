@@ -43,4 +43,5 @@ implementations:
          struct is_tuple : is_tuple_impl< std::remove_cv_t< T > > { };
 
    - "using offset_t = std::size_t;"
+   - "constexpr unsigned cilog2(unsigned val) { return val ? 1 + cilog2(val >> 1) : -1; }"
 ...
