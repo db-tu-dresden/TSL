@@ -289,7 +289,7 @@ definitions:
 #INTEL - FPGA
    - target_extension: "fpga"
      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
-     lscpu_flags: []
+     lscpu_flags: ["fpga"]
      vector_length_agnostic: True
      implementation: "return mask;"
 ...

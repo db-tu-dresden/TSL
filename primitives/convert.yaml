@@ -141,7 +141,7 @@ definitions:
     ctype: ["float","double"]
     additional_simd_template_base_type_mapping_dict: {"float":["int32_t", "uint32_t"],"double":["int64_t", "uint64_t"]}
     vector_length_agnostic: True
-    lscpu_flags: []
+    lscpu_flags: ["fpga"]
     implementation: |
       using U = typename ToType::register_type;
       U result{};
@@ -388,68 +388,68 @@ definitions:
         data
       } };
 ...
----
-primitive_name: "convert_down"
-additional_simd_template_parameter: "ToType"
-parameters:
-  - ctype: "std::array<typename ToType::register_type, sizeof(typename ToType::base_type)/sizeof(Vec::base_type)>"
-    name: "data"
-returns:
-  ctype: "const typename Vec::register_type"
-  description: "SIMD register containing the down-converted data."
-testing:
-  - test_name: "default"
-    requires: ["loadu", "equal", "to_integral", "add"]
-    includes: ["<limits>", "<cstdint>"]
-    implementation: |
-      using lower_type = typename ToType::base_type;
-      using upper_type = typename Vec::base_type;
-      std::size_t element_count = Vec::vector_element_count();
-      testing::test_memory_helper_t<Vec> test_helper_upper{Vec::vector_element_count(), 1, false, seq_init_start_low<lower_type>};
-      testing::test_memory_helper_t<ToType> test_helper_lower{ToType::vector_element_count(), ToType::vector_element_count(), false, seq_init_start_low<upper_type>};
-      
-      auto upper_value_vec = loadu<Vec>(test_helper_upper.data_target());
-      auto const lower_inc_vec = set1<Vec>(Vec::vector_element_count());
-      
-      
-      auto test_upper_result_ptr = reinterpret_cast<lower_type*>(test_helper_upper.result_target());
-      auto test_upper_ref_ptr = test_helper_upper.result_ref();
-      
-      for(uint64_t i = 0; i < std::numeric_limits<lower_type>::max(); i+= Vec::vector_element_count()) {
-        auto test_upper_result_ptr = reinterpret_cast<lower_type*>(test_helper_upper.result_target());
-        auto result = convert_up<Vec, ToType>(lower_value_vec);
-        for(auto simd_reg : result) {
-          storeu<Vec>(test_upper_result_ptr, simd_reg);
-          test_upper_result_ptr += Vec::vector_element_count();
-        }
-        test_helper_upper.synchronize();
-        allOk &= test_helper_upper.validate();
-        lower_value_vec = add<Vec>(lower_value_vec, lower_inc_vec);
-        for(uint64_t r = 0; r < ToType::vector_element_count(); ++r) {
-          test_upper_ref_ptr[r] += Vec::vector_element_count();
-        }
-      }
-      return allOk;
-definitions:
+#---
+#primitive_name: "convert_down"
+#additional_simd_template_parameter: "ToType"
+#parameters:
+#  - ctype: "std::array<typename ToType::register_type, sizeof(typename ToType::base_type)/sizeof(Vec::base_type)>"
+#    name: "data"
+#returns:
+#  ctype: "const typename Vec::register_type"
+#  description: "SIMD register containing the down-converted data."
+#testing:
+#  - test_name: "default"
+#    requires: ["loadu", "equal", "to_integral", "add"]
+#    includes: ["<limits>", "<cstdint>"]
+#    implementation: |
+#      using lower_type = typename ToType::base_type;
+#      using upper_type = typename Vec::base_type;
+#      std::size_t element_count = Vec::vector_element_count();
+#      testing::test_memory_helper_t<Vec> test_helper_upper{Vec::vector_element_count(), 1, false, seq_init_start_low<lower_type>};
+#      testing::test_memory_helper_t<ToType> test_helper_lower{ToType::vector_element_count(), ToType::vector_element_count(), false, seq_init_start_low<upper_type>};
+#
+#      auto upper_value_vec = loadu<Vec>(test_helper_upper.data_target());
+#      auto const lower_inc_vec = set1<Vec>(Vec::vector_element_count());
+#
+#
+#      auto test_upper_result_ptr = reinterpret_cast<lower_type*>(test_helper_upper.result_target());
+#      auto test_upper_ref_ptr = test_helper_upper.result_ref();
+#
+#      for(uint64_t i = 0; i < std::numeric_limits<lower_type>::max(); i+= Vec::vector_element_count()) {
+#        auto test_upper_result_ptr = reinterpret_cast<lower_type*>(test_helper_upper.result_target());
+#        auto result = convert_up<Vec, ToType>(lower_value_vec);
+#        for(auto simd_reg : result) {
+#          storeu<Vec>(test_upper_result_ptr, simd_reg);
+#          test_upper_result_ptr += Vec::vector_element_count();
+#        }
+#        test_helper_upper.synchronize();
+#        allOk &= test_helper_upper.validate();
+#        lower_value_vec = add<Vec>(lower_value_vec, lower_inc_vec);
+#        for(uint64_t r = 0; r < ToType::vector_element_count(); ++r) {
+#          test_upper_ref_ptr[r] += Vec::vector_element_count();
+#        }
+#      }
+#      return allOk;
+#definitions:
   #INTEL - AVX2
-  - target_extension: "avx2"
-    ctype: ["int32_t"]
-    additional_simd_template_base_type: ["int8_t"]
-    lscpu_flags: ["avx2"]
-    is_native: False
-    implementation: |
-      auto const x = _mm256_extracti128_si256(data, 0);
-      auto const y = _mm256_extracti128_si256(data, 1);
-      return { {
-        _mm256_cvtepi8_epi64(x),
-        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 4)),
-        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 8)),
-        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 12)),
-        _mm256_cvtepi8_epi64(y),
-        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 4)),
-        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 8)),
-        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 12)),
-      } };
-
-...
+#  - target_extension: "avx2"
+#    ctype: ["int32_t"]
+#    additional_simd_template_base_type: ["int8_t"]
+#    lscpu_flags: ["avx2"]
+#    is_native: False
+#    implementation: |
+#      auto const x = _mm256_extracti128_si256(data, 0);
+#      auto const y = _mm256_extracti128_si256(data, 1);
+#      return { {
+#        _mm256_cvtepi8_epi64(x),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 4)),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 8)),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 12)),
+#        _mm256_cvtepi8_epi64(y),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 4)),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 8)),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 12)),
+#      } };
+#
+#...
 

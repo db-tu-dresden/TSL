@@ -2,7 +2,7 @@
 description: "Definition of the SIMD TargetExtension fpga for Intel fpga using dpcc."
 vendor: "intel"
 extension_name: "fpga"
-lscpu_flags: []
+lscpu_flags: ["fpga"]
 #includes: ["<array>", "<bitset>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>"]
 includes: ["<array>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>"]
 simdT_name: "fpga"

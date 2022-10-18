@@ -125,7 +125,7 @@ definitions:
 #INTEL - FPGA
    - target_extension: "fpga"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-     lscpu_flags: []
+     lscpu_flags: ["fpga"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;
@@ -376,7 +376,7 @@ definitions:
 #INTEL - FPGA
    - target_extension: "fpga"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
-     lscpu_flags: []
+     lscpu_flags: ["fpga"]
      vector_length_agnostic: True
      implementation: |
         typename Vec::register_type result{};
@@ -415,7 +415,7 @@ definitions:
 # return result;
    - target_extension: "fpga"
      ctype: ["uint64_t", "int64_t", "double"]
-     lscpu_flags: []
+     lscpu_flags: ["fpga"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::base_type;

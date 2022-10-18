@@ -9,6 +9,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
     description: "Data vector."
+    declaration_attributes: "[[maybe_unused]]"
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing result of the uniqueness check."
