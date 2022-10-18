@@ -161,6 +161,8 @@ primitive_specialization_requirements: &definition_requirements_schema
       example: "['uint32_t', 'uint64_t'], ['uint64_t'], ['T']"
    lscpu_flags: *lscpu_flags_schema
 
+type_mapping_dict: &type_mapping_dict_schema
+   required
 primitive_specialization_optionals: &definition_optionals_schema
    is_native:
       type: "bool"
@@ -183,6 +185,10 @@ primitive_specialization_optionals: &definition_optionals_schema
       entry_type: "str"
       default: []
       brief: "Return vector base type, which is used for conversion."
+   additional_simd_template_base_type_mapping_dict:
+      type: "dict"
+      default: {}
+      brief: todo
    includes: *includes_schema
 
 primitive_definition: &definition_schema

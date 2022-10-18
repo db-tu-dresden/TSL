@@ -36,6 +36,41 @@ class TVLPrimitive:
             return result
 
     class Definition:
+        @classmethod
+        def map_types_cartesian(cls, alist: List[str], blist: List[str]) -> Generator[Tuple[str, str], None, None]:
+            for a in alist:
+                for b in blist:
+                    yield (a,b)
+
+        @classmethod
+        def map_types_one2m(cls, alist: List[str], blist: List[str]) -> Generator[Tuple[str, str], None, None]:
+            if len(alist) > 1:
+                raise ValueError("map_types_one2m: First parameter must have length of 1.")
+            for b in blist:
+                yield (alist[0], b)
+
+        @classmethod
+        def map_types_m2one(cls, alist: List[str], blist: List[str]) -> Generator[Tuple[str, str], None, None]:
+            if len(blist) > 1:
+                raise ValueError("map_types_m2one: Second parameter must have length of 1.")
+            for a in alist:
+                yield (a, blist[0])
+
+        @classmethod
+        def map_types_one2one(cls, alist: List[str], blist: List[str]) -> Generator[Tuple[str, str], None, None]:
+            if len(alist) != len(blist):
+                raise ValueError("map_types_one2one: Both parameters must have same length.")
+            for i in range(len(alist)):
+                yield (alist[i], blist[i])
+
+        @classmethod
+        def map_types_from_dict(cls, alist: List[str], bdict: Dict[str, List[str]]) -> Generator[Tuple[str, str], None, None]:
+            for i in alist:
+                if i not in bdict:
+                    raise ValueError("map_types_from_dict: value from left parameter not in right one.")
+                for j in bdict[i]:
+                    yield (i, j)
+
         @LogInit()
         def __init__(self, data_dict: dict):
             self.__data_dict = data_dict
@@ -78,7 +113,7 @@ class TVLPrimitive:
             return self.ctype
 
         @property
-        def additional_simd_template_base_type(self) -> List[str]:
+        def additional_simd_template_base_types(self) -> List[str]:
             if isinstance(self.__data_dict["additional_simd_template_base_type"], str):
                 if len(self.__data_dict["additional_simd_template_base_type"] > 0):
                     return [self.__data_dict["additional_simd_template_base_type"]]
@@ -87,24 +122,42 @@ class TVLPrimitive:
             return self.__data_dict["additional_simd_template_base_type"]
 
         @property
+        def additional_simd_template_base_type_mapping_dict(self) -> Dict[str, List[str]]:
+            return self.__data_dict["additional_simd_template_base_type_mapping_dict"]
+
+        @property
         def types(self) -> Generator[Tuple[str, str], None, None]:
             ctypes_list = self.ctypes
-            return_vector_basetypes_list = self.additional_simd_template_base_type
-            if (len(ctypes_list) > 1) and (len(return_vector_basetypes_list) > 1):
-                if len(ctypes_list) != len(return_vector_basetypes_list):
-                    self.log(logging.CRITICAL, f"{self.human_readable}: {ctypes_list} -- {return_vector_basetypes_list}")
-                    raise ValueError("Multiple ctypes and additional_simd_template_base_type must have the same length (1:1 mapping).")
-                for idx in range(len(ctypes_list)):
-                    yield [ctypes_list[idx], return_vector_basetypes_list[idx]]
-            elif len(return_vector_basetypes_list) > 1:
-                for rvb in return_vector_basetypes_list:
-                    yield [ctypes_list[0], rvb]
-            else:
-                rvb = ""
-                if len(return_vector_basetypes_list) == 1:
-                    rvb = return_vector_basetypes_list[0]
+            return_vector_basetypes_list = self.additional_simd_template_base_types
+            if (len(return_vector_basetypes_list) == 0) and (len(self.additional_simd_template_base_type_mapping_dict) == 0):
                 for t in ctypes_list:
-                    yield [t, rvb]
+                    yield (t, "")
+            elif (len(ctypes_list) == 1) and (len(return_vector_basetypes_list) > 1):
+                yield from TVLPrimitive.Definition.map_types_one2m(ctypes_list, return_vector_basetypes_list)
+            elif (len(ctypes_list) > 1) and (len(return_vector_basetypes_list) == 1):
+                yield from TVLPrimitive.Definition.map_types_m2one(ctypes_list, return_vector_basetypes_list)
+            elif len(ctypes_list) == (len(return_vector_basetypes_list)):
+                yield from TVLPrimitive.Definition.map_types_one2one(ctypes_list, return_vector_basetypes_list)
+            elif len(self.additional_simd_template_base_type_mapping_dict) > 0:
+                yield from TVLPrimitive.Definition.map_types_from_dict(ctypes_list, self.additional_simd_template_base_type_mapping_dict)
+            else:
+                yield from TVLPrimitive.Definition.map_types_cartesian(ctypes_list, return_vector_basetypes_list)
+
+            # if (len(ctypes_list) > 1) and (len(return_vector_basetypes_list) > 1):
+            #     if len(ctypes_list) != len(return_vector_basetypes_list):
+            #         self.log(logging.CRITICAL, f"{self.human_readable}: {ctypes_list} -- {return_vector_basetypes_list}")
+            #         raise ValueError("Multiple ctypes and additional_simd_template_base_type must have the same length (1:1 mapping).")
+            #     for idx in range(len(ctypes_list)):
+            #         yield [ctypes_list[idx], return_vector_basetypes_list[idx]]
+            # elif len(return_vector_basetypes_list) > 1:
+            #     for rvb in return_vector_basetypes_list:
+            #         yield [ctypes_list[0], rvb]
+            # else:
+            #     rvb = ""
+            #     if len(return_vector_basetypes_list) == 1:
+            #         rvb = return_vector_basetypes_list[0]
+            #     for t in ctypes_list:
+            #         yield [t, rvb]
 
         def __deepcopy__(self, memodict={}):
             cls = self.__class__
@@ -135,11 +188,37 @@ class TVLPrimitive:
                 if self.ctype in ctypes:
                     self.__data_dict["ctype"] = ""
             else:
-                if (len(self.additional_simd_template_base_type)) > 1:
-                    tmp_return_types = [self.additional_simd_template_base_type[idx] for idx in range(self.ctypes) if self.ctypes[idx] not in ctypes]
+                if (len(self.additional_simd_template_base_types) == 0) and (len(self.additional_simd_template_base_type_mapping_dict) == 0):
+                    tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
+                    self.__data_dict["ctype"] = tmptypes
+                elif (len(self.ctypes) == 1) and (len(self.additional_simd_template_base_types) > 1):
+                    if self.ctypes[0] in ctypes:
+                        self.__data_dict["ctype"] = []
+                        self.__data_dict["additional_simd_template_base_type"] = []
+                elif (len(self.ctypes) > 1) and (len(self.additional_simd_template_base_types) == 1):
+                    tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
+                    self.__data_dict["ctype"] = tmptypes
+                elif len(self.ctypes) == len(self.additional_simd_template_base_types):
+                    idx_to_keep = [idx for idx in range(len(self.ctypes)) if self.ctypes[idx] not in ctypes]
+                    tmp_return_types = [self.additional_simd_template_base_types[idx] for idx in idx_to_keep]
+                    tmp_types = [self.ctypes[idx] for idx in idx_to_keep]
                     self.__data_dict["additional_simd_template_base_type"] = tmp_return_types
-                tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
-                self.__data_dict["ctype"] = tmptypes
+                    self.__data_dict["ctype"] = tmp_types
+                    self.__data_dict["additional_simd_template_base_type"] = tmp_return_types
+                elif len(self.additional_simd_template_base_type_mapping_dict) > 0:
+                    tmp_types: List[str] = [type for type in self.ctype if type not in ctypes]
+                    tmp_dict: Dict[str, List[str]] = {t: self.additional_simd_template_base_type_mapping_dict[t] for t in tmp_types}
+                    self.__data_dict["ctype"] = tmp_types
+                    self.__data_dict["additional_simd_template_base_type_mapping_dict"] = tmp_dict
+                else:
+                    tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
+                    self.__data_dict["ctype"] = tmptypes
+                #
+                # if (len(self.additional_simd_template_base_types)) > 1:
+                #     tmp_return_types = [self.additional_simd_template_base_types[idx] for idx in range(self.ctypes) if self.ctypes[idx] not in ctypes]
+                #     self.__data_dict["additional_simd_template_base_type"] = tmp_return_types
+                # tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
+                # self.__data_dict["ctype"] = tmptypes
 
     def __str__(self) -> str:
         return f"{self.declaration.name}"
