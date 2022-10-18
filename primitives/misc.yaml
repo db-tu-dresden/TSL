@@ -19,7 +19,7 @@ definitions:
     lscpu_flags: ["avx512f", "avx512cd"]
     implementation: "return _mm512_conflict_epi{{ intrin_tp[ctype][1] }}(data);"
   - target_extension: "avx512"
-    ctype: ["uint8_t", "uint16_t", uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f"]
     is_native: False
     implementation: |

@@ -285,7 +285,7 @@ definitions:
     lscpu_flags: ["avx512f"]
     implementation: "return _mm512_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   - target_extension: "avx512"
-    ctype: ["uin16_t", "int16_t"]
+    ctype: ["uint16_t", "int16_t"]
     lscpu_flags: ["avx512bw"]
     implementation: "return _mm512_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   - target_extension: "avx512"
