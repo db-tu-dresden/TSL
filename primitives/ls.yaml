@@ -409,7 +409,7 @@ definitions:
      implementation: |
         using T = typename Vec::register_type;
                 T result;
-                #pragma unroll 16
+                #pragma unroll
                 for(int i = 0; i < Vec::vector_element_count(); ++i) {
                   result[i] = value;
                 }

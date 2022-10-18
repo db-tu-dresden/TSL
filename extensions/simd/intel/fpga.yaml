@@ -6,7 +6,7 @@ lscpu_flags: []
 #includes: ["<array>", "<bitset>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>"]
 includes: ["<array>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>"]
 simdT_name: "fpga"
-simdT_default_size_in_bits: 1024 #this is just a default value, we can let it out if we want to
+simdT_default_size_in_bits: 512 #this is just a default value, we can let it out if we want to
 simdT_register_type_compiler_attributes: "__attribute__((register))"
 simdT_mask_type_compiler_attributes: "__attribute__((register))"
 simdT_register_type: "std::array<BaseType, VectorSizeInBits/sizeof(BaseType)>" #this can also be a custom structure or a pointer, but I would *HIGHLY* recommend, using an array

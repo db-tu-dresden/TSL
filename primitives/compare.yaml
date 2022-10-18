@@ -187,4 +187,21 @@ definitions:
      ctype: "int64_t"
      lscpu_flags: [ 'neon' ]
      implementation: "return vandq_u64( vcgeq_s64( vec_data, vec_min ), vcleq_s64( vec_data, vec_max ) );"
+#INTEL - FPGA
+   - target_extension: "fpga"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+     lscpu_flags: []
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        T result{};
+        // Create a value with all bits set to 1, regardless of underlying type
+        typename Vec::base_type checker;
+        memset((void*)&checker, 0xff, sizeof(checker));
+
+        #pragma unroll
+        for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+            result[i] = ((data_vec[i] >= lower_vec[i]) && (data_vec[i] <= upper_vec[i])) ? checker : 0;
+        }
+        return result;
 ...
