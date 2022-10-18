@@ -140,6 +140,7 @@ definitions:
   - target_extension: "fpga"
     ctype: ["float","double"]
     additional_simd_template_base_type_mapping_dict: {"float":["int32_t", "uint32_t"],"double":["int64_t", "uint64_t"]}
+    vector_length_agnostic: True
     lscpu_flags: []
     implementation: |
       using U = typename ToType::register_type;
