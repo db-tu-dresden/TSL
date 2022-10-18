@@ -567,7 +567,7 @@ definitions:
     implementation: |
       auto base_addr = reinterpret_cast<int const*>(memory);
       _mm256_i32gather_epi32(base_addr, indices[0], scale())
-    "return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), scale() );"
+      return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), scale() );
 ...
 #---
 #primitive_name: "vcompress"
