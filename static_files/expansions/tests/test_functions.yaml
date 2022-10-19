@@ -122,7 +122,7 @@ implementations:
                   auto result_target() { return m_result_target; }
                public:
                   void ship_to_dev() {
-                     tvl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
+                     tvl::memory_cp<Vec>(m_data_target, m_data_ref, m_data_element_count*sizeof(base_t), 1);
                   }
                   void synchronize() {
                      tvl::memory_cp<Vec>(m_result_target_for_ref, m_result_target, m_result_count*sizeof(base_t), 2);

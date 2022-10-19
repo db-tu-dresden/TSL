@@ -30,7 +30,8 @@ class TVLGeneratorConfig:
         self.path_seperator: str = pathlib.os.sep
         self.__valid = False
         self.__logger = None
-        self.__jinja_templates: Dict[str, str] = dict()
+        self.__jinja_templates_str: Dict[str, str] = dict()
+        self.__jinja_templates: Dict[str, Template] = dict()
         self.__schemes: Dict[str, Schema] = dict()
         self.__general_configuration_dict: Dict[str, Any] = None
         self.__extensions_file_tree: StaticFileTree = None
@@ -75,13 +76,14 @@ class TVLGeneratorConfig:
             substituted by '::'.
             """
             template_root_path: Path = Path(self.__configuration_files_dict["jinja_templates"]["root_path"]).resolve()
+            self.__jinja_config = TVLGeneratorConfig.JinjaConfig(template_root_path)
             for template_file in StaticFileTree(template_root_path, "*.template").get_files():
                 template_name = re.sub(rf"{self.path_seperator}", "::", str(template_file.relative_to(template_root_path)))[
                                 : -len(''.join(template_file.suffix))]
-                self.__jinja_templates[template_name] = load_template_from_file(template_file)
+                self.__jinja_templates[template_name] = self.__jinja_config.env.from_string(load_template_from_file(template_file))
                 self.__logger.info(f"Loaded template {template_name} (from file {template_file}).",
                                    extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
-            self.__jinja_config = TVLGeneratorConfig.JinjaConfig(template_root_path)
+
 
         def create_file_tress_for_primitive_data():
             """
@@ -137,8 +139,8 @@ class TVLGeneratorConfig:
                                        extra={"decorated_funcName": "get_template",
                                               "decorated_filename": "tvl_config.py"})
                 raise ValueError
-            return self.__jinja_config.env.from_string(self.__jinja_templates[result_keys[0]])
-        return self.__jinja_config.env.from_string(self.__jinja_templates[template_name])
+            return self.__jinja_templates[result_keys[0]]
+        return self.__jinja_templates[template_name]
 
     @requirement(entry_name="NonEmptyString")
     def create_template(self, template: str) -> Template:
