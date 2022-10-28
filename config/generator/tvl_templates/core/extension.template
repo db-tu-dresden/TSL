@@ -5,7 +5,7 @@
 {% else %}
    {% set ns.default_vector_size = simdT_default_size_in_bits %}
 {% endif %}
-struct {{ simdT_name }} {
+struct {{ extension_name }} {
 {% for custom_type in custom_types %}
       template<TVLArithmetic BaseType, std::size_t VectorSizeInBits = {{ ns.default_vector_size }}>
          struct {{ custom_type['name'] }} {
