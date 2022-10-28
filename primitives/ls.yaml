@@ -577,6 +577,129 @@ definitions:
     lscpu_flags: [ ]
     implementation: "return (mask&1)==1 ? memory[index] : source;"
 ...
+---
+primitive_name: "mask_scatter"
+brief_description: "Transfers data from arbitrary locations into a vector register."
+additional_non_specialized_template_parameters:
+  - ctype: "int"
+    name: "N"
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Mask indicating which lanes should be gathered."
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Vector register containing values which should be preserved depending on the mask (if mask[i] == 0)."
+  - ctype: "const typename Vec::base_type *"
+    attributes: "__restrict__"
+    name: "memory"
+    description: "(Start)pointer of the memory (which is used as base for address calculation)."
+  - ctype: "const typename Vec::offset_base_register_type"
+    name: "index"
+    description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
+  - ctype: "std::integral_constant<int, N>"
+    name: "scale"
+    description: "Scale."
+    declaration_attributes: "[[maybe_unused]]"
+definitions:
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    includes: ["<array>"]
+    implementation: |
+      alignas(Vec::vector_size_B()) std::array<typename Vec::offset_base_type, Vec::vector_element_count()> idx_array{};
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> val_array{};
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> mask_array{};
+      store<Vec>(val_array.data(), data);
+      store<Vec>(idx_array.data(), index);
+      store<Vec>(mask_array.data(), mask);
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        if(mask_array[i] != 0) {
+          if constexpr(N==sizeof(typename Vec::base_type)) {
+            memory[idx_array[i]]) = val_array[i];
+          } else {
+            if constexpr(N==1) {
+              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(mem)[idx_array[i]]) = val_array[i];
+            } else {
+              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(mem)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
+            }
+          }
+        }        
+      }
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: [ 'sse2' ]
+    includes: ["<array>"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_size_B()) std::array<typename Vec::offset_base_type, Vec::vector_element_count()> idx_array{};
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> val_array{};
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> mask_array{};
+      store<Vec>(val_array.data(), data);
+      store<Vec>(idx_array.data(), index);
+      store<Vec>(mask_array.data(), mask);
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        if(mask_array[i] != 0) {
+          if constexpr(N==sizeof(typename Vec::base_type)) {
+            memory[idx_array[i]]) = val_array[i];
+          } else {
+            if constexpr(N==1) {
+              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(mem)[idx_array[i]]) = val_array[i];
+            } else {
+              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(mem)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
+            }
+          }
+        }        
+      }
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: [ 'neon' ]
+    includes: ["<array>"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_size_B()) std::array<typename Vec::offset_base_type, Vec::vector_element_count()> idx_array{};
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> val_array{};
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> mask_array{};
+      store<Vec>(val_array.data(), data);
+      store<Vec>(idx_array.data(), index);
+      store<Vec>(mask_array.data(), mask);
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        if(mask_array[i] != 0) {
+          if constexpr(N==sizeof(typename Vec::base_type)) {
+            memory[idx_array[i]]) = val_array[i];
+          } else {
+            if constexpr(N==1) {
+              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(mem)[idx_array[i]]) = val_array[i];
+            } else {
+              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(mem)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
+            }
+          }
+        }        
+      }
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ ]
+    implementation: |
+      if(mask_array[i] != 0) {
+        if constexpr(N==sizeof(typename Vec::base_type)) {
+          memory[index] = data;
+        } else {
+          if constexpr(N==1) {
+            *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[index]) = data;
+          } else {
+            *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(index<<(cilog2(N)))]) = data;
+          }
+        }
+      }
+...
 #---
 #primitive_name: "gather"
 #additional_simd_template_parameter: "OffsetType"
@@ -599,7 +722,7 @@ definitions:
 #  ctype: "typename Vec::register_type"
 #  description: "Vector containing gathered data."
 #definitions:
-#  INTEL - AVX2
+##INTEL - AVX2
 #  - target_extension: "avx2"
 #    ctype: ["uint8_t", "int8_t"]
 #    additional_simd_template_base_type: ["uint32_t"]

@@ -55,7 +55,6 @@ definitions:
        out.flags(f);
        out << std::endl;
        return out;
-  #INTEL - SSE
 #INTEL - AVX2
    - target_extension: "avx2"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]

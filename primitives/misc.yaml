@@ -112,3 +112,53 @@ definitions:
     lscpu_flags: []
     implementation: "0;"
 ...
+---
+primitive_name: "blend"
+brief_description: "Blends two registers using provided bitmask."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "control"
+    description: "If control[i] == 0, the corresponding value from left register is used, from right otherwise."
+  - ctype: "const typename Vec::register_type"
+    name: "left"
+    description: "Left data."
+  - ctype: "const typename Vec::register_type"
+    name: "right"
+    description: "Right data."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing blended data."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ['avx512f', 'avx512bw']
+    implementation: "return _mm512_mask_blend_epi{{ intrin_tp[ctype][1] }}(control, left, right);"
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ['avx512f']
+    implementation: "return _mm512_mask_blend_epi{{ intrin_tp[ctype][1] }}(control, left, right);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: "return _mm512_mask_blend_{{ intrin_tp_full[ctype] }}(control, left, right);"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ['avx2']
+    implementation: "return _mm256_or_si256(_mm256_andnot_si256(control, left), _mm256_and_si256(control,right));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx2']
+    implementation: "return _mm256_or_{{ intrin_tp_full[ctype] }}(_mm256_andnot_{{ intrin_tp_full[ctype] }}(_mm256_castsi256_{{ intrin_tp_full[ctype] }}(control), left), _mm256_and_{{ intrin_tp_full[ctype] }}(_mm256_castsi256_{{ intrin_tp_full[ctype] }}(control),right));"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ['sse2']
+    implementation: "return _mm_or_si128(_mm_andnot_si128(control, left), _mm_and_si128(control,right));"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx2']
+    implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}(control), left), _mm_and_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}
+    (control),right));"
+...
