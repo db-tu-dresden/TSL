@@ -11,9 +11,9 @@ implementations:
          concept TVLArithmetic = std::is_arithmetic_v< T >;
 
          template< typename T >
-         concept Tuple = is_tuple< T >::value;
+         concept TVL_Tuple = is_tuple< T >::value;
       #else
       #define TVLArithmetic typename
-      #define Tuple typename
+      #define TVL_Tuple typename
       #endif
 ...
