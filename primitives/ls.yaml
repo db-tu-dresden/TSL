@@ -509,6 +509,61 @@ definitions:
 ...
 ---
 primitive_name: "sequence"
+brief_description: "Creates a sequence [0..SIMD-Reg-Element-Count]."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector register containing the sequence."
+definitions:
+#  INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int16_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: |
+      using T = typename Vec::base_t;
+      using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
+      auto seq_fun= []<sequence_type... Is>(
+        std::integer_sequence<sequence_type, Is...>        
+      ) {
+        return set<Vec>(
+          ((T)Is)...
+        );
+      };
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int16_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      using T = typename Vec::base_t;
+      using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
+      auto seq_fun= []<sequence_type... Is>(
+        std::integer_sequence<sequence_type, Is...>        
+      ) {
+        return set<Vec>(
+          ((T)Is)...
+        );
+      };
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: [ "uint8_t", "int16_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double" ]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      using T = typename Vec::base_t;
+      using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
+      auto seq_fun= []<sequence_type... Is>(
+        std::integer_sequence<sequence_type, Is...>        
+      ) {
+        return set<Vec>(
+          ((T)Is)...
+        );
+      };
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return 0;"
+...
+---
+primitive_name: "custom_sequence"
 brief_description: "Creates a sequence."
 parameters:
   - ctype: "typename Vec::base_type"
@@ -523,7 +578,7 @@ returns:
   ctype: "typename Vec::register_type"
   description: "Vector register containing the sequence."
 definitions:
-#  INTEL - AVX512
+  #  INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "int16_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
     lscpu_flags: ["avx512f"]
