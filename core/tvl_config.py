@@ -404,6 +404,7 @@ def parse_args() -> dict:
     add_bool_arg(parser, 'draw-test-dependencies', 'configuration:expansions:unit_tests:draw_dependency_graph', "Enable ", "Disable ", False, help="draw dependency graph for test generation", required=False)
     add_bool_arg(parser, 'cmake', 'configuration:expansions:cmake:enabled', "Activate ", "Deactivate ", True,
                  help="CMake generation", required=False)
+    parser.add_argument('--cmake-version', required=False, type=str, dest='configuration:expansions:cmake:minimum_version', metavar="CMakeVersion", help="Set CMake Version.")
     add_bool_arg(parser, 'testing', 'configuration:expansions:unit_tests:enabled', "Activate ", "Deactivate ", True,
                  help="Unit test generation", required=False)
     regex = re.compile(r"([^:]+):{0,1}")
