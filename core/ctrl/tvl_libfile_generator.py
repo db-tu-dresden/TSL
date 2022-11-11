@@ -94,6 +94,9 @@ class TVLFileGenerator:
                 declaration_file.add_code(
                     config.get_template("core::primitive_declaration").render(declaration_data))
                 declaration_file.import_includes(declaration_data)
+
+                # print(primitive)
+
                 for definition in primitive.definitions:
                     if definition.target_extension not in definition_files_per_extension_dict:
                         primitive_path: Path = config.get_generation_path("primitive_definitions").joinpath(
@@ -105,10 +108,13 @@ class TVLFileGenerator:
                                                                                           primitive_class.data)
                     definition_file: TVLHeaderFile = definition_files_per_extension_dict[definition.target_extension]
 
+                    # print(definition)
+
                     definition_copy = copy.deepcopy(definition.data)
-                    # for type in definition.data["ctype"]:
-                    for type in definition.ctypes:
-                        definition_copy["ctype"] = type
+
+                    for ctype, additional_simd_template_base_type in definition.types:
+                        definition_copy["ctype"] = ctype
+                        definition_copy["additional_simd_template_base_type"] = additional_simd_template_base_type
                         decl_and_def_combined_data = { **extension_set.get_extension_by_name(
                             definition.target_extension).data, **declaration_data, **definition_copy }
                         decl_and_def_combined_data["implementation"] = Template(
@@ -117,7 +123,7 @@ class TVLFileGenerator:
                         definition_file.add_code(
                             config.get_template("core::primitive_definition").render(decl_and_def_combined_data))
                         self.log(logging.INFO,
-                                 f"Created template specialization for {primitive.declaration.name} (details::{primitive.declaration.name}_impl<simd<{type}, {definition.target_extension}>>)")
+                                 f"Created template specialization for {primitive.declaration.name} (details::{primitive.declaration.name}_impl<simd<{ctype}, {definition.target_extension}>>)")
 
                     definition_file.import_includes(definition.data)
                     definition_file.add_file_include(declaration_file)

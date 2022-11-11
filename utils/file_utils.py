@@ -1,15 +1,43 @@
-from pathlib import Path
-from typing import Dict, Generator, Tuple
+from __future__ import annotations
 
+from pathlib import Path
+from typing import Dict, Generator, Tuple, List
+import re
 
 class StaticFileTree:
-    def __init__(self, path: Path, pattern: str = ""):
+
+    @staticmethod
+    def escape_pathstr(p: str) -> str:
+        return p.replace("/", "\\/")
+
+    @staticmethod
+    def get_dirstr(p: str) -> str:
+        return rf"(.*\/{StaticFileTree.escape_pathstr(p)}\/.*)"
+
+    def __init__(self, path: Path, pattern: str = "", exclude_paths: List[str] = []):
         self.__files: Dict[Path, int] = dict()
         self.__path = path
-        self.__pattern = pattern
+        self.__pattern = pattern.split("|")
+        self.__exclude_paths_regex_str = r"|".join([StaticFileTree.get_dirstr(e) for e in exclude_paths])
+        if len(exclude_paths) == 0:
+            self.__exclude_paths_regex_str = ""
+        self.__exclude_paths_regex = re.compile(self.__exclude_paths_regex_str)
+
+    def __glob(self) -> Generator[Path, None, None]:
+        for p in self.__pattern:
+            for f in self.__path.rglob(p):
+                if len(self.__exclude_paths_regex_str) > 0:
+                    if not bool(self.__exclude_paths_regex.search(f"{f}")):
+                        yield f
+                else:
+                    yield f
+
+                # else:
+                #     print(f"Excluded {f}")
+            #yield from self.__path.rglob(p)
 
     def get_recently_updated_files(self) -> Generator[Path, None, None]:
-        for file in self.__path.rglob(self.__pattern):
+        for file in self.__glob():
             if file.is_file():
                 last_accessed_time = file.stat().st_mtime_ns
                 if file not in self.__files:
@@ -21,17 +49,18 @@ class StaticFileTree:
                         yield file
 
     def get_files(self) -> Generator[Path, None, None]:
-        for file in self.__path.rglob(self.__pattern):
+        for file in self.__glob():
             if file.is_file():
                 last_accessed_time = file.stat().st_mtime_ns
                 self.__files[file] = last_accessed_time
                 yield file
 
-    def build(self) -> None:
-        for file in self.__path.rglob(self.__pattern):
+    def build(self) -> StaticFileTree:
+        for file in self.__glob():
             if file.is_file():
                 last_accessed_time = file.stat().st_mtime_ns
                 self.__files[file] = last_accessed_time
+        return self
 
     @property
     def items(self) -> Generator[Tuple[Path,int], None, None]:

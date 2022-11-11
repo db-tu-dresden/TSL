@@ -11,12 +11,20 @@
    contains_parameter_pack=False,
    parameter_pack_typenames_str='',
    full_qualified_parameters_str='',
-   parameters_str='') %}
+   parameters_str='',
+   using_return_type='',
+   return_template_type='',
+   additional_templates='',
+   additional_template_params='',
+   simd_register_length='') %}
 {% if vector_length_agnostic %}
-   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ', VectorSize>' %}
+   {% set ns.simd_register_length = ', VectorSize' %}
+   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>' %}
 {% elif vector_length_bits != 0 %}
-   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ', ' ~ vector_length_bits  ~ '>' %}
+   {% set ns.simd_register_length = ', ' ~ vector_length_bits %}
+   {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ ns.simd_register_length~ '>' %}
 {% else %}
+   {% set ns.simd_register_length = '' %}
    {% set ns.full_extension_name = 'simd<' ~ ctype ~ ', ' ~ target_extension ~ '>' %}
 {% endif %}
 {% if ctype == 'T' %}
@@ -48,6 +56,20 @@
       {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ comma %}
    {% endif %}
 {% endfor %}
+{% if additional_simd_template_parameter != "" %}
+{% set ns.using_return_type = 'using ' ~ additional_simd_template_parameter ~ ' = simd<' ~ additional_simd_template_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>;' %}
+{% set ns.return_template_type = 'simd<' ~ additional_simd_template_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>, ' %}
+{% endif %}
+{% if additional_non_specialized_template_parameters|length > 0 %}
+{% set types_joiner = joiner(",") %}
+{% set params_joiner = joiner(",") %}
+{% for parameter_dict in additional_non_specialized_template_parameters %}
+{% set ns.additional_templates = ns.additional_templates ~ types_joiner() ~ parameter_dict["ctype"] ~ ' ' ~ parameter_dict["name"] %}
+{% set ns.additional_template_params = ns.additional_template_params ~ params_joiner() ~ parameter_dict["name"] %}
+{% endfor %}
+{% set ns.additional_templates = ns.additional_templates ~ ", " %}
+{% set ns.additional_template_params = ns.additional_template_params ~ ", " %}
+{% endif %}
 {# Every implementation is in the (nested) namespace "details" #}
 namespace {{ tvl_implementation_namespace }} {
       /**
@@ -60,10 +82,11 @@ namespace {{ tvl_implementation_namespace }} {
        * @note: {{ specialization_comment }}
        {% endif %}
        */
-      template<{{ 'typename T, ' if ns.partial_specialized else '' }}{{ 'std::size_t VectorSize, ' if vector_length_agnostic else '' }}ImplementationDegreeOfFreedom {{ idof_name }}>
+      template<{{ 'typename T, ' if ns.partial_specialized else '' }}{{ 'std::size_t VectorSize, ' if vector_length_agnostic else '' }}{{ ns.additional_templates }}ImplementationDegreeOfFreedom {{ idof_name }}>
 {# If the vector_length_bits is specified in the yaml file, a specialization is generated. #}
-         struct {{ primitive_name }}<{{ ns.full_extension_name }}, {{ idof_name }}> {
+         struct {{ primitive_name }}<{{ ns.full_extension_name }}, {{ ns.return_template_type }}{{ ns.additional_template_params }}{{ idof_name }}> {
             using {{ vector_name }} = {{ ns.full_extension_name }};
+            {{ ns.using_return_type }}
             static constexpr bool native_supported() {
    {# If there is hardware support this function returns true, false otherwise. #}
                return {{ 'true;' if is_native else 'false;' }}
@@ -82,7 +105,9 @@ namespace {{ tvl_implementation_namespace }} {
                {% if not is_native %}
                static_assert( !std::is_same_v< {{ idof_name }}, native >, "The primitive {{ primitive_name }} is not supported by your hardware natively while it is forced by using native" );
                {% endif %}
-               {{ implementation }}
+               {%- filter indent(width=15) +%}
+{{ implementation }}
+               {% endfilter %}
             }
          };
    } // end of namespace {{ tvl_implementation_namespace }} for template specialization of {{ primitive_name }} for {{ target_extension }} using {{ ctype }}.

@@ -69,6 +69,21 @@ extension:
          brief: "Additional attributes of vector type."
          example: "__attribute__((vector_size(64), __may_alias__, _aligned_(64)))"
          default: ""
+      simdT_register_type_compiler_attributes:
+         type: "str"
+         brief: "Additional attributes of vector type."
+         example: "__attribute__((register))"
+         default: ""
+      simdT_mask_type_attributes:
+         type: "str"
+         brief: "Additional attributes of vector type."
+         example: "__attribute__((vector_size(64), __may_alias__, _aligned_(64)))"
+         default: ""
+      simdT_mask_type_compiler_attributes:
+         type: "str"
+         brief: "Additional attributes of vector type."
+         example: "__attribute__((register))"
+         default: ""
       description:
          type: "str"
          brief: "A description of the SIMD extension which is used for doxygen generation."
@@ -146,6 +161,8 @@ primitive_specialization_requirements: &definition_requirements_schema
       example: "['uint32_t', 'uint64_t'], ['uint64_t'], ['T']"
    lscpu_flags: *lscpu_flags_schema
 
+type_mapping_dict: &type_mapping_dict_schema
+   required
 primitive_specialization_optionals: &definition_optionals_schema
    is_native:
       type: "bool"
@@ -163,6 +180,15 @@ primitive_specialization_optionals: &definition_optionals_schema
       type: "str"
       default: ""
       brief: "Brief description of the primitive."
+   additional_simd_template_base_type:
+      type: "list"
+      entry_type: "str"
+      default: []
+      brief: "Return vector base type, which is used for conversion."
+   additional_simd_template_base_type_mapping_dict:
+      type: "dict"
+      default: {}
+      brief: todo
    includes: *includes_schema
 
 primitive_definition: &definition_schema
@@ -193,6 +219,15 @@ test_definition: &testing_schema
          entry_type: "str"
          default: []
          brief: "A list of required primitives for this test (excluded the current tested primitive)."
+
+template_parameter: &template_parameter_schema
+   required:
+      ctype:
+         type: "str"
+         brief: "Type of template."
+      name:
+         type: "str"
+         brief: "Name of template parameter."
 
 primitive:
    required:
@@ -245,6 +280,15 @@ primitive:
          entry_type: *return_schema
          default: {"ctype": "void", "description": ""}
          brief: "The return type of the primitive. (default = void)"
+      additional_simd_template_parameter:
+         type: "str"
+         default: ""
+         brief: "Additional template parameter which may be used for conversion operations."
+      additional_non_specialized_template_parameters:
+         type: "list"
+         entry_type: *template_parameter_schema
+         default: []
+         brief: "Additional template parameters which may be needed"
       includes: *includes_schema
       definitions:
          type: "list"

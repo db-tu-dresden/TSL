@@ -8,7 +8,10 @@ implementations:
          #ifndef TVL_NO_NATIVE_SUPPORT_WARNING
          #   define TVL_NO_NATIVE_SUPPORT_WARNING [[deprecated("This primitive is not supported by your hardware natively. Thus, a workaround is used.")]]
          #endif
-         #ifndef TVL_DE_TYPE
+         #ifndef TVL_DEP_TYPE
          #   define TVL_DEP_TYPE(CONDITION, IFBRANCH, ELSEBRANCH) std::conditional_t< CONDITION, IFBRANCH, ELSEBRANCH >
+         #endif
+         #ifndef TVL_CVAL
+         #   define TVL_CVAL(type, value) std::integral_constant<type,value>{}
          #endif
 ...

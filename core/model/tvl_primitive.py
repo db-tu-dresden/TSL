@@ -4,7 +4,7 @@ import copy
 import logging
 from copy import deepcopy
 from pathlib import Path
-from typing import Set, List, Generator, Dict
+from typing import Set, List, Generator, Dict, Tuple
 
 from core.tvl_config import config
 from utils.log_utils import LogInit
@@ -36,11 +36,49 @@ class TVLPrimitive:
             return result
 
     class Definition:
+        @classmethod
+        def map_types_cartesian(cls, alist: List[str], blist: List[str]) -> Generator[Tuple[str, str], None, None]:
+            for a in alist:
+                for b in blist:
+                    yield (a,b)
+
+        @classmethod
+        def map_types_one2m(cls, alist: List[str], blist: List[str]) -> Generator[Tuple[str, str], None, None]:
+            if len(alist) > 1:
+                raise ValueError("map_types_one2m: First parameter must have length of 1.")
+            for b in blist:
+                yield (alist[0], b)
+
+        @classmethod
+        def map_types_m2one(cls, alist: List[str], blist: List[str]) -> Generator[Tuple[str, str], None, None]:
+            if len(blist) > 1:
+                raise ValueError("map_types_m2one: Second parameter must have length of 1.")
+            for a in alist:
+                yield (a, blist[0])
+
+        @classmethod
+        def map_types_one2one(cls, alist: List[str], blist: List[str]) -> Generator[Tuple[str, str], None, None]:
+            if len(alist) != len(blist):
+                raise ValueError("map_types_one2one: Both parameters must have same length.")
+            for i in range(len(alist)):
+                yield (alist[i], blist[i])
+
+        @classmethod
+        def map_types_from_dict(cls, alist: List[str], bdict: Dict[str, List[str]]) -> Generator[Tuple[str, str], None, None]:
+            for i in alist:
+                if i not in bdict:
+                    raise ValueError("map_types_from_dict: value from left parameter not in right one.")
+                for j in bdict[i]:
+                    yield (i, j)
+
         @LogInit()
         def __init__(self, data_dict: dict):
             self.__data_dict = data_dict
             self.log(logging.INFO,
                      f"Created Primitive Definition for {self.__data_dict['target_extension']} using {self.__data_dict['ctype']}")
+
+        def __str__(self) -> str:
+            return f"<{self.target_extension} -> {self.ctypes}>"
 
         @staticmethod
         def schema_identifier() -> str:
@@ -74,6 +112,53 @@ class TVLPrimitive:
                 return [self.ctype]
             return self.ctype
 
+        @property
+        def additional_simd_template_base_types(self) -> List[str]:
+            if isinstance(self.__data_dict["additional_simd_template_base_type"], str):
+                if len(self.__data_dict["additional_simd_template_base_type"] > 0):
+                    return [self.__data_dict["additional_simd_template_base_type"]]
+                else:
+                    return []
+            return self.__data_dict["additional_simd_template_base_type"]
+
+        @property
+        def additional_simd_template_base_type_mapping_dict(self) -> Dict[str, List[str]]:
+            return self.__data_dict["additional_simd_template_base_type_mapping_dict"]
+
+        @property
+        def types(self) -> Generator[Tuple[str, str], None, None]:
+            ctypes_list = self.ctypes
+            return_vector_basetypes_list = self.additional_simd_template_base_types
+            if (len(return_vector_basetypes_list) == 0) and (len(self.additional_simd_template_base_type_mapping_dict) == 0):
+                for t in ctypes_list:
+                    yield (t, "")
+            elif (len(ctypes_list) == 1) and (len(return_vector_basetypes_list) > 1):
+                yield from TVLPrimitive.Definition.map_types_one2m(ctypes_list, return_vector_basetypes_list)
+            elif (len(ctypes_list) > 1) and (len(return_vector_basetypes_list) == 1):
+                yield from TVLPrimitive.Definition.map_types_m2one(ctypes_list, return_vector_basetypes_list)
+            elif len(ctypes_list) == (len(return_vector_basetypes_list)):
+                yield from TVLPrimitive.Definition.map_types_one2one(ctypes_list, return_vector_basetypes_list)
+            elif len(self.additional_simd_template_base_type_mapping_dict) > 0:
+                yield from TVLPrimitive.Definition.map_types_from_dict(ctypes_list, self.additional_simd_template_base_type_mapping_dict)
+            else:
+                yield from TVLPrimitive.Definition.map_types_cartesian(ctypes_list, return_vector_basetypes_list)
+
+            # if (len(ctypes_list) > 1) and (len(return_vector_basetypes_list) > 1):
+            #     if len(ctypes_list) != len(return_vector_basetypes_list):
+            #         self.log(logging.CRITICAL, f"{self.human_readable}: {ctypes_list} -- {return_vector_basetypes_list}")
+            #         raise ValueError("Multiple ctypes and additional_simd_template_base_type must have the same length (1:1 mapping).")
+            #     for idx in range(len(ctypes_list)):
+            #         yield [ctypes_list[idx], return_vector_basetypes_list[idx]]
+            # elif len(return_vector_basetypes_list) > 1:
+            #     for rvb in return_vector_basetypes_list:
+            #         yield [ctypes_list[0], rvb]
+            # else:
+            #     rvb = ""
+            #     if len(return_vector_basetypes_list) == 1:
+            #         rvb = return_vector_basetypes_list[0]
+            #     for t in ctypes_list:
+            #         yield [t, rvb]
+
         def __deepcopy__(self, memodict={}):
             cls = self.__class__
             result = cls.__new__(cls)
@@ -85,7 +170,9 @@ class TVLPrimitive:
         def is_similar(self, other_definition: TVLPrimitive.Definition) -> bool:
             if other_definition.target_extension != self.target_extension:
                 return False
-            return len(set(self.ctypes) & set(other_definition.ctypes)) > 0
+            selfset = set([f"{x},{y}" for x,y in self.types])
+            otherset = set([f"{x},{y}" for x,y in other_definition.types])
+            return len(selfset & otherset) > 0
 
         def greater_than(self, other_definition:TVLPrimitive.Definition, relevant_architecture_flags: Set[str]) -> bool:
             if not self.is_native and other_definition.is_native:
@@ -101,8 +188,40 @@ class TVLPrimitive:
                 if self.ctype in ctypes:
                     self.__data_dict["ctype"] = ""
             else:
-                tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
-                self.__data_dict["ctype"] = tmptypes
+                if (len(self.additional_simd_template_base_types) == 0) and (len(self.additional_simd_template_base_type_mapping_dict) == 0):
+                    tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
+                    self.__data_dict["ctype"] = tmptypes
+                elif (len(self.ctypes) == 1) and (len(self.additional_simd_template_base_types) > 1):
+                    if self.ctypes[0] in ctypes:
+                        self.__data_dict["ctype"] = []
+                        self.__data_dict["additional_simd_template_base_type"] = []
+                elif (len(self.ctypes) > 1) and (len(self.additional_simd_template_base_types) == 1):
+                    tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
+                    self.__data_dict["ctype"] = tmptypes
+                elif len(self.ctypes) == len(self.additional_simd_template_base_types):
+                    idx_to_keep = [idx for idx in range(len(self.ctypes)) if self.ctypes[idx] not in ctypes]
+                    tmp_return_types = [self.additional_simd_template_base_types[idx] for idx in idx_to_keep]
+                    tmp_types = [self.ctypes[idx] for idx in idx_to_keep]
+                    self.__data_dict["additional_simd_template_base_type"] = tmp_return_types
+                    self.__data_dict["ctype"] = tmp_types
+                    self.__data_dict["additional_simd_template_base_type"] = tmp_return_types
+                elif len(self.additional_simd_template_base_type_mapping_dict) > 0:
+                    tmp_types: List[str] = [type for type in self.ctype if type not in ctypes]
+                    tmp_dict: Dict[str, List[str]] = {t: self.additional_simd_template_base_type_mapping_dict[t] for t in tmp_types}
+                    self.__data_dict["ctype"] = tmp_types
+                    self.__data_dict["additional_simd_template_base_type_mapping_dict"] = tmp_dict
+                else:
+                    tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
+                    self.__data_dict["ctype"] = tmptypes
+                #
+                # if (len(self.additional_simd_template_base_types)) > 1:
+                #     tmp_return_types = [self.additional_simd_template_base_types[idx] for idx in range(self.ctypes) if self.ctypes[idx] not in ctypes]
+                #     self.__data_dict["additional_simd_template_base_type"] = tmp_return_types
+                # tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
+                # self.__data_dict["ctype"] = tmptypes
+
+    def __str__(self) -> str:
+        return f"{self.declaration.name}"
 
     @staticmethod
     def human_readable(name: str, ctype: str, target_extension: str) -> str:
@@ -121,6 +240,7 @@ class TVLPrimitive:
     def definitions(self) -> Generator[TVLPrimitive.Definition, None, None]:
         for definition in self.__definitions:
             yield definition
+
 
     def has_test(self) -> bool:
         if "testing" in self.declaration.data:
@@ -141,8 +261,13 @@ class TVLPrimitive:
         if TVLPrimitive.Definition.schema_identifier() in data_dict:
             definitions_dict_list = data_dict.pop(TVLPrimitive.Definition.schema_identifier())
         declaration: TVLPrimitive.Declaration = TVLPrimitive.Declaration(data_dict)
+        # print("=========================================================")
+        # print(declaration.name)
         definitions: List[TVLPrimitive.Definition] = [TVLPrimitive.Definition(definition_dict) for definition_dict in
                                                       definitions_dict_list]
+        # print("\n".join([f"{d.data}" for d in definitions]))
+        # print("=========================================================")
+
         return TVLPrimitive(declaration, definitions)
 
     def __deepcopy__(self, memodict={}):

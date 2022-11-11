@@ -24,10 +24,29 @@ implementations:
             using mask_type = typename TargetExtensionType::template types<BaseType, VectorSizeInBits>::mask_t;
             using imask_type = typename TargetExtensionType::template types<BaseType, VectorSizeInBits>::imask_t;
 
-            using offset_register_type = typename TargetExtensionType::template types<offset_t, VectorSizeInBits>::register_t[sizeof(offset_t)/sizeof(BaseType)];
+            using offset_base_type = typename
+               TVL_DEP_TYPE(
+                  (sizeof(base_type)==1),
+                     uint8_t,
+                     TVL_DEP_TYPE(
+                        (sizeof(base_type)==2),
+                           uint16_t,
+                           TVL_DEP_TYPE(
+                              (sizeof(base_type)==4),
+                                 uint32_t,
+                                 uint64_t
+                           )
+                     )
+               );
+            using offset_base_register_type = typename TargetExtensionType::template types<offset_base_type, VectorSizeInBits>::register_t;
+                  
+            //using offset_register_type = std::array<typename TargetExtensionType::template types<offset_t, VectorSizeInBits>::register_t, sizeof(offset_t)/sizeof(BaseType)>;
 
             static inline constexpr bool register_type_is_pointer_v = std::is_pointer_v<register_type>;
 
+            static constexpr bool is_register_type_pointer() {
+               return register_type_is_pointer_v;
+            }
             static constexpr /*should be consteval, but clang does not eat this */ std::size_t vector_size_b() {
                return VectorSizeInBits;
             }
