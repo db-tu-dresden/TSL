@@ -39,7 +39,17 @@ implementations:
                      )
                );
             using offset_base_register_type = typename TargetExtensionType::template types<offset_base_type, VectorSizeInBits>::register_t;
-                  
+            
+            template<TVLArithmetic OtherType>
+            using transform_type = 
+               std::conditional_t<
+                  (sizeof(BaseType) >= sizeof(OtherType)),
+                  typename TargetExtensionType::template types<OtherType, VectorSizeInBits>::register_t,
+                  std::array<
+                     typename TargetExtensionType::template types<OtherType, VectorSizeInBits>::register_t,
+                     sizeof(OtherType)/sizeof(BaseType)
+                  >                     
+               >;
             //using offset_register_type = std::array<typename TargetExtensionType::template types<offset_t, VectorSizeInBits>::register_t, sizeof(offset_t)/sizeof(BaseType)>;
 
             static inline constexpr bool register_type_is_pointer_v = std::is_pointer_v<register_type>;
