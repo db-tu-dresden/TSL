@@ -22,12 +22,13 @@ from utils.yaml_utils import YamlDataType, yaml_load
 
 
 class TVLPrimitiveTestCaseData:
-    def __init__(self, class_name: str, primitive_name: str, data_dict: YamlDataType, lib_definitions: Dict[str, List[str]], missing_primitive_definitions: Dict[str, Dict[str, List[str]]]):
+    def __init__(self, class_name: str, primitive_name: str, data_dict: YamlDataType, lib_definitions: Dict[str, List[str]], conversion_types: Dict[str, Dict[str, List[str]]], missing_primitive_definitions: Dict[str, Dict[str, List[str]]]):
         self.__class_name: str = class_name
         self.__primitive_name: str = primitive_name
         self.__test_name: str = data_dict["test_name"]
         self.__data_dict: YamlDataType = data_dict
         self.__lib_definitions: Dict[str, List[str]] = lib_definitions
+        self.__conversion_types: Dict[str, Dict[str, List[str]]] = conversion_types
         self.__complete_tests_lib_definitions: Dict[str, List[str]] = lib_definitions
         self.__missing_previous_tests: Dict[str, Dict[str, List[str]]] = dict()
         self.__missing_required_primitive_definitions: Dict[str, Dict[str, List[str]]] = missing_primitive_definitions
@@ -77,6 +78,10 @@ class TVLPrimitiveTestCaseData:
         return copy.deepcopy(self.__lib_definitions)
 
     @property
+    def conversion_types(self) -> Dict[str, Dict[str, List[str]]]:
+        return copy.deepcopy(self.__conversion_types)
+
+    @property
     def complete_tests_lib_definitions(self):
         return self.__complete_tests_lib_definitions
 
@@ -111,6 +116,7 @@ class TVLPrimitiveTestCase:
     def __init__(self, case_data: TVLPrimitiveTestCaseData):
         self.__data: YamlDataType = case_data.data
         self.__lib_definitions: Dict[str, List[str]] = case_data.lib_definitions
+        self.__conversion_types: Dict[str, Dict[str, List[str]]] = case_data.conversion_types
         self.__complete_tests_lib_definitions: Dict[str, List[str]] = case_data.complete_tests_lib_definitions
         self.__associated_primitive_class_name = case_data.class_name
         self.__associated_primitive_name = case_data.primitive_name
@@ -122,6 +128,7 @@ class TVLPrimitiveTestCase:
     def as_dict(self) -> dict:
         return { **self.__data, **{
             "lib_definitions": self.__lib_definitions,
+            "conversion_types": self.__conversion_types,
             "complete_tests_lib_definitions":  self.__complete_tests_lib_definitions,
             "missing_previous_tests": self.__missing_previous_tests,
             "missing_required_primitive_definitions": self.__missing_required_primitive_definitions if len(self.__missing_required_primitive_definitions) > 0 else None,
@@ -272,7 +279,7 @@ class TVLTestSuite:
                                 #              f"Could not create test case for {primitive_class.name}::{primitive.declaration.name}_{test['test_name']}<typename T, {target_extension}>")
                             if len(updated_primitive_definition_extension_ctype) > 0:
                                 self.__test_cases.append(
-                                    TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.name, test, updated_primitive_definition_extension_ctype, missing_primitive_definitions))
+                                    TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.name, test, updated_primitive_definition_extension_ctype, primitive.conversion_types(updated_primitive_definition_extension_ctype), missing_primitive_definitions))
                                 for ext in missing_primitive_definitions:
                                     for t in missing_primitive_definitions[ext]:
                                         self.log(logging.WARN,
@@ -285,7 +292,7 @@ class TVLTestSuite:
                                 self.log(logging.WARN,
                                          f"Could not create test case \"{test['test_name']}\" for any type and extension.")
                         else:
-                            self.__test_cases.append(TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.name, test, primitive_definition_extension_ctype, missing_primitive_definitions))
+                            self.__test_cases.append(TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.name, test, primitive_definition_extension_ctype, primitive.conversion_types(primitive_definition_extension_ctype), missing_primitive_definitions))
                             print(f"{primitive_class.name}::{primitive.declaration.name}_{test['test_name']}:")
                             for ext in missing_primitive_definitions:
                                 for t in missing_primitive_definitions[ext]:

@@ -34,6 +34,8 @@ class TVLPrimitive:
             for k, v in self.__dict__.items():
                 setattr(result, k, deepcopy(v, memodict))
             return result
+        def has_additional_simd_template_parameters(self) -> bool:
+           return len(self.__data_dict["additional_simd_template_parameter"]) > 0
 
     class Definition:
         @classmethod
@@ -143,21 +145,15 @@ class TVLPrimitive:
             else:
                 yield from TVLPrimitive.Definition.map_types_cartesian(ctypes_list, return_vector_basetypes_list)
 
-            # if (len(ctypes_list) > 1) and (len(return_vector_basetypes_list) > 1):
-            #     if len(ctypes_list) != len(return_vector_basetypes_list):
-            #         self.log(logging.CRITICAL, f"{self.human_readable}: {ctypes_list} -- {return_vector_basetypes_list}")
-            #         raise ValueError("Multiple ctypes and additional_simd_template_base_type must have the same length (1:1 mapping).")
-            #     for idx in range(len(ctypes_list)):
-            #         yield [ctypes_list[idx], return_vector_basetypes_list[idx]]
-            # elif len(return_vector_basetypes_list) > 1:
-            #     for rvb in return_vector_basetypes_list:
-            #         yield [ctypes_list[0], rvb]
-            # else:
-            #     rvb = ""
-            #     if len(return_vector_basetypes_list) == 1:
-            #         rvb = return_vector_basetypes_list[0]
-            #     for t in ctypes_list:
-            #         yield [t, rvb]
+        @property
+        def types_dict(self) -> Dict[str, List[str]]:
+            result: Dict[str, List[str]] = {}
+            for t in self.types:
+                if t[0] in result:
+                    result[t[0]].append(t[1])
+                else:
+                    result[t[0]] = [t[1]]
+            return result
 
         def __deepcopy__(self, memodict={}):
             cls = self.__class__
@@ -213,12 +209,6 @@ class TVLPrimitive:
                 else:
                     tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
                     self.__data_dict["ctype"] = tmptypes
-                #
-                # if (len(self.additional_simd_template_base_types)) > 1:
-                #     tmp_return_types = [self.additional_simd_template_base_types[idx] for idx in range(self.ctypes) if self.ctypes[idx] not in ctypes]
-                #     self.__data_dict["additional_simd_template_base_type"] = tmp_return_types
-                # tmptypes: List[str] = [type for type in self.ctype if type not in ctypes]
-                # self.__data_dict["ctype"] = tmptypes
 
     def __str__(self) -> str:
         return f"{self.declaration.name}"
@@ -261,13 +251,8 @@ class TVLPrimitive:
         if TVLPrimitive.Definition.schema_identifier() in data_dict:
             definitions_dict_list = data_dict.pop(TVLPrimitive.Definition.schema_identifier())
         declaration: TVLPrimitive.Declaration = TVLPrimitive.Declaration(data_dict)
-        # print("=========================================================")
-        # print(declaration.name)
         definitions: List[TVLPrimitive.Definition] = [TVLPrimitive.Definition(definition_dict) for definition_dict in
                                                       definitions_dict_list]
-        # print("\n".join([f"{d.data}" for d in definitions]))
-        # print("=========================================================")
-
         return TVLPrimitive(declaration, definitions)
 
     def __deepcopy__(self, memodict={}):
@@ -283,7 +268,26 @@ class TVLPrimitive:
         for definition in self.definitions:
             if definition.target_extension not in result:
                 result[definition.target_extension] = []
-            result[definition.target_extension].extend(definition.ctypes)
+            for ctype in definition.ctypes:
+                if ctype not in result[definition.target_extension]:
+                    result[definition.target_extension].append(ctype)
+        return result
+
+    def conversion_types(self, specializations: Dict[str, List[str]]) -> Dict[str, Dict[str, List[str]]]:
+        if not self.declaration.has_additional_simd_template_parameters():
+            return None
+        result: Dict[str, Dict[str, List[str]]] = {}
+        for definition in self.definitions:
+            te = definition.target_extension
+            if te not in result:
+                result[te] = {}
+            known_conversions = result[te]
+            tsdict: Dict[str, List[str]] = definition.types_dict
+            for tstype in tsdict:
+                if tstype in specializations[te]:
+                    if tstype not in known_conversions:
+                        known_conversions[tstype] = []
+                    known_conversions[tstype].extend(tsdict[tstype])
         return result
 
 class TVLPrimitiveClass:

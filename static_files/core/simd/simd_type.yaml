@@ -50,7 +50,10 @@ implementations:
                      sizeof(OtherType)/sizeof(BaseType)
                   >                     
                >;
+            template<TVLArithmetic OtherType>
+            using transform_extension = simd<OtherType, TargetExtensionType, VectorSizeInBits>;
             //using offset_register_type = std::array<typename TargetExtensionType::template types<offset_t, VectorSizeInBits>::register_t, sizeof(offset_t)/sizeof(BaseType)>;
+
 
             static inline constexpr bool register_type_is_pointer_v = std::is_pointer_v<register_type>;
 
