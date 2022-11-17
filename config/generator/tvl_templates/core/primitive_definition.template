@@ -85,6 +85,10 @@ namespace {{ tvl_implementation_namespace }} {
       template<{{ 'typename T, ' if ns.partial_specialized else '' }}{{ 'std::size_t VectorSize, ' if vector_length_agnostic else '' }}{{ ns.additional_templates }}ImplementationDegreeOfFreedom {{ idof_name }}>
 {# If the vector_length_bits is specified in the yaml file, a specialization is generated. #}
          struct {{ primitive_name }}<{{ ns.full_extension_name }}, {{ ns.return_template_type }}{{ ns.additional_template_params }}{{ idof_name }}> {
+            using return_type = {{ returns['ctype'] }};
+            static constexpr bool has_return_value() {
+                return {{ 'true' if returns['ctype'] != 'void' else 'false' }};
+            }
             using {{ vector_name }} = {{ ns.full_extension_name }};
             {{ ns.using_return_type }}
             static constexpr bool native_supported() {
