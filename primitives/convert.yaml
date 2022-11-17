@@ -158,7 +158,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
 returns:
-  ctype: "std::array<typename ToType::register_type, sizeof(typename ToType::base_type)/sizeof(Vec::base_type)>"
+  ctype: "std::array<typename ToType::register_type, sizeof(typename ToType::base_type)/sizeof(typename Vec::base_type)>"
   description: "Array containing the upconverted simd registers."
 testing:
   - test_name: "default"
@@ -167,6 +167,7 @@ testing:
     implementation: |
       using lower_type = typename Vec::base_type;
       using upper_type = typename ToType::base_type;
+      bool allOk = true;
       std::size_t element_count = Vec::vector_element_count();
       testing::test_memory_helper_t<Vec> test_helper_lower{Vec::vector_element_count(), 1, false, testing::seq_init_start_low<lower_type>};
       auto lower_value_vec = loadu<Vec>(test_helper_lower.data_target());
@@ -519,10 +520,10 @@ definitions:
 primitive_name: "convert_down"
 additional_simd_template_parameter: "ToType"
 parameters:
-  - ctype: "std::array<typename ToType::register_type, sizeof(typename ToType::base_type)/sizeof(Vec::base_type)>"
+  - ctype: "std::array<typename Vec::register_type, sizeof(typename Vec::base_type)/sizeof(typename ToType::base_type)>"
     name: "data"
 returns:
-  ctype: "const typename Vec::register_type"
+  ctype: "typename ToType::register_type"
   description: "SIMD register containing the down-converted data."
 testing:
   - test_name: "default"
@@ -541,11 +542,11 @@ testing:
         auto result = convert_down<Vec, ToType>(convert_up<ToType, Vec>(lower_value_vec));
         auto mask = to_integral<ToType>(equal<ToType>(result, lower_value_vec));
         for(size_t i = 0; i < ToType::vector_element_count(); ++i) {
-          if((((mask>>i)&0b1) != 1) {
+          if(((mask>>i)&0b1) != 1) {
             return false;
           }
         }
-        lower_value_vec = add<ToVec>(lower_value_vec, lower_inc_vec);
+        lower_value_vec = add<ToType>(lower_value_vec, lower_inc_vec);
       }
       return true;
 definitions:

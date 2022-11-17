@@ -18,44 +18,44 @@ testing: #optional
       includes: ["<cstddef>", "<array>"]
       implementation: |
          using T = typename Vec::base_type;
-               bool allOk = true;
-               // For Vec::mask_type == Vec::register_type testing
-               std::array< T, Vec::vector_element_count() > pseudo_mask;
-               typename Vec::mask_type vec_mask;
-               for(std::size_t i = 0; i < Vec::vector_element_count() + 1; i++) {
-                  // To check if we are at AVX512/Scalar or any register type mask
-                  if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
-                     // e.g. Scalar (bool)
-                     vec_mask = false;
-                     for ( std::size_t j = 0; j < i; ++j ) {
-                        vec_mask = (vec_mask << 1) | 0b1;
-                     }
-                  } else if constexpr (std::is_same_v<typename Vec::mask_type, typename Vec::imask_type>) {
-                     // // e.g. AVX512
-                     vec_mask = 0;
-                     typename Vec::mask_type one = 0b1;
-                     for ( std::size_t j = 0; j < i; ++j ) {
-                        vec_mask |= one << j;
-                     }
-                  } else {
-                     // e.g. SSE, AVX2
-                     pseudo_mask.fill( 0 );
-                     T val = -1;
-                     for ( std::size_t j = 0; j < i; ++j ) {
-                        pseudo_mask[ j ] = val;
-                     }
-                     vec_mask = loadu<Vec>( pseudo_mask.data() );
-                  }
-                  auto mask_integral = to_integral<Vec>( vec_mask );
-                  std::size_t matches = 0;
-                  for ( std::size_t k = 0; k < Vec::vector_element_count(); ++k ) {
-                    if(((mask_integral >> k) & 0b1) == 1 ) {
-                      ++matches;
-                    }
-                  }
-                  allOk &= (matches == i);
+         bool allOk = true;
+         // For Vec::mask_type == Vec::register_type testing
+         std::array< T, Vec::vector_element_count() > pseudo_mask;
+         typename Vec::mask_type vec_mask;
+         for(std::size_t i = 0; i < Vec::vector_element_count() + 1; i++) {
+            // To check if we are at AVX512/Scalar or any register type mask
+            if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
+               // e.g. Scalar (bool)
+               vec_mask = false;
+               for ( std::size_t j = 0; j < i; ++j ) {
+                  vec_mask = (vec_mask << 1) | 0b1;
                }
-               return allOk;
+            } else if constexpr (std::is_same_v<typename Vec::mask_type, typename Vec::imask_type>) {
+               // // e.g. AVX512
+               vec_mask = 0;
+               typename Vec::mask_type one = 0b1;
+               for ( std::size_t j = 0; j < i; ++j ) {
+                  vec_mask |= one << j;
+               }
+            } else {
+               // e.g. SSE, AVX2
+               pseudo_mask.fill( 0 );
+               T val = -1;
+               for ( std::size_t j = 0; j < i; ++j ) {
+                  pseudo_mask[ j ] = val;
+               }
+               vec_mask = loadu<Vec>( pseudo_mask.data() );
+            }
+            auto mask_integral = to_integral<Vec>( vec_mask );
+            std::size_t matches = 0;
+            for ( std::size_t k = 0; k < Vec::vector_element_count(); ++k ) {
+              if(((mask_integral >> k) & 0b1) == 1 ) {
+                ++matches;
+              }
+            }
+            allOk &= (matches == i);
+         }
+         return allOk;
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"
@@ -77,9 +77,9 @@ definitions:
      lscpu_flags: ['avx', 'avx2']
      is_native: False
      implementation: |
-       auto const packed = _mm256_packs_epi16(vec_mask, _mm256_setzero_si256());
-                     auto const shuffled = _mm256_permute4x64_epi64(packed, 8);
-                     return (typename Vec::imask_type) _mm256_movemask_epi8(shuffled);
+        auto const packed = _mm256_packs_epi16(vec_mask, _mm256_setzero_si256());
+        auto const shuffled = _mm256_permute4x64_epi64(packed, 8);
+        return (typename Vec::imask_type) _mm256_movemask_epi8(shuffled);
 #   - target_extension: "avx2"
 #     ctype: ["int16_t", "uint16_t"]
 #     lscpu_flags: ['avx', 'avx2']

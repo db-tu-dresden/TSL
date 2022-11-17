@@ -21,52 +21,52 @@ testing: #optional
       includes: ["<cstddef>"]
       implementation: |
          using T = typename Vec::base_type;
-               std::size_t element_count = 1024;
-               testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
-               bool allOk = true;
-               auto reference_data_ptr = test_helper.data_ref();
-               auto reference_result_ptr = test_helper.result_ref();
-               auto test_data_ptr = test_helper.data_target();
-               auto test_result_ptr = test_helper.result_target();
-               for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
-                  std::size_t tester_idx = 0;
-                  for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
-                     reference_result_ptr[tester_idx++] = reference_data_ptr[j];
-                  }
-                  auto vec = set1<Vec>( 0 );
-                  auto elements = loadu<Vec>(&test_data_ptr[i]);
-                  vec = add<Vec>(vec, elements);
-                  storeu<Vec>( test_result_ptr, vec );
-                  test_helper.synchronize();
-                  allOk &= test_helper.validate();
-               }
+         std::size_t element_count = 1024;
+         testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+         bool allOk = true;
+         auto reference_data_ptr = test_helper.data_ref();
+         auto reference_result_ptr = test_helper.result_ref();
+         auto test_data_ptr = test_helper.data_target();
+         auto test_result_ptr = test_helper.result_target();
+         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            std::size_t tester_idx = 0;
+            for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+               reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+            }
+            auto vec = set1<Vec>( 0 );
+            auto elements = loadu<Vec>(&test_data_ptr[i]);
+            vec = add<Vec>(vec, elements);
+            storeu<Vec>( test_result_ptr, vec );
+            test_helper.synchronize();
+            allOk &= test_helper.validate();
+         }
                return allOk;
    -  test_name: "running_sum_w_epsilon"
       requires: ["set1", "loadu", "hadd"]
       includes: ["<cstddef>"]
       implementation: |
          using T = typename Vec::base_type;
-               std::size_t element_count = 1024;
-               testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
-               bool allOk = true;
-               auto reference_data_ptr = test_helper.data_ref();
-               auto reference_result_ptr = test_helper.result_ref();
-               auto test_data_ptr = test_helper.data_target();
-               auto test_result_ptr = test_helper.result_target();
-               auto vec = set1<Vec>( 0 );
-               for(std::size_t i = 0; i < element_count - 2*Vec::vector_element_count(); i+=2*Vec::vector_element_count()) {
-                  std::size_t tester_idx = 0;
-                  for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
-                     reference_result_ptr[tester_idx++] = reference_data_ptr[j]+reference_data_ptr[j+Vec::vector_element_count()];
-                  }
-                  auto elements_vec1 = loadu<Vec>(&test_data_ptr[i]);
-                  auto elements_vec2 = loadu<Vec>(&test_data_ptr[i+Vec::vector_element_count()]);
-                  vec = add<Vec>(elements_vec1, elements_vec2);
-                  storeu<Vec>( test_result_ptr, vec );
-                  test_helper.synchronize();
-                  allOk &= test_helper.validate();
-               }
-               return allOk;
+         std::size_t element_count = 1024;
+         testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
+         bool allOk = true;
+         auto reference_data_ptr = test_helper.data_ref();
+         auto reference_result_ptr = test_helper.result_ref();
+         auto test_data_ptr = test_helper.data_target();
+         auto test_result_ptr = test_helper.result_target();
+         auto vec = set1<Vec>( 0 );
+         for(std::size_t i = 0; i < element_count - 2*Vec::vector_element_count(); i+=2*Vec::vector_element_count()) {
+            std::size_t tester_idx = 0;
+            for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
+               reference_result_ptr[tester_idx++] = reference_data_ptr[j]+reference_data_ptr[j+Vec::vector_element_count()];
+            }
+            auto elements_vec1 = loadu<Vec>(&test_data_ptr[i]);
+            auto elements_vec2 = loadu<Vec>(&test_data_ptr[i+Vec::vector_element_count()]);
+            vec = add<Vec>(elements_vec1, elements_vec2);
+            storeu<Vec>( test_result_ptr, vec );
+            test_helper.synchronize();
+            allOk &= test_helper.validate();
+         }
+         return allOk;
 definitions:
 #CUDA
    - target_extension: "cuda"
@@ -74,10 +74,10 @@ definitions:
      lscpu_flags: ["cuda"]
      vector_length_agnostic: True
      implementation: |
-      typename Vec::register_type vec_c;
-                    size_t element_count = VectorSize / (sizeof({{ ctype }}) * 8);
-                    constexpr auto add = +[]({{ ctype }} a, {{ ctype }} b) { return a + b; };
-                    return launch_elemenwise_op<typename Vec::register_type, add>(vec_a, vec_b, VectorSize);
+        typename Vec::register_type vec_c;
+        size_t element_count = VectorSize / (sizeof({{ ctype }}) * 8);
+        constexpr auto add = +[]({{ ctype }} a, {{ ctype }} b) { return a + b; };
+        return launch_elemenwise_op<typename Vec::register_type, add>(vec_a, vec_b, VectorSize);
 #INTEL - AVX512
    - target_extension: "avx512"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -189,29 +189,29 @@ testing: #optional
       includes: ["<cstddef>"]
       implementation: |
          using T = typename Vec::base_type;
-               std::size_t element_count = 1024;
-               testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
-               bool allOk = true;
-               auto reference_data_ptr = test_helper.data_ref();
-               auto reference_result_ptr = test_helper.result_ref();
-               auto test_data_ptr = test_helper.data_target();
-               auto test_result_ptr = test_helper.result_target();
-               for(std::size_t i = 0; i < element_count - (2*Vec::vector_element_count()); i+=(2*Vec::vector_element_count())) {
-                  std::size_t j = i;
-                  for(; j < i + Vec::vector_element_count(); ++j) {
-                     reference_result_ptr[j-i] = reference_data_ptr[j];
-                  }
-                  for(; j < i + (2*Vec::vector_element_count()); ++j) {
-                     reference_result_ptr[j-(i+Vec::vector_element_count())] *= reference_data_ptr[j];
-                  }
-                  auto vec_a = loadu<Vec>(&test_data_ptr[i]);
-                  auto vec_b = loadu<Vec>(&test_data_ptr[i+Vec::vector_element_count()]);
-                  auto vec_result = mul<Vec>(vec_a, vec_b);
-                  storeu<Vec>(test_result_ptr, vec_result);
-                  test_helper.synchronize();
-                  allOk &= test_helper.validate();
-               }
-               return allOk;
+         std::size_t element_count = 1024;
+         testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
+         bool allOk = true;
+         auto reference_data_ptr = test_helper.data_ref();
+         auto reference_result_ptr = test_helper.result_ref();
+         auto test_data_ptr = test_helper.data_target();
+         auto test_result_ptr = test_helper.result_target();
+         for(std::size_t i = 0; i < element_count - (2*Vec::vector_element_count()); i+=(2*Vec::vector_element_count())) {
+            std::size_t j = i;
+            for(; j < i + Vec::vector_element_count(); ++j) {
+               reference_result_ptr[j-i] = reference_data_ptr[j];
+            }
+            for(; j < i + (2*Vec::vector_element_count()); ++j) {
+               reference_result_ptr[j-(i+Vec::vector_element_count())] *= reference_data_ptr[j];
+            }
+            auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+            auto vec_b = loadu<Vec>(&test_data_ptr[i+Vec::vector_element_count()]);
+            auto vec_result = mul<Vec>(vec_a, vec_b);
+            storeu<Vec>(test_result_ptr, vec_result);
+            test_helper.synchronize();
+            allOk &= test_helper.validate();
+         }
+         return allOk;
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"
@@ -243,14 +243,14 @@ definitions:
      is_native: False
      includes: ["<array>", "<cstddef>"]
      implementation: |
-      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
-                     alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
-                     _mm512_store_si512(reinterpret_cast<void*>(buffer_a.data()), vec_a);
-                     _mm512_store_si512(reinterpret_cast<void*>(buffer_b.data()), vec_b);
-                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-                        buffer_a[i] *= buffer_b[i];
-                     }
-                     return _mm512_load_si512(reinterpret_cast<void const *>(buffer_a.data()));
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+        _mm512_store_si512(reinterpret_cast<void*>(buffer_a.data()), vec_a);
+        _mm512_store_si512(reinterpret_cast<void*>(buffer_b.data()), vec_b);
+        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+           buffer_a[i] *= buffer_b[i];
+        }
+        return _mm512_load_si512(reinterpret_cast<void const *>(buffer_a.data()));
 #INTEL - AVX2
    - target_extension: "avx2"
      ctype: ["float", "double"]
@@ -277,14 +277,14 @@ definitions:
      is_native: False
      includes: ["<array>", "<cstddef>"]
      implementation: |
-      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
-                     alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
-                     _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_a.data()), vec_a);
-                     _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_b.data()), vec_b);
-                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-                        buffer_a[i] *= buffer_b[i];
-                     }
-                     return _mm256_load_si256(reinterpret_cast<__m256i const *>(buffer_a.data()));
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+        _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_a.data()), vec_a);
+        _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_b.data()), vec_b);
+        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+           buffer_a[i] *= buffer_b[i];
+        }
+        return _mm256_load_si256(reinterpret_cast<__m256i const *>(buffer_a.data()));
 #INTEL - SSE
    - target_extension: "sse"
      ctype: ["float"]
@@ -315,14 +315,14 @@ definitions:
      is_native: False
      includes: ["<array>", "<cstddef>"]
      implementation: |
-      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
-                     alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
-                     _mm_store_si128(reinterpret_cast<__m128i*>(buffer_a.data()), vec_a);
-                     _mm_store_si128(reinterpret_cast<__m128i*>(buffer_b.data()), vec_b);
-                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-                        buffer_a[i] *= buffer_b[i];
-                     }
-                     return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+        _mm_store_si128(reinterpret_cast<__m128i*>(buffer_a.data()), vec_a);
+        _mm_store_si128(reinterpret_cast<__m128i*>(buffer_b.data()), vec_b);
+        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+           buffer_a[i] *= buffer_b[i];
+        }
+        return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t", "float", "double"]
@@ -335,10 +335,10 @@ definitions:
      implementation: |
         //Found this on stackoverflow. This seems like an overkill. Maybe an extract and scalar multiply would do the trick more efficient.
         //@todo: benchmark this.
-                     const auto ac = vmovn_{{ intrin_tp[ctype][0] }}64(vec_a);
-                     const auto pr = vmovn_{{ intrin_tp[ctype][0] }}64(vec_b);
-                     const auto hi = vmulq_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_b), vrev64q_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_a)));
-                     return vmlal_{{ intrin_tp[ctype][0] }}32(vshlq_n_{{ intrin_tp[ctype][0] }}64(vpaddlq_{{ intrin_tp[ctype][0] }}32(hi), 32), ac, pr);
+        const auto ac = vmovn_{{ intrin_tp[ctype][0] }}64(vec_a);
+        const auto pr = vmovn_{{ intrin_tp[ctype][0] }}64(vec_b);
+        const auto hi = vmulq_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_b), vrev64q_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_a)));
+        return vmlal_{{ intrin_tp[ctype][0] }}32(vshlq_n_{{ intrin_tp[ctype][0] }}64(vpaddlq_{{ intrin_tp[ctype][0] }}32(hi), 32), ac, pr);
 #SCALAR
    - target_extension: "scalar"
      ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
@@ -359,19 +359,19 @@ testing:
       includes: ["<cstddef>", "<algorithm>", "<limits>"]
       implementation: |
          using T = typename Vec::base_type;
-               testing::test_memory_helper_t<Vec> test_helper{1, false};
-               bool allOk = true;
-               auto reference_result_ptr = test_helper.result_ref();
-               auto test_result_ptr = test_helper.result_target();
-               const std::size_t limit = std::min( (size_t) 4096, (size_t) std::numeric_limits<T>::max() / Vec::vector_element_count() );
-               for(std::size_t i = 0; i < limit; ++i) {
-                  *reference_result_ptr =  Vec::vector_element_count() * i;
-                  auto vec = set1<Vec>(i);
-                  *test_result_ptr = hadd<Vec>(vec);
-                  test_helper.synchronize();
-                  allOk &= test_helper.validate();
-               }
-               return allOk;
+         testing::test_memory_helper_t<Vec> test_helper{1, false};
+         bool allOk = true;
+         auto reference_result_ptr = test_helper.result_ref();
+         auto test_result_ptr = test_helper.result_target();
+         const std::size_t limit = std::min( (size_t) 4096, (size_t) std::numeric_limits<T>::max() / Vec::vector_element_count() );
+         for(std::size_t i = 0; i < limit; ++i) {
+            *reference_result_ptr =  Vec::vector_element_count() * i;
+            auto vec = set1<Vec>(i);
+            *test_result_ptr = hadd<Vec>(vec);
+            test_helper.synchronize();
+            allOk &= test_helper.validate();
+         }
+         return allOk;
 definitions:
 #INTEL - FPGA
    - target_extension: "fpga"
@@ -450,13 +450,13 @@ definitions:
      is_native: False
      includes: ["<array>", "<cstddef>"]
      implementation: |
-      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
-                     typename Vec::base_type result = 0;
-                     _mm512_store_si512(reinterpret_cast<void*>(buffer.data()), value);
-                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-                        result += buffer[i];
-                     }
-                     return result;
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
+        typename Vec::base_type result = 0;
+        _mm512_store_si512(reinterpret_cast<void*>(buffer.data()), value);
+        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+           result += buffer[i];
+        }
+        return result;
 #INTEL - AVX2
    - target_extension: "avx2"
      ctype: ["double"]
@@ -464,58 +464,58 @@ definitions:
      lscpu_flags: ["sse2", "ssse3", "avx"]
      is_native: False
      implementation: |
-      //https://stackoverflow.com/questions/49941645/get-sum-of-values-stored-in-m256d-with-sse-avx
-                     __m128d vlow  = _mm256_castpd256_pd128(value);
-                     __m128d vhigh = _mm256_extractf128_pd(value, 1);
-                     vlow  = _mm_add_pd(vlow, vhigh);
-                     __m128d high64 = _mm_unpackhi_pd(vlow, vlow);
-                     return  _mm_cvtsd_f64(_mm_add_sd(vlow, high64));
+       //https://stackoverflow.com/questions/49941645/get-sum-of-values-stored-in-m256d-with-sse-avx
+       __m128d vlow  = _mm256_castpd256_pd128(value);
+       __m128d vhigh = _mm256_extractf128_pd(value, 1);
+       vlow  = _mm_add_pd(vlow, vhigh);
+       __m128d high64 = _mm_unpackhi_pd(vlow, vlow);
+       return  _mm_cvtsd_f64(_mm_add_sd(vlow, high64));
    - target_extension: "avx2"
      ctype: ["float"]
      specialization_comment: "This instruction needs sse3. However, most intel cpus only provide ssse3 (which is a superset sse3)."
      lscpu_flags: ["sse", "sse2", "ssse3", "avx"]
      is_native: False
      implementation: |
-      __m128 vlow  = _mm256_castps256_ps128(value);
-                     __m128 vhigh = _mm256_extractf128_ps(value, 1);
-                     vlow = _mm_add_ps(vlow, vhigh);
-                     __m128 res = _mm_hadd_ps(vlow, vlow);
-                     return _mm_cvtss_f32(res) + _mm_cvtss_f32(_mm_castsi128_ps(_mm_bsrli_si128(_mm_castps_si128(res),sizeof(float))));
+        __m128 vlow  = _mm256_castps256_ps128(value);
+        __m128 vhigh = _mm256_extractf128_ps(value, 1);
+        vlow = _mm_add_ps(vlow, vhigh);
+        __m128 res = _mm_hadd_ps(vlow, vlow);
+        return _mm_cvtss_f32(res) + _mm_cvtss_f32(_mm_castsi128_ps(_mm_bsrli_si128(_mm_castps_si128(res),sizeof(float))));
    - target_extension: "avx2"
      ctype: ["uint64_t", "int64_t"]
      lscpu_flags: ["sse2", "avx"]
      specialization_comment: "Signed Addition."
      is_native: False
      implementation: |
-      __m128i vlow = _mm256_castsi256_si128(value);
-                     __m128i vhigh = _mm256_extractf128_si256(value, 1);
-                     vlow = _mm_add_epi64(vlow, vhigh);
-                     __m128i high64 = _mm_unpackhi_epi64(vlow, vlow);
-                     return _mm_cvtsi128_si64(_mm_add_epi64(vlow, high64));
+        __m128i vlow = _mm256_castsi256_si128(value);
+        __m128i vhigh = _mm256_extractf128_si256(value, 1);
+        vlow = _mm_add_epi64(vlow, vhigh);
+        __m128i high64 = _mm_unpackhi_epi64(vlow, vlow);
+        return _mm_cvtsi128_si64(_mm_add_epi64(vlow, high64));
    - target_extension: "avx2"
      ctype: ["uint32_t", "int32_t"]
      specialization_comment: "Signed Addition. This instruction needs sse3. However, most intel cpus only provide ssse3 (which is a superset sse3)."
      lscpu_flags: ["sse2", "ssse3", "avx"]
      is_native: False
      implementation: |
-      __m128i vlow = _mm256_castsi256_si128(value);
-                     __m128i vhigh = _mm256_extractf128_si256(value, 1);
-                     vlow = _mm_add_epi32(vlow, vhigh);
-                     __m128i res = _mm_hadd_epi32(vlow, vlow);
-                     return _mm_cvtsi128_si32(res) + _mm_cvtsi128_si32(_mm_bsrli_si128(res,sizeof(uint32_t)));
+        __m128i vlow = _mm256_castsi256_si128(value);
+        __m128i vhigh = _mm256_extractf128_si256(value, 1);
+        vlow = _mm_add_epi32(vlow, vhigh);
+        __m128i res = _mm_hadd_epi32(vlow, vlow);
+        return _mm_cvtsi128_si32(res) + _mm_cvtsi128_si32(_mm_bsrli_si128(res,sizeof(uint32_t)));
    - target_extension: "avx2"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
      lscpu_flags: ["avx"]
      is_native: False
      includes: ["<array>", "<cstddef>"]
      implementation: |
-      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
-                     typename Vec::base_type result = 0;
-                     _mm256_store_si256(reinterpret_cast<__m256i*>(buffer.data()), value);
-                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-                        result += buffer[i];
-                     }
-                     return result;
+         alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
+         typename Vec::base_type result = 0;
+         _mm256_store_si256(reinterpret_cast<__m256i*>(buffer.data()), value);
+         for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+            result += buffer[i];
+         }
+         return result;
 #INTEL - SSE
    - target_extension: "sse"
      ctype: ["double"]
@@ -529,8 +529,8 @@ definitions:
      lscpu_flags: ["sse", "sse2", "ssse3"]
      is_native: False
      implementation: |
-      auto res = _mm_hadd_ps(value, value);
-                     return _mm_cvtss_f32(res) + _mm_cvtss_f32(_mm_castsi128_ps(_mm_bsrli_si128(_mm_castps_si128(res),sizeof(float))));
+        auto res = _mm_hadd_ps(value, value);
+        return _mm_cvtss_f32(res) + _mm_cvtss_f32(_mm_castsi128_ps(_mm_bsrli_si128(_mm_castps_si128(res),sizeof(float))));
    - target_extension: "sse"
      ctype: ["uint64_t", "int64_t"]
      lscpu_flags: ["sse2", "avx"]
@@ -552,13 +552,13 @@ definitions:
      is_native: False
      includes: ["<array>", "<cstddef>"]
      implementation: |
-      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
-                     typename Vec::base_type result = 0;
-                     _mm_store_si128(reinterpret_cast<__m128i *>(buffer.data()), value);
-                     for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-                        result += buffer[i];
-                     }
-                     return result;
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
+        typename Vec::base_type result = 0;
+        _mm_store_si128(reinterpret_cast<__m128i *>(buffer.data()), value);
+        for  (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+             result += buffer[i];
+        }
+        return result;
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
