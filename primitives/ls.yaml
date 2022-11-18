@@ -114,7 +114,7 @@ testing:
          auto reference_result_ptr = test_helper.result_ref();
          auto test_data_ptr = test_helper.data_target();
          auto test_result_ptr = test_helper.result_target();
-         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); ++i) {
             for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
                reference_result_ptr[j-i] = reference_data_ptr[j];
             }
@@ -151,11 +151,11 @@ definitions:
    - target_extension: "sse"
      ctype: ["float"]
      lscpu_flags: ["sse"]
-     implementation: "return _mm_load_ps(memory);"
+     implementation: "return _mm_loadu_ps(memory);"
    - target_extension: "sse"
      ctype: ["double"]
      lscpu_flags: ["sse2"]
-     implementation: "return _mm_load_pd(memory);"
+     implementation: "return _mm_loadu_pd(memory);"
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -587,13 +587,13 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        T const max, T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
+        T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
       ) {
         return tvl::set<Vec>(
-          ((max-((T)(Is+1))*sw)+init)...
+          ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
-      return seq_fun(Vec::vector_element_count()*stepwidth+start, start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
+      return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -602,13 +602,13 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        T const max, T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
+        T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
       ) {
         return tvl::set<Vec>(
-          ((max-((T)(Is+1))*sw)+init)...
+          ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
-      return seq_fun(Vec::vector_element_count()*stepwidth+start, start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
+      return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
   #INTEL - SSE
   - target_extension: "sse"
     ctype: [ "uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double" ]
@@ -617,13 +617,13 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        T const max, T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
+        T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
       ) {
         return tvl::set<Vec>(
-          ((max-((T)(Is+1))*sw)+init)...
+          ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
-      return seq_fun(Vec::vector_element_count()*stepwidth+start, start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
+      return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
   #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double" ]
