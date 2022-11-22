@@ -205,3 +205,57 @@ definitions:
         }
         return result;
 ...
+---
+primitive_name: "equal"
+functor_name: "mask_equal"
+brief_description: "Compares two vector registers for equality."
+parameters:
+   - ctype: "const typename Vec::mask_type"
+     name: "mask"
+     description: "Mask, indicating which lanes should be checked for equality"
+   - ctype: "const typename Vec::register_type"
+     name: "vec_a"
+     description: "Left vector."
+   - ctype: "const typename Vec::register_type"
+     name: "vec_b"
+     description: "Right vector."
+returns:
+   ctype: "typename Vec::mask_type"
+   description: "Vector mask type indicating whether vec_a[*]==vec_b[*]."
+testing: #optional
+   -  test_name: "all_equal"
+      requires: ["to_integral", "loadu"]
+      includes: ["<cstddef>"]
+      implementation: |
+         using T = typename Vec::base_type;
+         std::size_t element_count = 1024;
+         testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+         bool allOk = true;
+         auto reference_data_ptr = test_helper.data_ref();
+         auto reference_result_ptr = test_helper.result_ref();
+         auto test_data_ptr = test_helper.data_target();
+         auto test_result_ptr = test_helper.result_target();
+         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            reference_result_ptr[0] = Vec::vector_element_count();
+            auto vec1 = loadu<Vec>( &test_data_ptr[i] );
+            auto vec2 = loadu<Vec>( &test_data_ptr[i] );
+            auto result_mask = equal<Vec>( vec1, vec2 );
+            auto result_integral = to_integral<Vec>( result_mask );
+            size_t matches = 0;
+            for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+              if(((result_integral >> i) & 0b1) == 1 ) {
+                matches += 1;
+              }
+            }
+            test_result_ptr[0] = matches;
+            test_helper.synchronize();
+            allOk &= test_helper.validate();
+         }
+         return allOk;
+definitions:
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+     lscpu_flags: ['avx2']
+     specialization_comment: "Signed comparison."
+     implementation: "return _mm256_and_si256(_mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b), mask);"

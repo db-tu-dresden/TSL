@@ -279,6 +279,83 @@ definitions:
     specialization_comment: "Benchmark what to use. Current implementation or: uint64_t c = (*((uint64_t *)&a) ^ *((uint64_t *)&b)); return *((double *)&c);"
 ...
 ---
+primitive_name: "binary_xor"
+functor_name: "binary_xor_mask"
+brief_description: "Binary XOR of two vector mask types."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "first"
+    description: "First mask."
+  - ctype: "const typename Vec::mask_type"
+    name: "second"
+    description: "Second mask."
+returns:
+  ctype: "typename Vec::mask_type"
+  description: "Vector mask register containing the result."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ['avx512f', 'avx512dq', 'avx512bw']
+    implementation: "return _kxor_mask{{ intrin_tp[ctype][1] }}(first, second);"
+  - target_extension: "avx512"
+    ctype: ["float"]
+    lscpu_flags: ['avx512f']
+    implementation: "return _kxor_mask16(first, second);"
+  - target_extension: "avx512"
+    ctype: ["double"]
+    lscpu_flags: ['avx512f', 'avx512dq']
+    implementation: "return _kxor_mask8(first, second);"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "double"] #no float
+    lscpu_flags: ['avx512f']
+    implementation: "return first ^ second;"
+  #INTEL - AVX2 REMAINDER EQUALS REGISTER_TYPE XOR
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_xor_si256(first, second);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    is_native: False
+    implementation: "return _mm256_castpd_si256(_mm256_xor_pd(_mm256_castsi256_pd(first),_mm256_castsi256_pd(second)));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_xor_{{ intrin_tp_full[ctype] }}(first, second);"
+  #Intel - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_xor_si128(first, second);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse"]
+    implementation: "return _mm_xor_ps(first, second);"
+  - target_extension: "sse"
+    ctype: [ "double" ]
+    lscpu_flags: [ "sse2" ]
+    implementation: "return _mm_xor_pd(first, second);"
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return veorq_{{ intrin_tp_full[ctype] }}(first, second);"
+  - target_extension: "neon"
+    ctype: ["float", "double"]
+    lscpu_flags: ['neon']
+    note: "is it a good idea to support bitmanipulation for floats and doubles?"
+    implementation: |
+      return
+         vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
+            veorq_u{{ intrin_tp[ctype][1] }}(
+               vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(first),
+               vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(second)
+            )
+         );"
+...
+---
 primitive_name: "shift_right"
 brief_description: "Shifts data to right by n bits (shifting in 0)."
 parameters:

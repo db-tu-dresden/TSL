@@ -113,6 +113,126 @@ definitions:
     implementation: "0;"
 ...
 ---
+primitive_name: "conflict"
+functor_name: "mask_conflict"
+brief_description: "Checks whether all elements are unique in a register."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Mask indicating which lanes should be considered for conflict detection. Be aware, that non-valid lanes can still conflict with others."
+    declaration_attributes: "[[maybe_unused]]"
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Data vector."
+    declaration_attributes: "[[maybe_unused]]"
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the uniqueness check."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t","int32_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512cd"]
+    implementation: |
+      auto const conflict_reg = _mm512_conflict_epi{{ intrin_tp[ctype][1] }}(data);
+      auto const mask_reg = _mm512_maskz_set1_epi{{ intrin_tp[ctype][1] }}(mask);
+      auto const cleaned_conflict_reg = _mm512_and_si512(conflict_reg, mask_reg);
+      return _mm512_maskz_cmp
+      return _mm512_maskz_conflict_epi{{ intrin_tp[ctype][1] }}(data);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: |
+       alignas(Vec::vector_alignment())
+         std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+       alignas(Vec::vector_alignment())
+         std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
+       _mm512_store_si512(reinterpret_cast<void*>(tmp.data()), data);
+       for(unsigned idx = 0; idx < Vec::vector_element_count(); ++idx) {
+         conflicts[idx] = 0;
+       }
+       for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+         for(unsigned cur = 0; cur < ref; ++cur) {
+           if(tmp[ref] == tmp[cur]) {
+             conflicts[ref] |= (1<<cur);
+           }
+         }
+       }
+       return _mm512_load_si512(reinterpret_cast<void const*>(conflicts.data()));
+  #Intel - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+       alignas(Vec::vector_alignment())
+         std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+       alignas(Vec::vector_alignment())
+         std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
+       _mm256_store_si256(reinterpret_cast<__m256i*>(tmp.data()), data);
+       for(unsigned idx = 0; idx < Vec::vector_element_count(); ++idx) {
+         conflicts[idx] = 0;
+       }
+       for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+         for(unsigned cur = 0; cur < ref; ++cur) {
+           if(tmp[ref] == tmp[cur]) {
+             conflicts[ref] |= (1<<cur);
+           }
+         }
+       }
+       return _mm256_load_si256(reinterpret_cast<__m256i const*>(conflicts.data()));
+  #Intel - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    is_native: False
+    implementation: |
+       alignas(Vec::vector_alignment())
+         std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+       alignas(Vec::vector_alignment())
+         std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
+       _mm_store_si128(reinterpret_cast<__m128i*>(tmp.data()), data);
+       for(unsigned idx = 0; idx < Vec::vector_element_count(); ++idx) {
+         conflicts[idx] = 0;
+       }
+       for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+         for(unsigned cur = 0; cur < ref; ++cur) {
+           if(tmp[ref] == tmp[cur]) {
+             conflicts[ref] |= (1<<cur);
+           }
+         }
+       }
+       return _mm_load_si128(reinterpret_cast<__m128i const*>(conflicts.data()));
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'neon' ]
+    is_native: False
+    implementation: |
+       alignas(Vec::vector_alignment())
+         std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+       alignas(Vec::vector_alignment())
+         std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
+       vst1q_{{ intrin_tp_full[ctype] }}(tmp.data(), data);
+       for(unsigned idx = 0; idx < Vec::vector_element_count(); ++idx) {
+         conflicts[idx] = 0;
+       }
+       for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+         for(unsigned cur = 0; cur < ref; ++cur) {
+           if(tmp[ref] == tmp[cur]) {
+             conflicts[ref] |= (1<<cur);
+           }
+         }
+       }
+       return vld1q_{{ intrin_tp_full[ctype] }}(conflicts.data());
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: "0;"
+...
+---
 primitive_name: "blend"
 brief_description: "Blends two registers using provided bitmask."
 parameters:
