@@ -17,6 +17,8 @@ class TVLPrimitive:
         @LogInit()
         def __init__(self, data_dict: dict):
             self.__data_dict = data_dict
+            if len(data_dict["functor_name"]) == 0:
+                self.__data_dict["functor_name"] = data_dict["primitive_name"]
             self.log(logging.INFO, f"Created Primitive Declaration {self.__data_dict['primitive_name']}")
 
         @property
@@ -26,6 +28,10 @@ class TVLPrimitive:
         @property
         def name(self) -> str:
             return self.__data_dict["primitive_name"]
+
+        @property
+        def functor_name(self) -> str:
+            return self.__data_dict["functor_name"]
 
         def __deepcopy__(self, memodict={}):
             cls = self.__class__
@@ -213,6 +219,14 @@ class TVLPrimitive:
     def __str__(self) -> str:
         return f"{self.declaration.name}"
 
+    def __eq__(self, other):
+        if isinstance(other, TVLPrimitive):
+            if other.declaration.name == self.declaration.name:
+                return other.declaration.functor_name == self.declaration.functor_name
+        else:
+            return False
+
+
     @staticmethod
     def human_readable(name: str, ctype: str, target_extension: str) -> str:
         return f"{name}<{ctype},{target_extension}>"
@@ -398,7 +412,7 @@ class TVLPrimitiveClassSet:
     def definitions_names(self) -> Generator[str, None, None]:
         for primitive_class in self.__primitive_classes:
             for primitive in primitive_class:
-                name = primitive.declaration.name
+                name = primitive.declaration.functor_name
                 for definition in primitive.definitions:
                     for ctype in definition.ctypes:
                         yield TVLPrimitive.human_readable(name, ctype, definition.target_extension)
@@ -406,6 +420,6 @@ class TVLPrimitiveClassSet:
     def get_declaration_dict(self) -> Dict[Dict[str, TVLPrimitive.Declaration]]:
         result: Dict[Dict[str, TVLPrimitive.Declaration]] = dict()
         for primitive_class in self.__primitive_classes:
-            result[primitive_class.name] = {primitive.declaration.name: primitive.declaration for primitive in
+            result[primitive_class.name] = {primitive.declaration.functor_name: primitive.declaration for primitive in
                                             primitive_class}
         return result

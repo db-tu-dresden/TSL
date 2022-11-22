@@ -236,7 +236,7 @@ class TVLTestSuite:
             self.__test_class_names.add(primitive_class.name)
             for primitive in primitive_class:
                 test_name_dict: Dict[str, int] = dict()
-                self.__primitive_test.add((primitive_class.name, primitive.declaration.name))
+                self.__primitive_test.add((primitive_class.name, primitive.declaration.functor_name))
                 if primitive.has_test():
                     primitive_definition_extension_ctype: Dict[str, List[str]] = primitive.specialization_dict()
                     missing_primitive_definitions: Dict[str, Dict[str, List[str]]] = dict()
@@ -279,12 +279,12 @@ class TVLTestSuite:
                                 #              f"Could not create test case for {primitive_class.name}::{primitive.declaration.name}_{test['test_name']}<typename T, {target_extension}>")
                             if len(updated_primitive_definition_extension_ctype) > 0:
                                 self.__test_cases.append(
-                                    TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.name, test, updated_primitive_definition_extension_ctype, primitive.conversion_types(updated_primitive_definition_extension_ctype), missing_primitive_definitions))
+                                    TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.functor_name, test, updated_primitive_definition_extension_ctype, primitive.conversion_types(updated_primitive_definition_extension_ctype), missing_primitive_definitions))
                                 for ext in missing_primitive_definitions:
                                     for t in missing_primitive_definitions[ext]:
                                         self.log(logging.WARN,
                                                  f"Could not create test case \"{test['test_name']}\" for "
-                                                 f"{TVLPrimitive.human_readable(primitive.declaration.name, t, ext)}. The following requirements were not met: "
+                                                 f"{TVLPrimitive.human_readable(primitive.declaration.functor_name, t, ext)}. The following requirements were not met: "
                                                  f"{missing_primitive_definitions[ext][t]}.")
                                         # self.log(logging.WARN,
                                                  # f"Could not create test case for {primitive_class.name}::{primitive.declaration.name}_{test['test_name']}<{t}, {ext}>: {missing_primitive_definitions[ext][t]}")
@@ -292,8 +292,8 @@ class TVLTestSuite:
                                 self.log(logging.WARN,
                                          f"Could not create test case \"{test['test_name']}\" for any type and extension.")
                         else:
-                            self.__test_cases.append(TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.name, test, primitive_definition_extension_ctype, primitive.conversion_types(primitive_definition_extension_ctype), missing_primitive_definitions))
-                            print(f"{primitive_class.name}::{primitive.declaration.name}_{test['test_name']}:")
+                            self.__test_cases.append(TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.functor_name, test, primitive_definition_extension_ctype, primitive.conversion_types(primitive_definition_extension_ctype), missing_primitive_definitions))
+                            print(f"{primitive_class.name}::{primitive.declaration.functor_name}_{test['test_name']}:")
                             for ext in missing_primitive_definitions:
                                 for t in missing_primitive_definitions[ext]:
                                     print(f"{ext.center(10)}{t.center(10)}: {missing_primitive_definitions[ext][t]}")
