@@ -146,6 +146,8 @@ class TVLGeneratorConfig:
     def create_template(self, template: str) -> Template:
         return self.__jinja_config.env.from_string(template)
 
+    def schemes(self):
+        return [scheme for scheme in self.__schemes]
 
     @requirement(entry_name="NonEmptyString")
     def get_schema(self, schema_entry_name: str) -> Schema:
