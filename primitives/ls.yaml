@@ -729,8 +729,22 @@ definitions:
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
       auto const idx_array = tvl::to_array<offsetExt>(index);
-      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        result[i] = memory[idx_array[i]];
+      if constexpr(N == 1) {
+        auto mem = reinterpret_cast<char const*>(memory);
+        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = mem[idx_array[i]];      
+        }
+      } else {
+        if constexpr(N == sizeof(typename Vec::base_type)) {
+          for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+            result[i] = memory[idx_array[i]];      
+          }
+        } else {
+          auto mem = reinterpret_cast<char const*>(memory);
+          for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+            result[i] = mem[idx_array[i]*scale()];      
+          }
+        }
       }
       return tvl::load<Vec>(result.data());
   #ARM - NEON
@@ -817,8 +831,22 @@ definitions:
       auto const idx_array = tvl::to_array<offsetExt>(index);
       auto const src_array = tvl::to_array<Vec>(source);
       auto const mask_array = tvl::to_array<Vec>(mask);
-      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        result[i] = (mask_array[i] == 0) ? src_array[i] : memory[idx_array[i]];
+      if constexpr(N == 1) {
+        auto mem = reinterpret_cast<char const*>(memory);
+        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = (mask_array[i] == 0) ? src_array[i] : mem[idx_array[i]];      
+        }
+      } else {
+        if constexpr(N == sizeof(typename Vec::base_type)) {
+          for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+            result[i] = (mask_array[i] == 0) ? src_array[i] : memory[idx_array[i]];      
+          }
+        } else {
+          auto mem = reinterpret_cast<char const*>(memory);
+          for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+            result[i] = (mask_array[i] == 0) ? src_array[i] : mem[idx_array[i]*scale()];      
+          }
+        }
       }
       return tvl::load<Vec>(result.data());
   #ARM - NEON
@@ -889,9 +917,9 @@ definitions:
           memory[idx_array[i]] = val_array[i];
         } else {
           if constexpr(N==1) {
-            *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
+            *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
           } else {
-            *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
+            *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
           }
         }
       }
@@ -911,9 +939,9 @@ definitions:
           memory[idx_array[i]] = val_array[i];
         } else {
           if constexpr(N==1) {
-            *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
+            *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
           } else {
-            *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
+            *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
           }
         }
       }
@@ -934,9 +962,9 @@ definitions:
           memory[idx_array[i]] = val_array[i];
         } else {
           if constexpr(N==1) {
-            *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
+            *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
           } else {
-            *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
+            *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
           }
         }
       }
@@ -949,9 +977,9 @@ definitions:
         memory[index] = data;
       } else {
         if constexpr(N==1) {
-          *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[index]) = data;
+          *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[index]) = data;
         } else {
-          *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(index<<(cilog2(N)))]) = data;
+          *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(index<<(cilog2(N)))]) = data;
         }
       }
 ...
@@ -1015,9 +1043,9 @@ definitions:
             memory[idx_array[i]] = val_array[i];
           } else {
             if constexpr(N==1) {
-              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
+              *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
             } else {
-              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
+              *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
             }
           }
         }        
@@ -1040,9 +1068,9 @@ definitions:
             memory[idx_array[i]] = val_array[i];
           } else {
             if constexpr(N==1) {
-              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
+              *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
             } else {
-              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
+              *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
             }
           }
         }        
@@ -1067,9 +1095,9 @@ definitions:
             memory[idx_array[i]] = val_array[i];
           } else {
             if constexpr(N==1) {
-              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
+              *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[idx_array[i]]) = val_array[i];
             } else {
-              *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
+              *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
             }
           }
         }        
@@ -1084,9 +1112,9 @@ definitions:
           memory[index] = data;
         } else {
           if constexpr(N==1) {
-            *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[index]) = data;
+            *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[index]) = data;
           } else {
-            *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(index<<(cilog2(N)))]) = data;
+            *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(index<<(cilog2(N)))]) = data;
           }
         }
       }
