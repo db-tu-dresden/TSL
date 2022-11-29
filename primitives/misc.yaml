@@ -104,7 +104,7 @@ definitions:
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
-    implementation: "0;"
+    implementation: "return 0;"
 ...
 ---
 primitive_name: "conflict_free"
@@ -210,7 +210,7 @@ definitions:
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
-    implementation: "1;"
+    implementation: "return 1;"
 ...
 ---
 primitive_name: "blend"
@@ -262,3 +262,37 @@ definitions:
     implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}(control), left), _mm_and_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}
     (control),right));"
 ...
+---
+primitive_name: "undefined"
+brief_description: "Returns a vector register with undefined data inside."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "SIMD reigster"
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_undefined_epi32();"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_undefined_{{ intrin_tp_full[ctype] }}();"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_undefined_si256();"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_undefined_{{ intrin_tp_full[ctype] }}();"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_undefined_si128();"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["sse", "sse2"]
+    implementation: "return _mm_undefined_{{ intrin_tp_full[ctype] }}();"

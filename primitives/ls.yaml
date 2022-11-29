@@ -1124,38 +1124,92 @@ definitions:
         }
       }
 ...
-#---
-#primitive_name: "gather"
-#additional_simd_template_parameter: "OffsetType"
-#brief_description: "Transfers data from arbitrary locations into a vector register."
-#additional_non_specialized_template_parameters:
-#  - ctype: "int"
-#    name: "N"
-#parameters:
-#  - ctype: "const typename Vec::base_type *"
-#    attributes: "__restrict__"
-#    name: "memory"
-#    description: "(Start)pointer of the memory (which is used as base for address calculation)."
-#  - ctype: "const std::array<typename OffsetType::register_type, sizeof(typename OffsetType::base_type)/sizeof(Vec::base_type)> &"
-#    name: "indices"
-#    description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
-#  - ctype: "std::integral_constant<int, N>"
-#    name: "scale"
-#    description: "Scale."
-#returns:
-#  ctype: "typename Vec::register_type"
-#  description: "Vector containing gathered data."
-#definitions:
-##INTEL - AVX2
-#  - target_extension: "avx2"
-#    ctype: ["uint8_t", "int8_t"]
-#    additional_simd_template_base_type: ["uint32_t"]
-#    lscpu_flags: ['avx2']
-#    implementation: |
-#      auto base_addr = reinterpret_cast<int const*>(memory);
-#      _mm256_i32gather_epi32(base_addr, indices[0], scale());
-#      return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), scale() );
-#...
-#---
-#primitive_name: "vcompress"
-#brief_description: ""
+---
+primitive_name: "compress_store"
+brief_description: "Stores elements from data consecutively, if the corresponding bit in mask is set to 1."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Mask"
+  - ctype: "typename Vec::base_type *"
+    name: "memory"
+    description: "Memory"
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Data"
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: [ "uint32_t", "int32_t", "uint64_t", "int64_t" ]
+    lscpu_flags: [ "avx512f" ]
+    implementation: "_mm512_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: [ "avx512f" ]
+    implementation: "_mm512_mask_compressstoreu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512f", "avx512vbmi2"]
+    implementation: "_mm512_mask_compressstoreu_{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    lscpu_flags: ["avx512f"]
+    includes: ["<cstring>"]
+    is_native: False
+    implementation: |
+      auto const orig_mem = memory;
+      auto const data_array = tvl::to_array<Vec>(data);
+      typename Vec::base_type safe[Vec::vector_element_count()];
+      std::memcpy(reinterpret_cast<void*>(safe), reinterpret_cast<void const *>(memory), Vec::vector_size_B());
+      auto m = mask;
+      auto inc = m&0b1;
+      #pragma unroll
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        *memory = data_array[i];
+        *memory += inc;
+        m>>=1;
+        inc = m&0b1;
+      }
+      if(inc == 0) {
+        *memory = safe[memory-orig_mem];
+      }
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx2"]
+    includes: ["<cstring>"]
+    is_native: False
+    implementation: |
+      auto const orig_mem = memory;
+      auto const data_array = tvl::to_array<Vec>(data);
+      typename Vec::base_type safe[Vec::vector_element_count()];
+      std::memcpy(reinterpret_cast<void*>(safe), reinterpret_cast<void const *>(memory), Vec::vector_size_B());
+      auto m = mask;
+      auto inc = m&0b1;
+      #pragma unroll
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        *memory = data_array[i];
+        *memory += inc;
+        m>>=1;
+        inc = m&0b1;
+      }
+      if(inc == 0) {
+        *memory = safe[memory-orig_mem];
+      }
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx2"
+    ctype: ["float"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_compressstoreu_epi32(reinterpret_cast<void*>(memory), mask, _mm256_castps_si256(data));"
+  - target_extension: "avx2"
+    ctype: ["double"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_compressstoreu_epi64(reinterpret_cast<void*>(memory), mask, _mm256_castpd_si256(data));"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
+    implementation: "return _mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+...

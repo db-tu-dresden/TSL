@@ -563,7 +563,7 @@ returns:
   description: "Vector mask register containing the result."
 definitions:
   #INTEL - AVX512 already defined in mask_binary_and for Vec::mask_type
-  #INTEL
+  #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["avx2"]
@@ -578,6 +578,145 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: [ 'neon' ]
     implementation: "return first ^ second;"
+...
+---
+primitive_name: "mask_population_count"
+functor_name: "imask_population_count"
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Mask."
+returns:
+  ctype: "unsigned int"
+  description: "Numer of bits set to 1."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: [ "uint8_t", "uint16_t", "int8_t", "int16_t" ]
+    lscpu_flags: [ "avx512f" ]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcount(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt16(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+  - target_extension: "avx512"
+    ctype: [ "uint32_t", "int32_t", "float" ]
+    lscpu_flags: [ "avx512f" ]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcountl(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt32(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+  - target_extension: "avx512"
+    ctype: [ "uint64_t", "int64_t", "double" ]
+    lscpu_flags: [ "avx512f" ]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcountll(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt64(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcount(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt16(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "float"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcountl(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt32(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+  - target_extension: "avx2"
+    ctype: ["uint64_t", "int64_t", "double"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcountll(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt64(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcount(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt16(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+  - target_extension: "sse"
+    ctype: ["uint32_t", "int32_t", "float"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcountl(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt32(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+  - target_extension: "sse"
+    ctype: ["uint64_t", "int64_t", "double"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcountll(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt64(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+...
+---
+primitive_name: "integral_all_true"
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Integral value where all values are set to 1."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "avx512f" ]
+    includes: ["<type_traits>"]
+    implementation: return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(-1);
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "avx2" ]
+    includes: ["<type_traits>"]
+    implementation: return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(-1) & ((1<<Vec::vector_element_count()) - 1);
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "sse" ]
+    includes: ["<type_traits>"]
+    implementation: return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(-1) & ((1<<Vec::vector_element_count()) - 1);
 ...
 #---
 #primitive_name: "mask_reduce"
