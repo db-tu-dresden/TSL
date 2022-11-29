@@ -1213,3 +1213,34 @@ definitions:
     lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
     implementation: "return _mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
 ...
+---
+primitive_name: "load_convert_up"
+additional_simd_template_parameter: "ToType"
+parameters:
+  - ctype: "typename Vec::base_type *"
+    name: "memory"
+    description: "Memory"
+definitions:
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t" ]
+    additional_simd_template_base_type_mapping_dict: { "uint8_t": ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"], "uint16_t": ["uint32_t", "uint64_t", "int32_t", "int64_t"], "uint32_t": ["uint64_t", "int64_t"]}
+    lscpu_flags: ["avx2"]
+    implementation: |
+      return 
+        _m256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
+          _mm256_and_si256(
+            tvl::set1<ToType>((1<<(sizeof(Vec::base_type)<<3)) - 1),
+            _mm256_loadu_si256(reinterpret_cast<__m256i const *>(memory))
+          )
+        );
+  - target_extension: "avx2"
+    ctype: [ "int8_t", "int16_t", "int32_t" ]
+    additional_simd_template_base_type_mapping_dict: { "int8_t": ["int16_t", "int32_t", "int64_t"], "int16_t": ["int32_t", "int64_t"], "int32_t": ["int64_t"]}
+    lscpu_flags: ["avx2"]
+    implementation: |
+      return 
+        _m256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
+          _mm256_loadu_si256(reinterpret_cast<__m256i const *>(memory))
+        );
+...
