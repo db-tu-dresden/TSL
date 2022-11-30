@@ -1161,16 +1161,12 @@ definitions:
       auto const data_array = tvl::to_array<Vec>(data);
       typename Vec::base_type safe[Vec::vector_element_count()];
       std::memcpy(reinterpret_cast<void*>(safe), reinterpret_cast<void const *>(memory), Vec::vector_size_B());
-      auto m = mask;
-      auto inc = m&0b1;
       #pragma unroll
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         *memory = data_array[i];
-        *memory += inc;
-        m>>=1;
-        inc = m&0b1;
+        *memory += (mask>>i)&0b1;
       }
-      if(inc == 0) {
+      if(((mask>>Vec::vector_element_count())&0b1) == 0) {
         *memory = safe[memory-orig_mem];
       }
   #INTEL - AVX2
@@ -1184,16 +1180,12 @@ definitions:
       auto const data_array = tvl::to_array<Vec>(data);
       typename Vec::base_type safe[Vec::vector_element_count()];
       std::memcpy(reinterpret_cast<void*>(safe), reinterpret_cast<void const *>(memory), Vec::vector_size_B());
-      auto m = mask;
-      auto inc = m&0b1;
       #pragma unroll
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         *memory = data_array[i];
-        *memory += inc;
-        m>>=1;
-        inc = m&0b1;
+        *memory += (mask>>i)&0b1;
       }
-      if(inc == 0) {
+      if(((mask>>Vec::vector_element_count())&0b1) == 0) {
         *memory = safe[memory-orig_mem];
       }
   - target_extension: "avx2"
@@ -1201,17 +1193,95 @@ definitions:
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]
     implementation: "return _mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "avx2"
-    ctype: ["float"]
+    ctype: ["float", "double"]
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]
-    implementation: "return _mm256_mask_compressstoreu_epi32(reinterpret_cast<void*>(memory), mask, _mm256_castps_si256(data));"
-  - target_extension: "avx2"
-    ctype: ["double"]
-    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
-    implementation: "return _mm256_mask_compressstoreu_epi64(reinterpret_cast<void*>(memory), mask, _mm256_castpd_si256(data));"
+    implementation: "return _mm256_mask_compressstoreu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, _mm256_castps_si256(data));"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
     implementation: "return _mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+...
+---
+primitive_name: "expand_load"
+brief_description: "Loads contiguos data from a specified memory location and puts the elements using write mask."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Mask"
+  - ctype: "const typename Vec::register_type"
+    name: "src"
+    description: "Source register. Data is kept if corresponding mask bit is set to 0."
+  - ctype: "typename Vec::base_type *"
+    name: "memory"
+    description: "Memory"
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing the elements."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: [ "uint32_t", "int32_t", "uint64_t", "int64_t" ]
+    lscpu_flags: [ "avx512f" ]
+    implementation: "_mm512_mask_expandloadu_epi{{ intrin_tp[ctype][1] }}(src, mask, reinterpret_cast<void*>(memory));"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: [ "avx512f" ]
+    implementation: "_mm512_mask_expandloadu_{{ intrin_tp_full[ctype] }}(src, mask, reinterpret_cast<void*>(memory));"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512f", "avx512vbmi2"]
+    implementation: "_mm512_mask_expandloadu_epi{{ intrin_tp[ctype][1] }}(src, mask, reinterpret_cast<void*>(memory));"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    lscpu_flags: ["avx512f"]
+    includes: ["<cstring>"]
+    is_native: False
+    implementation: |
+      //@todo: optimizable
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> data_array;
+      auto src_array = tvl::to_array<Vec>(src);
+      auto mem = memory;
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        if(((mask>>i)&0b1)==0) {
+          data_array[i] = src[i];
+        } else {
+          data_array[i] = *mem;
+          ++mem;
+        }
+      }
+      return _mm512_load_si512(reinterpret_cast<void const *>(data_array.data()));
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx2"]
+    includes: ["<cstring>"]
+    is_native: False
+    implementation: |
+      //@todo: optimizable
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> data_array;
+      auto src_array = tvl::to_array<Vec>(src);
+      auto mem = memory;
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        if(((mask>>i)&0b1)==0) {
+          data_array[i] = src[i];
+        } else {
+          data_array[i] = *mem;
+          ++mem;
+        }
+      }
+      return _mm256_load_si256(reinterpret_cast<__m256i const *>(data_array.data()));
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_expandloadu_epi{{ intrin_tp[ctype][1] }}(src, mask, reinterpret_cast<void const*>(memory));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_expandloadu_{{ intrin_tp_full[ctype] }}(src, mask reinterpret_cast<void const *>(memory));"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
+    implementation: "return _mm256_mask_expandloadu_epi{{ intrin_tp[ctype][1] }}(src, mask, reinterpret_cast<void const*>(memory));"
 ...
 ---
 primitive_name: "load_convert_up"
@@ -1220,27 +1290,32 @@ parameters:
   - ctype: "typename Vec::base_type *"
     name: "memory"
     description: "Memory"
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing the data."
 definitions:
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: [ "uint8_t", "uint16_t", "uint32_t" ]
     additional_simd_template_base_type_mapping_dict: { "uint8_t": ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"], "uint16_t": ["uint32_t", "uint64_t", "int32_t", "int64_t"], "uint32_t": ["uint64_t", "int64_t"]}
-    lscpu_flags: ["avx2"]
+    lscpu_flags: ["sse2", "avx2"]
+    is_native: False
     implementation: |
       return 
-        _m256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
-          _mm256_and_si256(
-            tvl::set1<ToType>((1<<(sizeof(Vec::base_type)<<3)) - 1),
-            _mm256_loadu_si256(reinterpret_cast<__m256i const *>(memory))
+        _mm256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
+          _mm_and_si128(
+            tvl::set1<simd<typename ToType::base_type, sse>>((1<<(sizeof(Vec::base_type)<<3)) - 1),
+            _mm_loadu_si128(reinterpret_cast<__m128i const *>(memory))
           )
         );
   - target_extension: "avx2"
     ctype: [ "int8_t", "int16_t", "int32_t" ]
     additional_simd_template_base_type_mapping_dict: { "int8_t": ["int16_t", "int32_t", "int64_t"], "int16_t": ["int32_t", "int64_t"], "int32_t": ["int64_t"]}
     lscpu_flags: ["avx2"]
+    is_native: False
     implementation: |
       return 
-        _m256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
-          _mm256_loadu_si256(reinterpret_cast<__m256i const *>(memory))
+        _mm256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
+          _mm_loadu_si128(reinterpret_cast<__m128i const *>(memory))
         );
 ...

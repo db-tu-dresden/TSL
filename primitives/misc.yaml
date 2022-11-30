@@ -108,6 +108,7 @@ definitions:
 ...
 ---
 primitive_name: "conflict_free"
+functor_name: "imask_conflict_free"
 brief_description: "Checks whether all elements are unique in a register and returns a mask indicating which elements don't have preceeding conflicts."
 parameters:
   - ctype: "const typename Vec::imask_type"
@@ -263,6 +264,50 @@ definitions:
     (control),right));"
 ...
 ---
+primitive_name: "blend_add"
+brief_description: "Blends or add two registers using provided bitmask"
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "control"
+  - ctype: "const typename Vec::register_type"
+    name: "left"
+    description: "Left data."
+  - ctype: "const typename Vec::register_type"
+    name: "right"
+    description: "Right data."
+  - ctype: "const typename Vec::register_type"
+    name: "adder"
+    description: "Adder data."
+returns:
+  ctype: "typename Vec:.register_type"
+  descriptions: "result[i] = (control[i]==1)? left[i]  : right[i] + adder[i]"
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: |
+      auto const right_added_part = _mm512_add_epi{{ intrin_tp[ctype][1] }}(right, adder);
+      return _mm512_mask_blend_epi{{ intrin_tp[ctype][1] }}(control, right_added, left);
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512f", "avx512bw"]
+    is_native: False
+    implementation: |
+      auto const right_added_part = _mm512_add_epi{{ intrin_tp[ctype][1] }}(right, adder);
+      return _mm512_mask_blend_epi{{ intrin_tp[ctype][1] }}(control, right_added, left);
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const left_part = _mm256_and_si256(mask, left);
+      auto const right_added_part = _mm256_andnot_si256(mask, _mm256_add_epi{{ intrin_tp[ctype][1] }}(right, adder));
+      return _mm256_or_si256(left_added_part, right_part);
+...
+---
 primitive_name: "undefined"
 brief_description: "Returns a vector register with undefined data inside."
 returns:
@@ -296,3 +341,4 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["sse", "sse2"]
     implementation: "return _mm_undefined_{{ intrin_tp_full[ctype] }}();"
+...
