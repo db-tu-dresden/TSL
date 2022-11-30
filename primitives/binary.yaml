@@ -374,3 +374,99 @@ definitions:
       x >>= shift;
       return *reinterpret_cast<double*>(&x);
 ...
+---
+primitive_name: "shift_left"
+brief_description: "Shifts data to left by n bits (shifting in 0)."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Data."
+  - ctype: "const int"
+    name: "shift"
+    description: "Amount of bits, data should be shifted."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the right shift."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_slli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx512"
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_slli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx512"
+    ctype: ["float"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: "return _mm512_castsi512_ps(_mm512_slli_epi32(_mm512_castps_si512(data), shift));"
+  - target_extension: "avx512"
+    ctype: ["double"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: "return _mm512_castsi512_pd(_mm512_slli_epi64(_mm512_castpd_si512(data), shift));"
+  #Intel - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_slli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx2"
+    ctype: ["float"]
+    lscpu_flags: ["avx", "avx2"]
+    is_native: False
+    implementation: "return _mm256_castsi256_ps(_mm256_slli_epi32(_mm256_castps_si256(data), shift));"
+  - target_extension: "avx2"
+    ctype: ["double"]
+    lscpu_flags: ["avx", "avx2"]
+    is_native: False
+    implementation: "return _mm256_castsi256_pd(_mm256_slli_epi64(_mm256_castpd_si256(data), shift));"
+  #Intel - SSE
+  - target_extension: "sse"
+    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_slli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse2"]
+    is_native: False
+    implementation: "return _mm_castsi128_ps(_mm_slli_epi32(_mm_castps_si128(data), shift));"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    is_native: False
+    implementation: "return _mm_castsi128_pd(_mm_slli_epi64(_mm_castpd_si128(data), shift));"
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vshlq_n_{{ intrin_tp_full[ctype] }}(data, shift);"
+  - target_extension: "neon"
+    ctype: ["float", "double"]
+    lscpu_flags: ['neon']
+    note: "is it a good idea to support bitmanipulation for floats and doubles?"
+    implementation: "vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vshlq_n_{{ intrin_tp[ctype][1] }}(vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a), vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ 
+    intrin_tp_full[ctype] }}(b)));"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: "return data << shift;"
+  - target_extension: "scalar"
+    ctype: ["float"]
+    lscpu_flags: []
+    is_native: False
+    implementation: |
+      uint32_t x = *reinterpret_cast<uint32_t const *>(&data);
+      x <<= shift;
+      return *reinterpret_cast<float*>(&x);
+  - target_extension: "scalar"
+    ctype: ["double"]
+    lscpu_flags: []
+    is_native: False
+    implementation: |
+      uint64_t x = *reinterpret_cast<uint64_t const *>(&data);
+      x <<= shift;
+      return *reinterpret_cast<double*>(&x);
+...

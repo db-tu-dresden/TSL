@@ -364,6 +364,32 @@ definitions:
       return _mm256_castsi256_pd(_mm256_cmpeq_epi64(anded_vec, and_vec));
 ...
 ---
+primitive_name: "mask_not"
+functor_name: "imask_not"
+brief_description: "Binary NOT of a vector integral mask type."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Mask."
+returns:
+  ctype: "typename Vec::imask_type"
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    lscpu_flags: ["avx512f"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    implementation: "return (~mask);"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    lscpu_flags: ["avx2"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t"]
+    implementation: "return (~mask);"
+  - target_extension: "avx2"
+    lscpu_flags: ["avx2"]
+    ctype: ["int64_t", "uint64_t"]
+    implementation: "return (~mask)&(0b1111);"
+...
+---
 primitive_name: "mask_binary_and"
 brief_description: "Binary AND of two vector mask types."
 parameters:
@@ -704,19 +730,29 @@ definitions:
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ "avx512f" ]
     includes: ["<type_traits>"]
-    implementation: return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(-1);
+    implementation: return ~0;
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ "avx2" ]
     includes: ["<type_traits>"]
-    implementation: return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(-1) & ((1<<Vec::vector_element_count()) - 1);
+    implementation: |
+      if constexpr(Vec::vector_element_count() < 8) {
+        return (((typename Vec::imask_type)1<<Vec::vector_element_count()) - 1);  
+      } else {
+        return ~0;
+      }
   #INTEL - SSE
   - target_extension: "sse"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ "sse" ]
     includes: ["<type_traits>"]
-    implementation: return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(-1) & ((1<<Vec::vector_element_count()) - 1);
+    implementation: |
+      if constexpr(Vec::vector_element_count() < 8) {
+        return (((typename Vec::imask_type)1<<Vec::vector_element_count()) - 1);  
+      } else {
+        return ~0;
+      }
 ...
 #---
 #primitive_name: "mask_reduce"

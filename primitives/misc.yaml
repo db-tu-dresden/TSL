@@ -279,7 +279,7 @@ parameters:
     name: "adder"
     description: "Adder data."
 returns:
-  ctype: "typename Vec:.register_type"
+  ctype: "typename Vec::register_type"
   descriptions: "result[i] = (control[i]==1)? left[i]  : right[i] + adder[i]"
 definitions:
   #INTEL - AVX512
@@ -303,9 +303,9 @@ definitions:
     lscpu_flags: ["avx2"]
     is_native: False
     implementation: |
-      auto const left_part = _mm256_and_si256(mask, left);
-      auto const right_added_part = _mm256_andnot_si256(mask, _mm256_add_epi{{ intrin_tp[ctype][1] }}(right, adder));
-      return _mm256_or_si256(left_added_part, right_part);
+      auto const left_part = _mm256_and_si256(control, left);
+      auto const right_added_part = _mm256_andnot_si256(control, _mm256_add_epi{{ intrin_tp[ctype][1] }}(right, adder));
+      return _mm256_or_si256(left_part, right_added_part);
 ...
 ---
 primitive_name: "undefined"

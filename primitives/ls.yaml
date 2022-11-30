@@ -1164,7 +1164,7 @@ definitions:
       #pragma unroll
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         *memory = data_array[i];
-        *memory += (mask>>i)&0b1;
+        memory += (mask>>i)&0b1;
       }
       if(((mask>>Vec::vector_element_count())&0b1) == 0) {
         *memory = safe[memory-orig_mem];
@@ -1183,7 +1183,7 @@ definitions:
       #pragma unroll
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         *memory = data_array[i];
-        *memory += (mask>>i)&0b1;
+        memory += (mask>>i)&0b1;
       }
       if(((mask>>Vec::vector_element_count())&0b1) == 0) {
         *memory = safe[memory-orig_mem];
@@ -1243,7 +1243,7 @@ definitions:
       auto mem = memory;
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(((mask>>i)&0b1)==0) {
-          data_array[i] = src[i];
+          data_array[i] = src_array[i];
         } else {
           data_array[i] = *mem;
           ++mem;
@@ -1263,7 +1263,7 @@ definitions:
       auto mem = memory;
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(((mask>>i)&0b1)==0) {
-          data_array[i] = src[i];
+          data_array[i] = src_array[i];
         } else {
           data_array[i] = *mem;
           ++mem;
@@ -1301,10 +1301,12 @@ definitions:
     lscpu_flags: ["sse2", "avx2"]
     is_native: False
     implementation: |
-      return 
-        _mm256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
-          _mm_and_si128(
-            tvl::set1<simd<typename ToType::base_type, sse>>((1<<(sizeof(Vec::base_type)<<3)) - 1),
+      return
+        _mm256_and_si256(
+          tvl::set1<ToType>(
+            (typename Vec::base_type)~0
+          ),
+          _mm256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
             _mm_loadu_si128(reinterpret_cast<__m128i const *>(memory))
           )
         );
