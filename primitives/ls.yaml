@@ -461,6 +461,40 @@ definitions:
         return result;
 ...
 ---
+primitive_name: "set_zero"
+brief_description: "Set all lanes to zero."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing 0 in all lanes."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_setzero_si512();"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_setzero_{{ intrin_tp_full[ctype] }}();"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_setzero_si256();"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_setzero_{{ intrin_tp_full[ctype] }}();"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_setzero_si128();"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_setzero_{{ intrin_tp_full[ctype] }}();"
+---
 primitive_name: "set"
 brief_description: "Transfers provided elements into a vector register."
 parameters:
@@ -1287,14 +1321,28 @@ definitions:
 primitive_name: "load_convert_up"
 additional_simd_template_parameter: "ToType"
 parameters:
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type const *"
     name: "memory"
     description: "Memory"
 returns:
-  ctype: "typename Vec::register_type"
+  ctype: "typename ToType::register_type"
   description: "Vector containing the data."
 definitions:
   #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t" ]
+    additional_simd_template_base_type: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t" ]
+    lscpu_flags: [ "avx2" ]
+    implementation: |
+      return _mm256_loadu_si256(reinterpret_cast<
+        _mm256_and_si256(
+          tvl::set1<ToType>(
+            (typename Vec::base_type)~0
+          ),
+          _mm256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
+            _mm_loadu_si128(reinterpret_cast<__m128i const *>(memory))
+          )
+        );
   - target_extension: "avx2"
     ctype: [ "uint8_t", "uint16_t", "uint32_t" ]
     additional_simd_template_base_type_mapping_dict: { "uint8_t": ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"], "uint16_t": ["uint32_t", "uint64_t", "int32_t", "int64_t"], "uint32_t": ["uint64_t", "int64_t"]}
