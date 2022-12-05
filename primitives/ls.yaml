@@ -1330,20 +1330,6 @@ returns:
 definitions:
   #INTEL - AVX2
   - target_extension: "avx2"
-    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t" ]
-    additional_simd_template_base_type: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t" ]
-    lscpu_flags: [ "avx2" ]
-    implementation: |
-      return _mm256_loadu_si256(reinterpret_cast<
-        _mm256_and_si256(
-          tvl::set1<ToType>(
-            (typename Vec::base_type)~0
-          ),
-          _mm256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
-            _mm_loadu_si128(reinterpret_cast<__m128i const *>(memory))
-          )
-        );
-  - target_extension: "avx2"
     ctype: [ "uint8_t", "uint16_t", "uint32_t" ]
     additional_simd_template_base_type_mapping_dict: { "uint8_t": ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"], "uint16_t": ["uint32_t", "uint64_t", "int32_t", "int64_t"], "uint32_t": ["uint64_t", "int64_t"]}
     lscpu_flags: ["sse2", "avx2"]

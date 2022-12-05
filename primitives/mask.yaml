@@ -364,8 +364,8 @@ definitions:
       return _mm256_castsi256_pd(_mm256_cmpeq_epi64(anded_vec, and_vec));
 ...
 ---
-primitive_name: "mask_not"
-functor_name: "imask_not"
+primitive_name: "mask_binary_not"
+functor_name: "imask_binary_not"
 brief_description: "Binary NOT of a vector integral mask type."
 parameters:
   - ctype: "const typename Vec::imask_type"
@@ -496,6 +496,114 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: [ 'neon' ]
     implementation: "return first & second;"
+...
+---
+primitive_name: "mask_binary_or"
+brief_description: "Binary OR of two vector mask types."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "first"
+    description: "First mask."
+  - ctype: "const typename Vec::mask_type"
+    name: "second"
+    description: "Second mask."
+returns:
+  ctype: "typename Vec::mask_type"
+  description: "Vector mask register containing the result."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ['avx512f', 'avx512dq', 'avx512bw']
+    implementation: "return _kor_mask{{ intrin_tp[ctype][1] }}(first, second);"
+  - target_extension: "avx512"
+    ctype: ["float"]
+    lscpu_flags: ['avx512f']
+    implementation: "return _kor_mask16(first, second);"
+  - target_extension: "avx512"
+    ctype: ["double"]
+    lscpu_flags: ['avx512f', 'avx512dq']
+    implementation: "return _kor_mask8(first, second);"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "double"] #no float
+    lscpu_flags: ['avx512f']
+    implementation: "return first | second;"
+  #INTEL AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_or_si256(first, second);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    is_native: False
+    implementation: "return _mm256_castpd_si256(_mm256_or_pd(_mm256_castsi256_pd(first),_mm256_castsi256_pd(second)));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_or_{{ intrin_tp_full[ctype] }}(first, second);"
+  #Intel - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_or_si128(first, second);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse"]
+    implementation: "return _mm_or_ps(first, second);"
+  - target_extension: "sse"
+    ctype: [ "double" ]
+    lscpu_flags: [ "sse2" ]
+    implementation: "return _mm_or_pd(first, second);"
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vorq_{{ intrin_tp_full[ctype] }}(first, second);"
+  - target_extension: "neon"
+    ctype: ["float", "double"]
+    lscpu_flags: ['neon']
+    note: "is it a good idea to support bitmanipulation for floats and doubles?"
+    implementation: |
+      return
+         vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
+            vorq_u{{ intrin_tp[ctype][1] }}(
+               vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(first),
+               vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(second)
+            )
+         );"
+...
+---
+primitive_name: "mask_binary_or"
+functor_name: "imask_binary_or"
+brief_description: "Binary OR of two vector integral mask types."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "first"
+    description: "First mask."
+  - ctype: "const typename Vec::imask_type"
+    name: "second"
+    description: "Second mask."
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Vector mask register containing the result."
+definitions:
+  #INTEL - AVX512 already defined in mask_binary_or for Vec::mask_type
+  #INTEL AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx2"]
+    implementation: "return first | second;"
+  #Intel - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return first | second;"
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return first | second;"
 ...
 ---
 primitive_name: "mask_binary_xor"
