@@ -922,7 +922,7 @@ definitions:
     ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["avx512f"]
     implementation: |
-      _mm512_i{{ intrin_type[ctype][1] }}scatter_epi{{ intrin_type[ctype][1] }}(
+      _mm512_i{{ intrin_tp[ctype][1] }}scatter_epi{{ intrin_tp[ctype][1] }}(
          memory, index, data, scale()
       );
   - target_extension: "avx512"
@@ -1049,7 +1049,7 @@ definitions:
     ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["avx512f"]
     implementation: |
-      _mm512_mask_i{{ intrin_type[ctype][1] }}scatter_epi{{ intrin_type[ctype][1] }}(
+      _mm512_mask_i{{ intrin_tp[ctype][1] }}scatter_epi{{ intrin_tp[ctype][1] }}(
          memory, mask, index, data, scale()
       );
   - target_extension: "avx512"
