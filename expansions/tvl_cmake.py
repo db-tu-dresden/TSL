@@ -44,7 +44,7 @@ class TVLCMakeGenerator:
                     **{
                         "header_files": header_files,
                         "library_root_path": f"{strip_common_path_prefix(config.lib_root_path, config.generation_out_path)}/",
-                        "tvl_target_compile_options": f"{get_architecture_flags(lib)} {get_warning_options()}",
+                        "tvl_target_compile_options": f"{get_architecture_flags(lib)} {get_warning_options()} -flax-vector-conversions",
                         "use_concepts": config.use_concepts,
                         "subdirectories": [strip_common_path_prefix(path, config.generation_out_path) for path, translation_units in translation_units.translation_units]
                     }

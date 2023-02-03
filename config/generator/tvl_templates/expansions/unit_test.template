@@ -33,7 +33,7 @@ namespace {{ tvl_namespace }} {
 {% for primitive_class_test in tests %}
 {%    for primitive_test in primitive_class_test['primitive_tests'] %}
 {%       for extension in known_extensions %}
-TEST_CASE("Testing primitive {{ primitive_test['primitive_name'] }} for {{ extension }}", "[{{ primitive_test['primitive_name'] }}],[{{ extension }}]") {
+TEST_CASE("Testing primitive '{{ primitive_test['functor_name'] }}' for {{ extension }}", "[{{ primitive_test['functor_name'] }}],[{{ extension }}]") {
    using namespace {{ tvl_namespace }};
 {%             for case in primitive_test['cases'] %}
    SECTION("{{ case['test_name'] }}") {

@@ -25,6 +25,7 @@ import os
 class TVLPrimitiveTestCaseData:
     def __init__(self, class_name: str, primitive_name: str, data_dict: YamlDataType, lib_definitions: Dict[str, List[str]], conversion_types: Dict[str, Dict[str, List[str]]], missing_primitive_definitions: Dict[str, Dict[str, List[str]]]):
         self.__class_name: str = class_name
+        print(f"TEST primitive_name: {primitive_name}")
         self.__primitive_name: str = primitive_name
         self.__test_name: str = data_dict["test_name"]
         self.__data_dict: YamlDataType = data_dict

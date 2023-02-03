@@ -56,7 +56,7 @@ implementations:
       #ifndef __cpp_lib_assume_aligned
       //c++20-standard - copied source from https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p1007r1.pdf
       template<std::size_t N, typename T>
-      TVL_FORCE_INLINE [[nodiscard]] constexpr T* assume_aligned(T* ptr) noexcept {
+      constexpr T* assume_aligned(T* ptr) noexcept {
       #  if defined(__clang__) || (defined(__GNUC__) && !defined(__ICC))
          return reinterpret_cast<T*>(__builtin_assume_aligned(ptr, N));
       #  elif defined(_MSC_VER)

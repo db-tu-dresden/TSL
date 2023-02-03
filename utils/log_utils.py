@@ -6,7 +6,7 @@ from typing import Union
 
 class TVLLogAdapter(logging.LoggerAdapter):
     def __init__(self, logger):
-        super().__init__(logger)
+        super().__init__(logger, {})
 
     def process(self, msg, kwargs):
         return '%s (%s)' % (msg, f"({kwargs['extra']['decorated_filename']}::{kwargs['extra']['decorated_funcName']}"), kwargs
