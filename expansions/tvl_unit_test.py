@@ -20,6 +20,7 @@ from utils.file_utils import strip_common_path_prefix
 from utils.log_utils import LogInit, log
 from utils.yaml_utils import YamlDataType, yaml_load
 
+import os
 
 class TVLPrimitiveTestCaseData:
     def __init__(self, class_name: str, primitive_name: str, data_dict: YamlDataType, lib_definitions: Dict[str, List[str]], conversion_types: Dict[str, Dict[str, List[str]]], missing_primitive_definitions: Dict[str, Dict[str, List[str]]]):
@@ -500,12 +501,18 @@ class TVLTestGenerator:
         if unit_test_config["draw_dependency_graph"]:
             dependency_graph.draw(root_path.joinpath("test_dependencies.png"))
 
-        print(f"Downloading ... {unit_test_config['test_header_url']}")
-        try:
-            wget.download(unit_test_config["test_header_url"], out=str(root_path))
-        except Exception as e:
-            TVLTestGenerator().log(logging.WARN,
-                                   f"Could not download the necessary test header file. Check your network connection. {e}")
+        print(f"Downloading ... {unit_test_config['test_header_url']}", end='', flush=True)
+        header_name = unit_test_config['test_header_url'].split("/")[-1]
+        
+        if ( os.path.exists( f"{str(root_path)}/{header_name}") ):
+            print(" -- Test header already present, skipping download.")
+        else:
+            print("")
+            try:
+                wget.download(unit_test_config["test_header_url"], out=str(root_path))
+            except Exception as e:
+                TVLTestGenerator().log(logging.WARN,
+                                    f"Could not download the necessary test header file. Check your network connection. {e}")
 
         tests: List[TVLPrimitiveClassTests] = []
         primitive_class: TVLPrimitiveClassTests = None
