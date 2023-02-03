@@ -1303,7 +1303,8 @@ definitions:
           ++mem;
         }
       }
-      return _mm256_load_si256(reinterpret_cast<__m256i const *>(data_array.data()));
+      return tvl::load<Vec>(data_array.data());
+      //return _mm256_load_si256(reinterpret_cast<__m256i const *>(data_array.data()));
   - target_extension: "avx2"
     ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]

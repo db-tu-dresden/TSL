@@ -170,8 +170,8 @@ testing:
       bool allOk = true;
       upper_type upper_init_start_value;
       lower_type lower_init_start_value;
-      if(std::is_unsigned_v<upper_type>) {
-        if(std::is_unsigned_v<lower_type>) {
+      if constexpr (std::is_unsigned_v<upper_type>) {
+        if constexpr (std::is_unsigned_v<lower_type>) {
           upper_init_start_value = 0;
           lower_init_start_value = 0;
         } else {
@@ -179,7 +179,7 @@ testing:
           upper_init_start_value = ((upper_type)std::numeric_limits<lower_type>::max())+1;
         }
       } else {
-        if(std::is_unsigned_v<lower_type>) {
+        if constexpr (std::is_unsigned_v<lower_type>) {
           upper_init_start_value = 0;
           lower_init_start_value = 0;
         } else {

@@ -251,7 +251,9 @@ definitions:
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ['avx2']
-    implementation: "return _mm256_or_{{ intrin_tp_full[ctype] }}(_mm256_andnot_{{ intrin_tp_full[ctype] }}(_mm256_castsi256_{{ intrin_tp_full[ctype] }}(control), left), _mm256_and_{{ intrin_tp_full[ctype] }}(_mm256_castsi256_{{ intrin_tp_full[ctype] }}(control),right));"
+    #implementation: "return _mm256_or_{{ intrin_tp_full[ctype] }}(_mm256_andnot_{{ intrin_tp_full[ctype] }}(_mm256_castsi256_{{ intrin_tp_full[ctype] }}(control), left), _mm256_and_{{ intrin_tp_full[ctype] }}(_mm256_castsi256_{{
+    #intrin_tp_full[ctype] }}(control),right));"
+    implementation: "return _mm256_or_{{ intrin_tp_full[ctype] }}(_mm256_andnot_{{ intrin_tp_full[ctype] }}(control, left), _mm256_and_{{ intrin_tp_full[ctype] }}(control,right));"
   #INTEL - SSE
   - target_extension: "sse"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
@@ -260,8 +262,9 @@ definitions:
   - target_extension: "sse"
     ctype: ["float", "double"]
     lscpu_flags: ['avx2']
-    implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}(control), left), _mm_and_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}
-    (control),right));"
+    #implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}(control), left), _mm_and_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}
+    #(control),right));"
+    implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(control, left), _mm_and_{{ intrin_tp_full[ctype] }}(control,right));"
 ...
 ---
 primitive_name: "blend_add"
