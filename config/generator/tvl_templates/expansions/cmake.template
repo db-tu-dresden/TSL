@@ -14,5 +14,6 @@ add_executable({{ target }}
    {{ source }}
 {% endfor %}
 )
+target_compile_features({{ target }} PUBLIC cxx_std_17)
 target_link_libraries({{ target }} tvl)
 {% endfor %}

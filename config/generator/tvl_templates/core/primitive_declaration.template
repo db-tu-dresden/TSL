@@ -60,9 +60,9 @@
 {# Every implementation is in the (nested) namespace "functors" #}
 namespace {{ tvl_implementation_namespace }} {
 {# This is the forward declaration of the actual primitive implementation struct #}
-      // Forward declaration of implementation struct for TVL-primitive "{{ primitive_name }}".
+      // Forward declaration of implementation struct for TVL-primitive "{{ functor_name }}".
       template<VectorProcessingStyle {{ vector_name }}, {{ ns.additional_template_type_name}}ImplementationDegreeOfFreedom {{ idof_name }}>
-         struct {{ primitive_name }}{};
+         struct {{ functor_name }}{};
    }
 {{ tvl_function_doxygen }}
    {# This is the templated free function for the primitive which is called by the user of TVL. #}
@@ -73,7 +73,7 @@ namespace {{ tvl_implementation_namespace }} {
       ) {
       {# If the function primitive implementation returns something we have to return it, otherwise we just call it. #}
       {# Call the actual implementation with all parameters. #}
-         {{ 'return ' if returns['ctype'] != 'void' else '' }}{{ tvl_implementation_namespace }}::{{ primitive_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>::apply(
+         {{ 'return ' if returns['ctype'] != 'void' else '' }}{{ tvl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>::apply(
             {{ ns.parameters_str }}
          );
       }

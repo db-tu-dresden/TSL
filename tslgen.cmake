@@ -1,6 +1,6 @@
 
 find_package(Python3 COMPONENTS Interpreter Development)
-message("           ")
+message("             ")
 set(TSLSourceDir ${CMAKE_CURRENT_LIST_DIR})
 set(TSLGenerator ${CMAKE_CURRENT_LIST_DIR}/main.py)
 set(TSLGeneratorFilesNeedsGenerationCommand ${CMAKE_CURRENT_LIST_DIR}/needs_rebuild.py)

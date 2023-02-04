@@ -35,8 +35,18 @@ implementations:
    - |
       template<typename T>
             void seq_init_start_low(T* data, std::size_t element_count) {
-               for(std::size_t i = std::numeric_limits<T>::lowest(); i < element_count; ++i) {
-                  data[i] = i;
+               T current_value = std::numeric_limits<T>::lowest();
+               for(std::size_t i = 0; i < element_count; ++i) {
+                  data[i] = current_value++;
+               }
+            }
+   - |
+      template<typename T>
+            void seq_init(T* data, std::size_t element_count, T start) {
+               T current_value = start;
+               for(std::size_t i = 0; i < element_count; ++i) {
+                  data[i] = current_value;
+                  current_value = current_value + (T)1;
                }
             }
    - |
@@ -94,7 +104,8 @@ implementations:
                   { 
                      
                    }
-                  test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, std::function<void(base_t*,std::size_t)> const & fun = rnd_init<base_t>):
+                  template<typename... Ts>
+                  test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, std::function<void(base_t*,std::size_t)> const & fun = rnd_init<base_t>, Ts... init_args):
                      m_data_element_count   {p_data_element_count},
                      m_result_count         {p_result_count},
                      m_data_ref             {tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_data_element_count*sizeof(base_t))},
@@ -103,8 +114,21 @@ implementations:
                      m_result_target_for_ref{tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_result_count*sizeof(base_t))},
                      m_result_target        {(aligned) ? tvl::allocate_aligned<Vec>(p_result_count*sizeof(base_t), Vec::vector_alignment()) : tvl::allocate<Vec>(p_result_count*sizeof(base_t))}
                   {
-                     fun(m_data_ref, p_data_element_count);
+                     fun(m_data_ref, p_data_element_count, init_args...);
                      tvl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
+                  }
+                  template<typename... Ts>
+                  test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, std::function<void(base_t*,std::size_t, base_t)> const & fun, base_t start):
+                    m_data_element_count   {p_data_element_count},
+                    m_result_count         {p_result_count},
+                    m_data_ref             {tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_data_element_count*sizeof(base_t))},
+                    m_data_target          {(aligned) ? tvl::allocate_aligned<Vec>(p_data_element_count*sizeof(base_t), Vec::vector_alignment()) : tvl::allocate<Vec>(p_data_element_count*sizeof(base_t))},
+                    m_result_ref           {tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_result_count*sizeof(base_t))},
+                    m_result_target_for_ref{tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_result_count*sizeof(base_t))},
+                    m_result_target        {(aligned) ? tvl::allocate_aligned<Vec>(p_result_count*sizeof(base_t), Vec::vector_alignment()) : tvl::allocate<Vec>(p_result_count*sizeof(base_t))}
+                  {
+                    fun(m_data_ref, p_data_element_count, start);
+                    tvl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
                   }
                   virtual ~test_memory_helper_t() {
                      tvl::deallocate<Vec>(m_result_target);

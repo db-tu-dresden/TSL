@@ -73,7 +73,7 @@
 {# Every implementation is in the (nested) namespace "details" #}
 namespace {{ tvl_implementation_namespace }} {
       /**
-       * @brief: Template specialization of implementation for "{{ primitive_name }}".
+       * @brief: Template specialization of implementation for "{{ functor_name }}" (primitive {{ primitive_name }}).
        * @details:
        * Target Extension: {{ target_extension }}.
        *        Data Type: {{ ctype }}
@@ -84,9 +84,13 @@ namespace {{ tvl_implementation_namespace }} {
        */
       template<{{ 'typename T, ' if ns.partial_specialized else '' }}{{ 'std::size_t VectorSize, ' if vector_length_agnostic else '' }}{{ ns.additional_templates }}ImplementationDegreeOfFreedom {{ idof_name }}>
 {# If the vector_length_bits is specified in the yaml file, a specialization is generated. #}
-         struct {{ primitive_name }}<{{ ns.full_extension_name }}, {{ ns.return_template_type }}{{ ns.additional_template_params }}{{ idof_name }}> {
+         struct {{ functor_name }}<{{ ns.full_extension_name }}, {{ ns.return_template_type }}{{ ns.additional_template_params }}{{ idof_name }}> {
             using {{ vector_name }} = {{ ns.full_extension_name }};
             {{ ns.using_return_type }}
+            using return_type = {{ returns['ctype'] }};
+            static constexpr bool has_return_value() {
+                return {{ 'true' if returns['ctype'] != 'void' else 'false' }};
+            }
             static constexpr bool native_supported() {
    {# If there is hardware support this function returns true, false otherwise. #}
                return {{ 'true;' if is_native else 'false;' }}
@@ -103,11 +107,11 @@ namespace {{ tvl_implementation_namespace }} {
                {{ ns.full_qualified_parameters_str }}
             ) {
                {% if not is_native %}
-               static_assert( !std::is_same_v< {{ idof_name }}, native >, "The primitive {{ primitive_name }} is not supported by your hardware natively while it is forced by using native" );
+               static_assert( !std::is_same_v< {{ idof_name }}, native >, "The primitive {{ functor_name }} is not supported by your hardware natively while it is forced by using native" );
                {% endif %}
                {%- filter indent(width=15) +%}
 {{ implementation }}
                {% endfilter %}
             }
          };
-   } // end of namespace {{ tvl_implementation_namespace }} for template specialization of {{ primitive_name }} for {{ target_extension }} using {{ ctype }}.
+   } // end of namespace {{ tvl_implementation_namespace }} for template specialization of {{ functor_name }} for {{ target_extension }} using {{ ctype }}.

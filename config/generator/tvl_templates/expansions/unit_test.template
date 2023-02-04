@@ -1,4 +1,12 @@
-
+{% macro create_test_call(case, extension, ctype) -%}
+{% if case['conversion_types'] %}
+{%    for conversion_type in case['conversion_types'][extension][ctype] %}
+      CHECK(test_{{ case['primitive_name'] }}_{{ case['test_name'] }}<simd<{{ ctype }}, {{ extension }}>, simd<{{ conversion_type }}, {{ extension }}>>());
+{%    endfor %}
+{% else %}
+      CHECK(test_{{ case['primitive_name'] }}_{{ case['test_name'] }}<simd<{{ ctype }}, {{ extension }}>>());
+{% endif %}
+{%- endmacro -%}
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
@@ -6,10 +14,16 @@ namespace {{ tvl_namespace }} {
   {% for primitive_class_test in tests %}
   {%    for primitive_test in primitive_class_test['primitive_tests'] %}
   {%       for case in primitive_test['cases'] %}
+  {%        if case['conversion_types'] %}
+  template<VectorProcessingStyle {{ primitive_test['vector_name'] }}, VectorProcessingStyle {{ primitive_test['additional_simd_template_parameter'] }}>
+  {%        else %}
   template<VectorProcessingStyle {{ primitive_test['vector_name'] }}>
+  {%        endif %}
      bool test_{{ case['primitive_name'] }}_{{ case['test_name'] }}() {
         using namespace {{ tvl_namespace }};
-        {{ case['implementation'] }}
+        {%- filter indent(width=8) +%}
+{{ case['implementation'] }}
+        {% endfilter %}
      }
   {%       endfor %}
   {%    endfor %}
@@ -19,7 +33,7 @@ namespace {{ tvl_namespace }} {
 {% for primitive_class_test in tests %}
 {%    for primitive_test in primitive_class_test['primitive_tests'] %}
 {%       for extension in known_extensions %}
-TEST_CASE("Testing primitive {{ primitive_test['primitive_name'] }} for {{ extension }}", "[{{ primitive_test['primitive_name'] }}],[{{ extension }}]") {
+TEST_CASE("Testing primitive '{{ primitive_test['functor_name'] }}' for {{ extension }}", "[{{ primitive_test['functor_name'] }}],[{{ extension }}]") {
    using namespace {{ tvl_namespace }};
 {%             for case in primitive_test['cases'] %}
    SECTION("{{ case['test_name'] }}") {
@@ -37,7 +51,7 @@ TEST_CASE("Testing primitive {{ primitive_test['primitive_name'] }} for {{ exten
 {%                         set resolved = True %}
 {%                         for ctype in case['missing_required_primitive_definitions'][extension] %}
       WARN("Unreliable test. Required tests for primitive(s) {{ case['missing_previous_tests'][extension][ctype] }} not provided.");
-      CHECK(test_{{ case['primitive_name'] }}_{{ case['test_name'] }}<simd<{{ ctype }}, {{ extension }}>>());
+{{ create_test_call(case, extension, ctype) }}
 {%                         endfor %}
 {%                      endif %}
 {%                      if not resolved %}
@@ -46,7 +60,7 @@ TEST_CASE("Testing primitive {{ primitive_test['primitive_name'] }} for {{ exten
 {%                   else %}
 {%                      for ctype in known_ctypes %}
 {%                         if ctype in case['complete_tests_lib_definitions'][extension] %}
-      CHECK(test_{{ case['primitive_name'] }}_{{ case['test_name'] }}<simd<{{ ctype }}, {{ extension }}>>());
+{{ create_test_call(case, extension, ctype) }}
 {%                         else %}
 {%                            set resolved = False %}
 {%                            if case['missing_required_primitive_definitions'] is not none %}
@@ -61,7 +75,7 @@ TEST_CASE("Testing primitive {{ primitive_test['primitive_name'] }} for {{ exten
 {%                               if ctype in case['missing_required_primitive_definitions'][extension] %}
 {%                                  set resolved = True %}
       WARN("Unreliable test. Required tests for primitive(s) {{ case['missing_previous_tests'][extension][ctype] }} not provided.");
-      CHECK(test_{{ case['primitive_name'] }}_{{ case['test_name'] }}<simd<{{ ctype }}, {{ extension }}>>());
+{{ create_test_call(case, extension, ctype) }}
 {%                               endif %}
 {%                            endif %}
 {%                            if not resolved %}

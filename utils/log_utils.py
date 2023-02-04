@@ -4,6 +4,12 @@ import logging
 import types
 from typing import Union
 
+class TVLLogAdapter(logging.LoggerAdapter):
+    def __init__(self, logger):
+        super().__init__(logger, {})
+
+    def process(self, msg, kwargs):
+        return '%s (%s)' % (msg, f"({kwargs['extra']['decorated_filename']}::{kwargs['extra']['decorated_funcName']}"), kwargs
 
 def get_logging_instance_from_self(*args) -> Union[logging.Logger, None]:
     first_args = next(iter(args), None)  # capture first arg to check for `self`
@@ -41,7 +47,7 @@ def get_logger(*args, **kwargs):
         return next(iter(logger_params))
     logger = get_logging_instance_from_self(*args)
     if logger is None:
-        return logging.getLogger(f"{inspect.stack()[1].function}")
+        return TVLLogAdapter(logging.getLogger(f"{inspect.stack()[1].function}"))
         # raise Exception("No logger defined.")
     return logger
 
@@ -71,7 +77,7 @@ class LogInit:
     def __call__(self,f):
         def wrap(init_self,*args,**kwargs):
             try:
-                init_self.decorated_logger = logging.getLogger(f"{init_self.__class__.__name__}")
+                init_self.decorated_logger = TVLLogAdapter(logging.getLogger(f"{init_self.__class__.__name__}"))
                 init_self.log = types.MethodType(logmsg_decorator_fn, init_self)
                 signature = get_params_str_without_logger_and_self(*args, **kwargs)
                 f(init_self,*args,**kwargs)
@@ -83,7 +89,7 @@ class LogInit:
                     }
                 )
             except Exception as e:
-                logging.getLogger(f"{init_self.__class__.__name__}").exception(
+                TVLLogAdapter(logging.getLogger(f"{init_self.__class__.__name__}")).exception(
                     f"Exception during creation of {init_self.__class__.__name__}. exception: {str(e)}",
                     extra={
                         "decorated_filename": inspect.getfile(f),

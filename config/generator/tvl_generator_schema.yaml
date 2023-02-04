@@ -236,6 +236,11 @@ primitive:
          brief: "Name of the primitive."
          example: "load"
    optional:
+      functor_name:
+         type: "str"
+         default: ""
+         brief: "Name for the functor class. This is used if multiple primitives exist with the same primitive name but with different parameters."
+         example: "mask_load"
       testing:
          type: "list"
          entry_type: *testing_schema
