@@ -475,3 +475,135 @@ definitions:
      lscpu_flags: []
      implementation: "return (vec_a < vec_b);"
 ...
+---
+primitive_name: "greater_than"
+brief_description: "Tests whether left elements are larger than the corresponding right ones."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec_a"
+     description: "Left vector."
+   - ctype: "const typename Vec::register_type"
+     name: "vec_b"
+     description: "Right vector."
+returns:
+   ctype: "typename Vec::mask_type"
+   description: "Vector mask type indicating whether vec_a[*] < vec_b[*]."
+testing: #optional
+   -  test_name: "all_greater_than"
+      requires: ["to_integral", "loadu"]
+      includes: ["<cstddef>", "<limits>"]
+      implementation: |
+         using T = typename Vec::base_type;
+         std::size_t element_count = sizeof(T) < 2 ? 254 : 1024;
+         testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false, testing::seq_init_start_low<T>};
+         bool allOk = true;
+         auto reference_data_ptr = test_helper.data_ref();
+         auto reference_result_ptr = test_helper.result_ref();
+         auto test_data_ptr = test_helper.data_target();
+         auto test_result_ptr = test_helper.result_target();
+         auto vec1 = set1<Vec>( std::numeric_limits<T>::max() );
+         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            reference_result_ptr[0] = Vec::vector_element_count();
+            auto vec2 = loadu<Vec>( &test_data_ptr[i] );
+            auto result_mask = greater_than<Vec>( vec1, vec2 );
+            auto result_integral = to_integral<Vec>( result_mask );
+            size_t matches = 0;
+            for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+              if(((result_integral >> i) & 0b1) == 1 ) {
+                matches += 1;
+              }
+            }
+            test_result_ptr[0] = matches;
+            test_helper.synchronize();
+            allOk &= test_helper.validate();
+         }
+         return allOk;
+   -  test_name: "none_greater_than"
+      requires: ["to_integral", "loadu"]
+      includes: ["<cstddef>", "<limits>"]
+      implementation: |
+         using T = typename Vec::base_type;
+         std::size_t element_count = sizeof(T) < 2 ? 254 : 1024;
+         T lowest = std::numeric_limits<T>::lowest();
+         testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false,  testing::seq_init<T>, (T)(lowest + 1)};
+         bool allOk = true;
+         auto reference_data_ptr = test_helper.data_ref();
+         auto reference_result_ptr = test_helper.result_ref();
+         auto test_data_ptr = test_helper.data_target();
+         auto test_result_ptr = test_helper.result_target();
+         auto vec1 = set1<Vec>( lowest );
+         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            reference_result_ptr[0] = 0;
+            auto vec2 = loadu<Vec>( &test_data_ptr[i] );
+            auto result_mask = greater_than<Vec>( vec1, vec2 );
+            auto result_integral = to_integral<Vec>( result_mask );
+            size_t matches = 0;
+            for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+              if(((result_integral >> i) & 0b1) == 1 ) {
+                matches += 1;
+              }
+            }
+            test_result_ptr[0] = matches;
+            test_helper.synchronize();
+            allOk &= test_helper.validate();
+         }
+         return allOk;
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+     lscpu_flags: ['avx512bw']
+     implementation: "return _mm512_cmpgt_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+   - target_extension: "avx512"
+     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_cmpgt_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+   - target_extension: "avx512"
+     ctype: ["float", "double"]
+     lscpu_flags: ['avx512f']
+     implementation: "return _mm512_cmpgt_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
+     lscpu_flags: ['avx2']
+     specialization_comment: "Signed comparison."
+     implementation: "return _mm256_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+   - target_extension: "avx2"
+     ctype: ["float", "double"]
+     lscpu_flags: ['avx']
+     is_native: False
+     implementation: "return _mm256_cmp_p{{ intrin_tp[ctype][1] }}(vec_a, vec_b, _CMP_GT_OQ);"
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "uint32_t"]
+     lscpu_flags: ['sse2']
+     specialization_comment: "Unsigned comparison."
+     implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
+     # TODO: figure out a way to do unsigned comparison for uint64_t since there's neither _mm_cmpgt_epu64 not _mm_max_epu64
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ['sse2']
+     specialization_comment: "Signed comparison."
+     implementation: "return _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: ["int64_t"]
+     lscpu_flags: ['sse4_2']
+     specialization_comment: "Signed comparison."
+     implementation: "return _mm_cmpgt_epi64(vec_a, vec_b);"
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "uint32_t"]
+     lscpu_flags: ['sse2']
+     specialization_comment: "Unsigned comparison."
+     implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
+    # TODO: figure out a way to do unsigned comparison for uint64_t since there's neither _mm_cmpgt_epu64 not _mm_max_epu64
+#ARM - NEON
+   - target_extension: "neon"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+     lscpu_flags: ['neon']
+     implementation: "return vcgtq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return (vec_a > vec_b);"
+...
