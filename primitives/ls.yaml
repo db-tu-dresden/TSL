@@ -1356,3 +1356,86 @@ definitions:
           _mm_loadu_si128(reinterpret_cast<__m128i const *>(memory))
         );
 ...
+---
+primitive_name: "masked_set1"
+brief_description: "Partially override a Vector with a single value."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "src"
+     description: "Base Vector."
+   - ctype: "const typename Vec::mask_type"
+     name: "mask"
+     description: "Mask of elements to change."
+   - ctype: "const typename Vec::base_type"
+     name: "value"
+     description: "Value to set for elements where the mask bit is 1."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Base Vector, with the elements specified by mask changed to value."
+testing:
+   -  test_name: "set_random"
+      requires: ["loadu", "to_integral", "to_mask"]
+      includes: ["<cstddef>"]
+      implementation: |
+         using T = typename Vec::base_type;
+         std::size_t element_count = 1024;
+         bool allOk = true;
+         testing::test_memory_helper_t<Vec> test_helper{2 * element_count, Vec::vector_element_count(), false};
+         auto reference_result_ptr = test_helper.result_ref();
+         auto test_result_ptr = test_helper.result_target();
+         auto test_data_ptr = test_helper.data_target();
+         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            T random_value;
+            testing::rnd_init(&random_value, 1);
+            auto vec_src = loadu<Vec>( &test_data_ptr[i] );
+            auto integral = to_integral<Vec>(loadu<Vec>(&test_data_ptr[element_count + i]));
+            auto mask = to_mask<Vec>(integral);
+            auto result = masked_set1<Vec>(vec_src, mask, random_value);
+            for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
+               reference_result_ptr[j] = (integral >> j) & 1 ? random_value : test_data_ptr[i + j];
+            }
+            allOk &= test_helper.validate_simd_register(result);
+         }
+         return allOk;
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw"]
+     implementation: "return _mm512_mask_set1_epi{{ intrin_tp[ctype][1] }}(src, mask, value);"
+   - target_extension: "avx512"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_mask_set1_epi{{ intrin_tp[ctype][1] }}(src, mask, value);"
+   - target_extension: "avx512"
+     ctype: ["float"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_castsi512_ps(_mm512_mask_set1_epi32(_mm512_castps_si512(src), mask, reinterpret_cast<int32_t>(value)));"
+   - target_extension: "avx512"
+     ctype: ["double"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_castsi512_pd(_mm512_mask_set1_epi64(_mm512_castpd_si512(src), mask, reinterpret_cast<int64_t>(value)));"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw", "avx512vl"]
+     implementation: "return _mm256_mask_set1_epi{{ intrin_tp[ctype][1] }}(src, mask, value);"
+   - target_extension: "avx2"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm256_mask_set1_epi{{ intrin_tp[ctype][1] }}(src, mask, value);"
+   - target_extension: "avx2"
+     ctype: ["float"]
+     lscpu_flags: ["avx", "avx512f", "avx512vl"]
+     implementation: "return _mm256_castsi256_ps(_mm256_mask_set1_epi32(_mm256_castps_si256(src), mask, reinterpret_cast<int32_t>(value)));"
+   - target_extension: "avx2"
+     ctype: ["double"]
+     lscpu_flags: ["avx", "avx512f", "avx512vl"]
+     implementation: "return _mm256_castsi256_pd(_mm256_mask_set1_epi64(_mm256_castpd_si256(src), mask, reinterpret_cast<int64_t>(value)));"
+#TODO: SSE, NEON
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return mask ? value : src;"
+...
