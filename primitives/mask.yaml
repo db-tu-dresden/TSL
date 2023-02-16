@@ -306,8 +306,13 @@ returns:
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
-    lscpu_flags: ['avx512f']
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return mask;"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
     implementation: "return mask;"
   #INTEL - AVX2
   - target_extension: "avx2"
