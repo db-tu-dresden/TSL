@@ -236,7 +236,7 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(veorq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ 
+    implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(veorq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{
     intrin_tp_full[ctype] }}(b)));"
   #SCALAR
   - target_extension: "scalar"
@@ -350,7 +350,7 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: "vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vshrq_n_{{ intrin_tp[ctype][1] }}(vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a), vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ 
+    implementation: "vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vshrq_n_{{ intrin_tp[ctype][1] }}(vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a), vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{
     intrin_tp_full[ctype] }}(b)));"
   #SCALAR
   - target_extension: "scalar"
@@ -397,16 +397,7 @@ definitions:
     ctype: ["uint16_t", "int16_t"]
     lscpu_flags: ["avx512bw"]
     implementation: "return _mm512_slli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
-  - target_extension: "avx512"
-    ctype: ["float"]
-    lscpu_flags: ["avx512f"]
-    is_native: False
-    implementation: "return _mm512_castsi512_ps(_mm512_slli_epi32(_mm512_castps_si512(data), shift));"
-  - target_extension: "avx512"
-    ctype: ["double"]
-    lscpu_flags: ["avx512f"]
-    is_native: False
-    implementation: "return _mm512_castsi512_pd(_mm512_slli_epi64(_mm512_castpd_si512(data), shift));"
+
   #Intel - AVX2
   - target_extension: "avx2"
     ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
@@ -446,7 +437,7 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: "vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vshlq_n_{{ intrin_tp[ctype][1] }}(vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a), vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ 
+    implementation: "vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vshlq_n_{{ intrin_tp[ctype][1] }}(vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a), vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{
     intrin_tp_full[ctype] }}(b)));"
   #SCALAR
   - target_extension: "scalar"
@@ -469,4 +460,81 @@ definitions:
       uint64_t x = *reinterpret_cast<uint64_t const *>(&data);
       x <<= shift;
       return *reinterpret_cast<double*>(&x);
+...
+---
+primitive_name: "shift_left_vector"
+brief_description: "Shifts data to left by n bits (shifting in 0)."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Data."
+  - ctype: "const typename Vec::register_type"
+    name: "shift"
+    description: "Amount of bits, data should be shifted."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the left shift."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx512"
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  #Intel - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  #Intel - SSE
+  - target_extension: "sse"
+    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vshlq_{{ intrin_tp_full[ctype] }}(data, shift);"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: "return data << shift;"
+testing: #optional
+   -  test_name: "and_as_compare"
+      requires: ["storeu", "loadu"]
+      includes: ["<cstddef>", "<type_traits>"]
+      implementation: |
+        using T = typename Vec::base_type;
+        using TU = typename std::make_unsigned<T>::type;
+        std::size_t element_count = 1024;
+        testing::test_memory_helper_t<Vec> test_helper{element_count * 2, Vec::vector_element_count(), false};
+        bool allOk = true;
+        auto reference_data_ptr = test_helper.data_ref();
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_data_ptr = test_helper.data_target();
+        auto test_result_ptr = test_helper.result_target();
+        for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+           std::size_t tester_idx = 0;
+           for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+              reference_result_ptr[tester_idx++] = static_cast<T>(
+                static_cast<TU>(reference_data_ptr[j]) << static_cast<TU>(reference_data_ptr[j])
+              );
+           }
+           auto vec1 = loadu<Vec>( &test_data_ptr[i] );
+           auto vec2 = loadu<Vec>( &test_data_ptr[element_count + i] );
+           auto result = shift_left_vector<Vec>( vec1, vec2 );
+           storeu<Vec>( test_result_ptr, result );
+           test_helper.synchronize();
+           allOk &= test_helper.validate();
+        }
+        return allOk;
 ...
