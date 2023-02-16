@@ -445,6 +445,7 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t"]
      lscpu_flags: ['avx', 'avx2']
      specialization_comment: "Unsigned comparison."
+     is_native: False
      implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
      # TODO: figure out a way to do unsigned comparison for uint64_t since there's neither _mm_cmpgt_epu64 not _mm_max_epu64
 #INTEL - SSE
@@ -462,6 +463,7 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t"]
      lscpu_flags: ['sse2']
      specialization_comment: "Unsigned comparison."
+     is_native: False
      implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
     # TODO: figure out a way to do unsigned comparison for uint64_t since there's neither _mm_cmpgt_epu64 not _mm_max_epu64
 #ARM - NEON
@@ -571,12 +573,12 @@ definitions:
    - target_extension: "avx2"
      ctype: ["float", "double"]
      lscpu_flags: ['avx']
-     is_native: False
      implementation: "return _mm256_cmp_p{{ intrin_tp[ctype][1] }}(vec_a, vec_b, _CMP_GT_OQ);"
    - target_extension: "avx2"
      ctype: ["uint8_t", "uint16_t", "uint32_t"]
      lscpu_flags: ['avx', 'avx2']
      specialization_comment: "Unsigned comparison."
+     is_native: False
      implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
      # TODO: figure out a way to do unsigned comparison for uint64_t since there's neither _mm_cmpgt_epu64 not _mm_max_epu64
 #INTEL - SSE
@@ -594,6 +596,7 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t"]
      lscpu_flags: ['sse2']
      specialization_comment: "Unsigned comparison."
+     is_native: False
      implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
     # TODO: figure out a way to do unsigned comparison for uint64_t since there's neither _mm_cmpgt_epu64 not _mm_max_epu64
 #ARM - NEON

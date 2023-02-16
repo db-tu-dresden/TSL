@@ -1427,10 +1427,12 @@ definitions:
    - target_extension: "avx2"
      ctype: ["float"]
      lscpu_flags: ["avx", "avx512f", "avx512vl"]
+     is_native: False
      implementation: "return _mm256_castsi256_ps(_mm256_mask_set1_epi32(_mm256_castps_si256(src), mask, reinterpret_cast<int32_t>(value)));"
    - target_extension: "avx2"
      ctype: ["double"]
      lscpu_flags: ["avx", "avx512f", "avx512vl"]
+     is_native: False
      implementation: "return _mm256_castsi256_pd(_mm256_mask_set1_epi64(_mm256_castpd_si256(src), mask, reinterpret_cast<int64_t>(value)));"
 #TODO: SSE, NEON
 #SCALAR
