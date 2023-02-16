@@ -866,6 +866,38 @@ definitions:
       } else {
         return ~0;
       }
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: []
+    implementation: return true;
+...
+---
+primitive_name: "integral_all_false"
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Integral value where all values are set to 1."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "avx512f" ]
+    implementation: return 0;
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "avx2" ]
+    implementation: return 0;
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "sse" ]
+    implementation: return 0;
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: []
+    implementation: return false;
 ...
 #---
 #primitive_name: "mask_reduce"
