@@ -306,7 +306,7 @@ returns:
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ['avx512f']
     implementation: "return mask;"
   #INTEL - AVX2
@@ -405,7 +405,7 @@ returns:
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ['avx512f', 'avx512dq', 'avx512bw']
     implementation: "return _kand_mask{{ intrin_tp[ctype][1] }}(first, second);"
   - target_extension: "avx512"
@@ -417,7 +417,7 @@ definitions:
     lscpu_flags: ['avx512f', 'avx512dq']
     implementation: "return _kand_mask8(first, second);"
   - target_extension: "avx512"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "double"] #no float
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "double"] #no float
     lscpu_flags: ['avx512f']
     implementation: "return first & second;"
   #INTEL AVX2
@@ -513,7 +513,7 @@ returns:
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ['avx512f', 'avx512dq', 'avx512bw']
     implementation: "return _kor_mask{{ intrin_tp[ctype][1] }}(first, second);"
   - target_extension: "avx512"
@@ -525,7 +525,7 @@ definitions:
     lscpu_flags: ['avx512f', 'avx512dq']
     implementation: "return _kor_mask8(first, second);"
   - target_extension: "avx512"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "double"] #no float
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "double"] #no float
     lscpu_flags: ['avx512f']
     implementation: "return first | second;"
   #INTEL AVX2
@@ -621,7 +621,7 @@ returns:
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ['avx512f', 'avx512dq', 'avx512bw']
     implementation: "return _kxor_mask{{ intrin_tp[ctype][1] }}(first, second);"
   - target_extension: "avx512"
@@ -633,7 +633,7 @@ definitions:
     lscpu_flags: ['avx512f', 'avx512dq']
     implementation: "return _kxor_mask8(first, second);"
   - target_extension: "avx512"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uin16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "double"] #no float
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "double"] #no float
     lscpu_flags: ['avx512f']
     implementation: "return first ^ second;"
   #INTEL AVX2
