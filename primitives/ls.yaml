@@ -1312,7 +1312,7 @@ definitions:
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]
-    implementation: "return _mm256_mask_expandloadu_{{ intrin_tp_full[ctype] }}(src, mask reinterpret_cast<void const *>(memory));"
+    implementation: "return _mm256_mask_expandloadu_{{ intrin_tp_full[ctype] }}(src, mask, reinterpret_cast<void const *>(memory));"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
