@@ -1363,7 +1363,7 @@ parameters:
    - ctype: "const typename Vec::register_type"
      name: "src"
      description: "Base Vector."
-   - ctype: "const typename Vec::mask_type"
+   - ctype: "const typename Vec::imask_type"
      name: "mask"
      description: "Mask of elements to change."
    - ctype: "const typename Vec::base_type"
@@ -1384,13 +1384,13 @@ testing:
          auto reference_result_ptr = test_helper.result_ref();
          auto test_result_ptr = test_helper.result_target();
          auto test_data_ptr = test_helper.data_target();
+         auto test_mask_ptr = reinterpret_cast<typename Vec::mask_type*>(&test_helper.data_target()[element_count]);
          for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
             T random_value;
             testing::rnd_init(&random_value, 1);
             auto vec_src = loadu<Vec>( &test_data_ptr[i] );
-            auto integral = to_integral<Vec>(loadu<Vec>(&test_data_ptr[element_count + i]));
-            auto mask = to_mask<Vec>(integral);
-            auto result = masked_set1<Vec>(vec_src, mask, random_value);
+            auto integral = to_integral<Vec>(test_mask_ptr[i]);
+            auto result = masked_set1<Vec>(vec_src, integral, random_value);
             for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
                reference_result_ptr[j] = (integral >> j) & 1 ? random_value : test_data_ptr[i + j];
             }
