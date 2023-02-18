@@ -507,16 +507,16 @@ definitions:
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
-    implementation: "return data << shift;"
+    # shifting by more than the bitwidth is UB in C++
+    implementation: "return (shift >= sizeof(Vec::base_type) * 8 ) ? 0 : data << shift;"
 testing: #optional
-   -  test_name: "and_as_compare"
-      requires: ["storeu", "loadu"]
+   -  requires: ["storeu", "loadu"]
       includes: ["<cstddef>", "<type_traits>"]
       implementation: |
         using T = typename Vec::base_type;
         using TU = typename std::make_unsigned<T>::type;
         std::size_t element_count = 1024;
-        testing::test_memory_helper_t<Vec> test_helper{element_count * 2, Vec::vector_element_count(), false};
+        testing::test_memory_helper_t<Vec> test_helper{element_count * 2, Vec::vector_element_count(), false, testing::seq_init_start_0<T>};
         bool allOk = true;
         auto reference_data_ptr = test_helper.data_ref();
         auto reference_result_ptr = test_helper.result_ref();
@@ -525,12 +525,12 @@ testing: #optional
         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
            std::size_t tester_idx = 0;
            for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
-              reference_result_ptr[tester_idx++] = static_cast<T>(
-                static_cast<TU>(reference_data_ptr[j]) << static_cast<TU>(reference_data_ptr[j])
-              );
+              auto shift = static_cast<TU>(reference_data_ptr[j]);
+              auto data = static_cast<TU>(reference_data_ptr[element_count + j]);
+              reference_result_ptr[tester_idx++] = (shift >= sizeof(T) * 8) ? 0 : static_cast<T>(data << shift); 
            }
-           auto vec1 = loadu<Vec>( &test_data_ptr[i] );
-           auto vec2 = loadu<Vec>( &test_data_ptr[element_count + i] );
+           auto vec1 = loadu<Vec>( &test_data_ptr[element_count + i] );
+           auto vec2 = loadu<Vec>( &test_data_ptr[i] );
            auto result = shift_left_vector<Vec>( vec1, vec2 );
            storeu<Vec>( test_result_ptr, result );
            test_helper.synchronize();
