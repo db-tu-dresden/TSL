@@ -563,7 +563,7 @@ definitions:
    - target_extension: "avx512"
      ctype: ["float", "double"]
      lscpu_flags: ['avx512f']
-     implementation: "return _mm512_cmpgt_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+     implementation: "return _mm512_cmp_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b, _CMP_GT_OQ);"
 #INTEL - AVX2
    - target_extension: "avx2"
      ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
@@ -573,7 +573,7 @@ definitions:
    - target_extension: "avx2"
      ctype: ["float", "double"]
      lscpu_flags: ['avx']
-     implementation: "return _mm256_cmp_p{{ intrin_tp[ctype][1] }}(vec_a, vec_b, _CMP_GT_OQ);"
+     implementation: "return _mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_a, vec_b, _CMP_GT_OQ);"
    - target_extension: "avx2"
      ctype: ["uint8_t", "uint16_t", "uint32_t"]
      lscpu_flags: ['avx', 'avx2']
