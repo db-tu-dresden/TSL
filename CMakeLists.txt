@@ -2,23 +2,24 @@ cmake_minimum_required(VERSION 3.13)
 project(tvl)
 
 # gather lscpu flags
-set(TVL_LSCPU_FLAGS "" CACHE STRING "lscpu flags for --targets, will attempt to call lscpu if empty")
+set(TVL_LSCPU_FLAGS "" CACHE STRING "space separated lscpu flags for --targets, will attempt to call lscpu if empty")
 if(TVL_LSCPU_FLAGS STREQUAL "")
     execute_process(
-        COMMAND "sh" "-c" "lscpu | sed -n 's/Flags:\\s*\\(.*\\)/\\1/p' | tr ' ' ';'"
+        COMMAND "sh" "-c" "lscpu | sed -n 's/Flags:\\s*\\(.*\\)/\\1/p'"
         OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE TVL_LSCPU_FLAGS
     )
 endif()
 if(TVL_LSCPU_FLAGS STREQUAL "")
     message(FATAL_ERROR "failed to deduce TVL_LSCPU_FLAGS, please specify manually")
 endif()
+string(REGEX REPLACE "[ \t]+" ";" LSCPU_FLAGS_LIST "${TVL_LSCPU_FLAGS}")
 
 # run generator, this could be made 'lazy' using the strategy from tslgen.cmake
 set(GENERATOR_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/generator_output")
-message(STATUS "lscpu flags: ${TVL_LSCPU_FLAGS}")
+message(STATUS "lscpu flags: ${LSCPU_FLAGS_LIST}")
 message(STATUS "running generator...")
 execute_process(
-    COMMAND python3 "${CMAKE_CURRENT_SOURCE_DIR}/main.py" --no-workaround-warnings --no-concepts -o "${GENERATOR_OUTPUT_PATH}" --targets ${TVL_LSCPU_FLAGS}
+    COMMAND python3 "${CMAKE_CURRENT_SOURCE_DIR}/main.py" --no-workaround-warnings --no-concepts -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
     COMMAND_ERROR_IS_FATAL ANY
 )
 
