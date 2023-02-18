@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.13)
 project(tvl)
 
+find_package(Python3 REQUIRED)
+
 # gather lscpu flags
 set(TVL_LSCPU_FLAGS "" CACHE STRING "space separated lscpu flags for --targets, will attempt to call lscpu if empty")
 if(TVL_LSCPU_FLAGS STREQUAL "")
     execute_process(
-        COMMAND "sh" "-c" "lscpu | sed -n 's/Flags:\\s*\\(.*\\)/\\1/p'"
+        COMMAND "${Python3_EXECUTABLE}" -c "import cpuinfo; print(*cpuinfo.get_cpu_info()['flags'])"
         OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE TVL_LSCPU_FLAGS
     )
 endif()
@@ -30,8 +32,6 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${TVL_GENERATOR_S
 
 # run the generator
 set(GENERATOR_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/generator_output")
-find_package(Python3 REQUIRED)
-
 message(STATUS "Running TVL Generator...")
 execute_process(
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" --no-workaround-warnings --no-concepts -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
