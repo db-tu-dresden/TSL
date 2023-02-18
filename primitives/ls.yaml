@@ -1229,7 +1229,7 @@ definitions:
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]
-    implementation: "_mm256_mask_compressstoreu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, _mm256_castps_si256(data));"
+    implementation: "_mm256_mask_compressstoreu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
