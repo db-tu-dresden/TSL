@@ -1410,11 +1410,11 @@ definitions:
    - target_extension: "avx512"
      ctype: ["float"]
      lscpu_flags: ["avx512f"]
-     implementation: "return _mm512_castsi512_ps(_mm512_mask_set1_epi32(_mm512_castps_si512(src), mask, reinterpret_cast<int32_t>(value)));"
+     implementation: "return _mm512_castsi512_ps(_mm512_mask_set1_epi32(_mm512_castps_si512(src), mask, *reinterpret_cast<const int32_t*>(&value)));"
    - target_extension: "avx512"
      ctype: ["double"]
      lscpu_flags: ["avx512f"]
-     implementation: "return _mm512_castsi512_pd(_mm512_mask_set1_epi64(_mm512_castpd_si512(src), mask, reinterpret_cast<int64_t>(value)));"
+     implementation: "return _mm512_castsi512_pd(_mm512_mask_set1_epi64(_mm512_castpd_si512(src), mask, *reinterpret_cast<const int64_t*>(&value)));"
 #INTEL - AVX2
    - target_extension: "avx2"
      ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
@@ -1428,12 +1428,12 @@ definitions:
      ctype: ["float"]
      lscpu_flags: ["avx", "avx512f", "avx512vl"]
      is_native: False
-     implementation: "return _mm256_castsi256_ps(_mm256_mask_set1_epi32(_mm256_castps_si256(src), mask, reinterpret_cast<int32_t>(value)));"
+     implementation: "return _mm256_castsi256_ps(_mm256_mask_set1_epi32(_mm256_castps_si256(src), mask, *reinterpret_cast<const int32_t*>(&value)));"
    - target_extension: "avx2"
      ctype: ["double"]
      lscpu_flags: ["avx", "avx512f", "avx512vl"]
      is_native: False
-     implementation: "return _mm256_castsi256_pd(_mm256_mask_set1_epi64(_mm256_castpd_si256(src), mask, reinterpret_cast<int64_t>(value)));"
+     implementation: "return _mm256_castsi256_pd(_mm256_mask_set1_epi64(_mm256_castpd_si256(src), mask, *reinterpret_cast<const int64_t*>(&value)));"
 #TODO: SSE, NEON
 #SCALAR
    - target_extension: "scalar"
