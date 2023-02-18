@@ -128,7 +128,7 @@ definitions:
     ctype: ["uint32_t", "uint64_t","int32_t", "int64_t"]
     lscpu_flags: ["avx512f", "avx512cd"]
     implementation: |
-      auto const conflict_reg = _mm512_maskz_conflict_epi{{ intrin_tp[ctype][1] }}(data);
+      auto const conflict_reg = _mm512_maskz_conflict_epi{{ intrin_tp[ctype][1] }}(mask, data);
       auto const mask_reg = _mm512_set1_epi{{ intrin_tp[ctype][1] }}(mask);
       auto const cleaned_conflict_reg = _mm512_and_si512(conflict_reg, mask_reg);
       return _mm512_mask_cmpeq_epi{{ intrin_tp[ctype][1] }}_mask(mask, cleaned_conflict_reg, _mm512_setzero_si512());
@@ -292,14 +292,14 @@ definitions:
     is_native: False
     implementation: |
       auto const right_added_part = _mm512_add_epi{{ intrin_tp[ctype][1] }}(right, adder);
-      return _mm512_mask_blend_epi{{ intrin_tp[ctype][1] }}(control, right_added, left);
+      return _mm512_mask_blend_epi{{ intrin_tp[ctype][1] }}(control, right_added_part, left);
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx512f", "avx512bw"]
     is_native: False
     implementation: |
       auto const right_added_part = _mm512_add_epi{{ intrin_tp[ctype][1] }}(right, adder);
-      return _mm512_mask_blend_epi{{ intrin_tp[ctype][1] }}(control, right_added, left);
+      return _mm512_mask_blend_epi{{ intrin_tp[ctype][1] }}(control, right_added_part, left);
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
