@@ -1374,25 +1374,25 @@ returns:
    description: "Base Vector, with the elements specified by mask changed to value."
 testing:
    -  test_name: "set_random"
-      requires: ["loadu", "to_integral", "to_mask"]
+      requires: ["loadu", "to_mask"]
       includes: ["<cstddef>"]
       implementation: |
          using T = typename Vec::base_type;
          std::size_t element_count = 1024;
          bool allOk = true;
-         testing::test_memory_helper_t<Vec> test_helper{2 * element_count, Vec::vector_element_count(), false};
+         testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
          auto reference_result_ptr = test_helper.result_ref();
          auto test_result_ptr = test_helper.result_target();
          auto test_data_ptr = test_helper.data_target();
-         auto test_mask_ptr = reinterpret_cast<typename Vec::mask_type*>(&test_helper.data_target()[element_count]);
          for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
             T random_value;
             testing::rnd_init(&random_value, 1);
+            typename Vec::imask_type random_integral;
+            testing::rnd_init(&random_integral, 1);
             auto vec_src = loadu<Vec>( &test_data_ptr[i] );
-            auto integral = to_integral<Vec>(test_mask_ptr[i]);
-            auto result = masked_set1<Vec>(vec_src, integral, random_value);
+            auto result = masked_set1<Vec>(vec_src, random_integral, random_value);
             for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
-               reference_result_ptr[j] = (integral >> j) & 1 ? random_value : test_data_ptr[i + j];
+               reference_result_ptr[j] = (random_integral >> j) & 1 ? random_value : test_data_ptr[i + j];
             }
             allOk &= test_helper.validate_simd_register(result);
          }
@@ -1439,5 +1439,5 @@ definitions:
    - target_extension: "scalar"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: []
-     implementation: "return mask ? value : src;"
+     implementation: "return (mask & 1) ? value : src;"
 ...
