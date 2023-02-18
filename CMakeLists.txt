@@ -13,16 +13,32 @@ if(TVL_LSCPU_FLAGS STREQUAL "")
     message(FATAL_ERROR "failed to deduce TVL_LSCPU_FLAGS, please specify manually")
 endif()
 string(REGEX REPLACE "[ \t]+" ";" LSCPU_FLAGS_LIST "${TVL_LSCPU_FLAGS}")
-
-# run generator, this could be made 'lazy' using the strategy from tslgen.cmake
-set(GENERATOR_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/generator_output")
 message(STATUS "lscpu flags: ${LSCPU_FLAGS_LIST}")
-message(STATUS "running generator...")
+
+# trigger reconfiguration if the source files of the generator changed
+file(GLOB_RECURSE TVL_GENERATOR_SOURCES CONFIGURE_DEPENDS
+    "config/*.template"
+    "config/*.yaml"
+    "static_files/*.yaml"
+    "core/*.py"
+    "expansions/*.py"
+    "utils/*.py"
+    "primitive_data/extensions/*.yaml"
+    "primitive_data/primitives/*.yaml"
+)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${TVL_GENERATOR_SOURCES})
+
+# run the generator
+set(GENERATOR_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/generator_output")
+find_package(Python3 REQUIRED)
+
+message(STATUS "Running TVL Generator...")
 execute_process(
-    COMMAND python3 "${CMAKE_CURRENT_SOURCE_DIR}/main.py" --no-workaround-warnings --no-concepts -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" --no-workaround-warnings --no-concepts -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
     COMMAND_ERROR_IS_FATAL ANY
 )
 
+# run the CMakeLists.txt created by the generator
 add_subdirectory("${GENERATOR_OUTPUT_PATH}")
 
 # disable -W-attributes
