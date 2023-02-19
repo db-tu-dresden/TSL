@@ -1,10 +1,12 @@
-
 /**/__pycache__/
 /**/.idea/
+/.vscode
+
 tvlgen.zip
 
 *.log
+tvlgen.log
+tvlgen.log.*
 
-tvlgen.log.1
+/build
 
-tvlgen.log.2
