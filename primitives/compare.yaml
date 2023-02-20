@@ -447,7 +447,12 @@ definitions:
      specialization_comment: "Unsigned comparison."
      is_native: False
      implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
-     # TODO: figure out a way to do unsigned comparison for uint64_t since there's neither _mm_cmpgt_epu64 not _mm_max_epu64
+   - target_extension: "avx2"
+     ctype: ["uint64_t"]
+     lscpu_flags: ['avx2']
+     specialization_comment: "Unsigned comparison."
+     is_native: False
+     implementation: "__m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_b, sign_bits), _mm256_xor_si256(vec_a, sign_bits));"
 #INTEL - SSE
    - target_extension: "sse"
      ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -465,7 +470,12 @@ definitions:
      specialization_comment: "Unsigned comparison."
      is_native: False
      implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
-    # TODO: figure out a way to do unsigned comparison for uint64_t since there's neither _mm_cmpgt_epu64 not _mm_max_epu64
+   - target_extension: "sse"
+     ctype: ["uint64_t"]
+     lscpu_flags: ['sse4_2']
+     specialization_comment: "Unsigned comparison."
+     is_native: False
+     implementation: "__m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63); return _mm_cmpgt_epi64(_mm_xor_epi64(vec_b, sign_bits), _mm_xor_epi64(vec_a, sign_bits));"
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -580,7 +590,12 @@ definitions:
      specialization_comment: "Unsigned comparison."
      is_native: False
      implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
-     # TODO: figure out a way to do unsigned comparison for uint64_t since there's neither _mm_cmpgt_epu64 not _mm_max_epu64
+   - target_extension: "avx2"
+     ctype: ["uint64_t"]
+     lscpu_flags: ['avx2']
+     specialization_comment: "Unsigned comparison."
+     is_native: False
+     implementation: "__m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_a, sign_bits), _mm256_xor_si256(vec_b, sign_bits));"
 #INTEL - SSE
    - target_extension: "sse"
      ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -598,7 +613,12 @@ definitions:
      specialization_comment: "Unsigned comparison."
      is_native: False
      implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
-    # TODO: figure out a way to do unsigned comparison for uint64_t since there's neither _mm_cmpgt_epu64 not _mm_max_epu64
+   - target_extension: "sse"
+     ctype: ["uint64_t"]
+     lscpu_flags: ['sse4_2']
+     specialization_comment: "Unsigned comparison."
+     is_native: False
+     implementation: "__m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63); return _mm_cmpgt_epi64(_mm_xor_epi64(vec_a, sign_bits), _mm_xor_epi64(vec_b, sign_bits));"
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
