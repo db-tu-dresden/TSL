@@ -30,11 +30,42 @@ file(GLOB_RECURSE TVL_GENERATOR_SOURCES CONFIGURE_DEPENDS
 )
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${TVL_GENERATOR_SOURCES})
 
+# check for C++20 Concepts features
+if("cxx_std_20" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+	message("Compiler supports C++20")
+	#set(CMAKE_CXX_STANDARD 20) #this seems like a bad idea
+	set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -std=c++20") #todo: standard should be set in a portable way
+	set(CMAKE_REQUIRED_QUIET True)
+	#unset(SUPPORTS_CONCEPTS CACHE) #we don't need to unset this check
+	INCLUDE(CheckCXXSourceCompiles)
+		CHECK_CXX_SOURCE_COMPILES(
+		[[
+		#include <concepts>
+		struct test_struct {};
+		template<std::copyable T>
+		void test_concepts(T) {};
+		int main(void) {
+			test_concepts(test_struct{});
+			return 0;
+		}
+		]] SUPPORTS_CONCEPTS)
+	if(SUPPORTS_CONCEPTS)
+		message("Compiler does support C++20 and concepts.")
+		set(USE_CONCEPTS_SWITCH "")
+	else()
+		message("Compiler does support C++20 but not concepts.")
+		set(USE_CONCEPTS_SWITCH "--no-concepts")
+	endif()
+else()
+	message("Compiler does not support C++20.")
+	set(USE_CONCEPTS_SWITCH "--no-concepts")
+endif()
+
 # run the generator
 set(GENERATOR_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/generator_output")
 message(STATUS "Running TVL Generator...")
 execute_process(
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" --no-workaround-warnings --no-concepts -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" --no-workaround-warnings "${USE_CONCEPTS_SWITCH}" -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
     COMMAND_ERROR_IS_FATAL ANY
 )
 
