@@ -395,6 +395,28 @@ definitions:
     implementation: "return (~mask)&(0b1111);"
 ...
 ---
+primitive_name: "mask_binary_not"
+functor_name: "mask_binary_not"
+brief_description: "Binary NOT of a vector mask type."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Mask."
+returns:
+  ctype: "typename Vec::mask_type"
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    lscpu_flags: ["avx512f"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    implementation: "return (~mask);"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    lscpu_flags: ["avx2"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), mask);"
+...
+---
 primitive_name: "mask_binary_and"
 brief_description: "Binary AND of two vector mask types."
 parameters:
