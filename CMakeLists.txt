@@ -32,11 +32,8 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${TVL_GENERATOR_S
 
 # check for C++20 Concepts features
 if("cxx_std_20" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
-	message("Compiler supports C++20")
-	#set(CMAKE_CXX_STANDARD 20) #this seems like a bad idea
-	set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -std=c++20") #todo: standard should be set in a portable way
-	set(CMAKE_REQUIRED_QUIET True)
-	#unset(SUPPORTS_CONCEPTS CACHE) #we don't need to unset this check
+	set(CMAKE_CXX_STANDARD 20)
+	#set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -std=c++20")
 	INCLUDE(CheckCXXSourceCompiles)
 		CHECK_CXX_SOURCE_COMPILES(
 		[[
@@ -50,14 +47,14 @@ if("cxx_std_20" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
 		}
 		]] SUPPORTS_CONCEPTS)
 	if(SUPPORTS_CONCEPTS)
-		message("Compiler does support C++20 and concepts.")
+		message(STATUS "Compiler does support C++20 and concepts.")
 		set(USE_CONCEPTS_SWITCH "")
 	else()
-		message("Compiler does support C++20 but not concepts.")
+		message(STATUS "Compiler does support C++20 but not concepts.")
 		set(USE_CONCEPTS_SWITCH "--no-concepts")
 	endif()
 else()
-	message("Compiler does not support C++20.")
+	message(STATUS "Compiler does not support C++20.")
 	set(USE_CONCEPTS_SWITCH "--no-concepts")
 endif()
 
