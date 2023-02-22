@@ -612,7 +612,7 @@ testing:
 definitions:
 #INTEL - AVX2
   - target_extension: "avx2"
-    ctype: ["int32_t", "uint32_t"]
+    ctype:  ["int32_t", "uint32_t"]
     additional_simd_template_base_type: ["int8_t", "uint8_t"]
     lscpu_flags: ["avx2"]
     is_native: False
@@ -659,18 +659,19 @@ definitions:
       auto const upper_zero = _mm256_set1_epi32(0xffff);
       auto const d0 = _mm256_and_si256(upper_zero, data[0]);
       auto const d1 = _mm256_and_si256(upper_zero, data[1]);
+      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>; 
       return
         _mm256_shuffle_epi8(
           _mm256_permute2x128_si256(
             _mm256_or_si256(
-              _mm256_zextsi128_si256(
+              zext::apply(
                 _mm256_extracti128_si256(
                   d0,
                   0
                 )
               ),
               _mm256_bslli_epi128(
-                _mm256_zextsi128_si256(
+                zext::apply(
                   _mm256_extracti128_si256(
                     d0,
                     1
@@ -680,14 +681,14 @@ definitions:
               )
             ),
             _mm256_or_si256(
-              _mm256_zextsi128_si256(
+              zext::apply(
                 _mm256_extracti128_si256(
                   d1,
                   0
                 )
               ),
               _mm256_bslli_epi128(
-                _mm256_zextsi128_si256(
+                zext::apply(
                   _mm256_extracti128_si256(
                     d1,
                     1
@@ -737,27 +738,28 @@ definitions:
       auto const d1 = _mm256_and_si256(upper_zero, data[1]);
       auto const d2 = _mm256_and_si256(upper_zero, data[2]);
       auto const d3 = _mm256_and_si256(upper_zero, data[3]);
+      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>; 
       return
         _mm256_shuffle_epi8(
           _mm256_permute2x128_si256(
             _mm256_or_si256(
               _mm256_or_si256(
-                _mm256_zextsi128_si256(_mm256_extracti128_si256(d0,0)),
-                _mm256_bslli_epi128(_mm256_zextsi128_si256(_mm256_extracti128_si256(d0,1)),2)
+                zext::apply(_mm256_extracti128_si256(d0,0)),
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d0,1)),2)
               ),
               _mm256_or_si256(
-                _mm256_bslli_epi128(_mm256_zextsi128_si256(_mm256_extracti128_si256(d1,0)),4),
-                _mm256_bslli_epi128(_mm256_zextsi128_si256(_mm256_extracti128_si256(d1,1)),6)
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d1,0)),4),
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d1,1)),6)
               )
             ),
             _mm256_or_si256(
               _mm256_or_si256(
-                _mm256_zextsi128_si256(_mm256_extracti128_si256(d2,0)),
-                _mm256_bslli_epi128(_mm256_zextsi128_si256(_mm256_extracti128_si256(d2,1)),2)
+                zext::apply(_mm256_extracti128_si256(d2,0)),
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d2,1)),2)
               ),
               _mm256_or_si256(
-                _mm256_bslli_epi128(_mm256_zextsi128_si256(_mm256_extracti128_si256(d3,0)),4),
-                _mm256_bslli_epi128(_mm256_zextsi128_si256(_mm256_extracti128_si256(d3,1)),6)
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d3,0)),4),
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d3,1)),6)
               )
             ),
             0x20
@@ -776,16 +778,17 @@ definitions:
       auto const upper_zero = _mm256_set1_epi64x(0xffffffff);
       auto const d0 = _mm256_and_si256(upper_zero, data[0]);
       auto const d1 = _mm256_and_si256(upper_zero, data[1]);
+      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>; 
       return
         _mm256_shuffle_epi32(
           _mm256_permute2x128_si256(
             _mm256_or_si256(
-              _mm256_zextsi128_si256(_mm256_extracti128_si256(d0, 0)),
-              _mm256_bslli_epi128(_mm256_zextsi128_si256(_mm256_extracti128_si256(d0, 1)),4)
+              zext::apply(_mm256_extracti128_si256(d0, 0)),
+              _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d0, 1)),4)
             ),
             _mm256_or_si256(
-              _mm256_zextsi128_si256(_mm256_extracti128_si256(d1, 0)),
-              _mm256_bslli_epi128(_mm256_zextsi128_si256(_mm256_extracti128_si256(d1, 1)),4)
+              zext::apply(_mm256_extracti128_si256(d1, 0)),
+              _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d1, 1)),4)
             ),
             0x20
           ),
