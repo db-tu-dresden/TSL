@@ -250,8 +250,6 @@ class TVLPrimitive:
 
     @property
     def definitions(self) -> Generator[TVLPrimitive.Definition, None, None]:
-        if self.__declaration.name == "cast":
-            print("@@@@@@@NOW")
         for definition in self.__definitions:
             yield definition
 
