@@ -152,6 +152,29 @@ definitions:
       return result;
 ...
 ---
+primitive_name: "cast"
+additional_simd_template_parameter: "ToType"
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+returns:
+  ctype: "typename ToType::register_type"
+  description: "Casted SIMD register."
+definitions:
+  #INTEL - AVX2
+  - target_extension: "sse"
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    additional_simd_template_extension: "avx2"
+    lscpu_flags: ["avx2"]
+    is_native: True
+    implementation: |
+      #if (defined(__GNUC__) && defined(__cplusplus) && (__GNUC__ < 10) && !defined(__clang__))
+        return _mm256_inserti128_si256(_mm256_setzero_si256(), data, 0);
+      #else
+        return _mm256_zextsi128_si256(data);
+      #endif
+...
+---
 primitive_name: "convert_up"
 additional_simd_template_parameter: "ToType"
 parameters:
