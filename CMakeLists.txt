@@ -14,8 +14,8 @@ endif()
 if(TVL_LSCPU_FLAGS STREQUAL "")
     message(FATAL_ERROR "failed to deduce TVL_LSCPU_FLAGS, please specify manually")
 endif()
+message(STATUS "lscpu flags: ${TVL_LSCPU_FLAGS}")
 string(REGEX REPLACE "[ \t]+" ";" LSCPU_FLAGS_LIST "${TVL_LSCPU_FLAGS}")
-message(STATUS "lscpu flags: ${LSCPU_FLAGS_LIST}")
 
 # trigger reconfiguration if the source files of the generator changed
 file(GLOB_RECURSE TVL_GENERATOR_SOURCES CONFIGURE_DEPENDS
@@ -29,6 +29,8 @@ file(GLOB_RECURSE TVL_GENERATOR_SOURCES CONFIGURE_DEPENDS
     "primitive_data/primitives/*.yaml"
 )
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${TVL_GENERATOR_SOURCES})
+
+set(DEFAULT_GENERATOR_OPTS --no-workaround-warnings)
 
 # check for C++20 Concepts features
 if("cxx_std_20" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
@@ -48,21 +50,22 @@ if("cxx_std_20" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
 		]] SUPPORTS_CONCEPTS)
 	if(SUPPORTS_CONCEPTS)
 		message(STATUS "Compiler does support C++20 and concepts.")
-		set(USE_CONCEPTS_SWITCH "")
 	else()
 		message(STATUS "Compiler does support C++20 but not concepts.")
-		set(USE_CONCEPTS_SWITCH "--no-concepts")
+		set(DEFAULT_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTIONS} "--no-concepts")
 	endif()
 else()
 	message(STATUS "Compiler does not support C++20.")
-	set(USE_CONCEPTS_SWITCH "--no-concepts")
+	set(DEFAULT_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTIONS} "--no-concepts")
 endif()
+
+set(TVL_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTS} CACHE STRING "additonal cli options for the generator, semicolon separated")
 
 # run the generator
 set(GENERATOR_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/generator_output")
 message(STATUS "Running TVL Generator...")
 execute_process(
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" --no-workaround-warnings "${USE_CONCEPTS_SWITCH}" -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" ${TVL_GENERATOR_OPTS} -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
     COMMAND_ERROR_IS_FATAL ANY
 )
 
