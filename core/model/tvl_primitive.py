@@ -72,6 +72,12 @@ class TVLPrimitive:
                 yield (alist[i], blist[i])
 
         @classmethod
+        def map_types_m2m(clscls, alist: List[str]) -> Generator[Tuple[str, str], None, None]:
+            for i in alist:
+                yield(i,i)
+
+
+        @classmethod
         def map_types_from_dict(cls, alist: List[str], bdict: Dict[str, List[str]]) -> Generator[Tuple[str, str], None, None]:
             for i in alist:
                 if i not in bdict:
@@ -137,7 +143,7 @@ class TVLPrimitive:
         def types(self) -> Generator[Tuple[str, str], None, None]:
             ctypes_list = self.ctypes
             return_vector_basetypes_list = self.additional_simd_template_base_types
-            if (len(return_vector_basetypes_list) == 0) and (len(self.additional_simd_template_base_type_mapping_dict) == 0):
+            if (len(return_vector_basetypes_list) == 0) and (len(self.additional_simd_template_base_type_mapping_dict) == 0) and self.__data_dict["additional_simd_template_extension"] == "":
                 for t in ctypes_list:
                     yield (t, "")
             elif (len(ctypes_list) == 1) and (len(return_vector_basetypes_list) > 1):
@@ -148,6 +154,8 @@ class TVLPrimitive:
                 yield from TVLPrimitive.Definition.map_types_one2one(ctypes_list, return_vector_basetypes_list)
             elif len(self.additional_simd_template_base_type_mapping_dict) > 0:
                 yield from TVLPrimitive.Definition.map_types_from_dict(ctypes_list, self.additional_simd_template_base_type_mapping_dict)
+            elif len(ctypes_list) > 0 and len(return_vector_basetypes_list) == 0:
+                yield from TVLPrimitive.Definition.map_types_m2m(ctypes_list)
             else:
                 yield from TVLPrimitive.Definition.map_types_cartesian(ctypes_list, return_vector_basetypes_list)
 
@@ -242,6 +250,8 @@ class TVLPrimitive:
 
     @property
     def definitions(self) -> Generator[TVLPrimitive.Definition, None, None]:
+        if self.__declaration.name == "cast":
+            print("@@@@@@@NOW")
         for definition in self.__definitions:
             yield definition
 
