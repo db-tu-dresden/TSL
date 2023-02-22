@@ -189,6 +189,10 @@ primitive_specialization_optionals: &definition_optionals_schema
       type: "dict"
       default: {}
       brief: todo
+   additional_simd_template_extension:
+      type: "str"
+      default: ""
+      brief: "Return vector extension, which is used for casts."
    includes: *includes_schema
 
 primitive_definition: &definition_schema

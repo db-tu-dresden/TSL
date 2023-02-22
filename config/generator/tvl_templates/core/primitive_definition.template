@@ -16,6 +16,7 @@
    return_template_type='',
    additional_templates='',
    additional_template_params='',
+   additional_target_extension='',
    simd_register_length='') %}
 {% if vector_length_agnostic %}
    {% set ns.simd_register_length = ', VectorSize' %}
@@ -57,8 +58,13 @@
    {% endif %}
 {% endfor %}
 {% if additional_simd_template_parameter != "" %}
-{% set ns.using_return_type = 'using ' ~ additional_simd_template_parameter ~ ' = simd<' ~ additional_simd_template_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>;' %}
-{% set ns.return_template_type = 'simd<' ~ additional_simd_template_base_type ~ ', ' ~ target_extension ~ ns.simd_register_length ~ '>, ' %}
+    {% if additional_simd_template_extension != "" %}
+        {% set ns.additional_target_extension = additional_simd_template_extension %}
+    {% else %}
+        {% set ns.additional_target_extension = target_extension %}
+    {% endif %}
+    {% set ns.using_return_type = 'using ' ~ additional_simd_template_parameter ~ ' = simd<' ~ additional_simd_template_base_type ~ ', ' ~ ns.additional_target_extension ~ ns.simd_register_length ~ '>;' %}
+    {% set ns.return_template_type = 'simd<' ~ additional_simd_template_base_type ~ ', ' ~ ns.additional_target_extension ~ ns.simd_register_length ~ '>, ' %}
 {% endif %}
 {% if additional_non_specialized_template_parameters|length > 0 %}
 {% set types_joiner = joiner(",") %}
