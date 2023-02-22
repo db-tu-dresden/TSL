@@ -30,5 +30,11 @@ jobs:
         mkdir build
         cd build
         cmake ..
+    - name: Build Tests
+      run: |
+        cd build
         make
-        
+    - name: Run Tests
+      run: |
+        cd build
+        ./build/generator_output/src/test/tvl_test
