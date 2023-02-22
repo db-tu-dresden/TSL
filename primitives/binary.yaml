@@ -538,7 +538,11 @@ definitions:
     implementation: "return _mm256_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #Intel - SSE
   - target_extension: "sse"
-    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "sse"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #ARM - NEON
