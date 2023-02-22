@@ -338,7 +338,7 @@ testing:
           testing::rnd_init(&shift, 1);
           shift %= 2 * 8 * sizeof(T);
           for (size_t j = i; j < i + Vec::vector_element_count(); ++j) {
-            expected_result[tester_idx++] = (shift >= sizeof(T) * 8) ? 0 : test_data[j] << shift; 
+            expected_result[tester_idx++] = (shift >= sizeof(T) * 8) ? 0 : test_data[j] << shift;
           }
           auto vec = loadu<Vec>(&test_data[i]);
           storeu<Vec>(result, shift_left<Vec>(vec, shift));
@@ -372,13 +372,21 @@ definitions:
     implementation: "return _mm512_srai_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #Intel - AVX2
   - target_extension: "avx2"
-    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["uint16_t", "uint32_t", "int16_t", "int32_t"]
     lscpu_flags: ["avx2"]
+    implementation: "return _mm256_srai_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx2"
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
     implementation: "return _mm256_srai_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #Intel - SSE
   - target_extension: "sse"
-    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["uint16_t", "uint32_t", "int16_t", "int32_t"]
     lscpu_flags: ["sse2"]
+    implementation: "return _mm_srai_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "sse"
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
     implementation: "return _mm_srai_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #ARM - NEON
   - target_extension: "neon"
@@ -390,7 +398,7 @@ definitions:
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
     implementation: |
-      return (shift >= sizeof(typename Vec::register_type) * 8) 
+      return (shift >= sizeof(typename Vec::register_type) * 8)
           ? ((data >> (sizeof(typename Vec::register_type) * 8 - 1)) ? -1 : 0)
           : static_cast<typename Vec::register_type>(static_cast<typename std::make_unsigned<typename Vec::register_type>::type>(data)) >> shift;
   - target_extension: "scalar"
@@ -415,9 +423,9 @@ testing:
           shift %= 2 * 8 * sizeof(T) ;
           for (size_t j = i; j < i + Vec::vector_element_count(); ++j) {
             auto data = test_data[j];
-            expected_result[tester_idx++] = (shift >= sizeof(T) * 8) 
+            expected_result[tester_idx++] = (shift >= sizeof(T) * 8)
               ? ((data >> (sizeof(T) * 8 - 1)) ? (std::is_unsigned_v<T> ? 0 : -1) : 0)
-              : data >> shift; 
+              : data >> shift;
           }
           auto vec = loadu<Vec>(&test_data[i]);
           storeu<Vec>(result, shift_right<Vec>(vec, shift));
@@ -469,7 +477,7 @@ definitions:
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
     implementation: |
-      return (shift >= sizeof(typename Vec::register_type) * 8) 
+      return (shift >= sizeof(typename Vec::register_type) * 8)
           ? 0
           : static_cast<typename Vec::register_type>(static_cast<typename std::make_unsigned<typename Vec::register_type>::type>(data)) >> shift;
   - target_extension: "scalar"
@@ -495,7 +503,7 @@ testing:
           shift %= 2 * 8 * sizeof(T) ;
           for (size_t j = i; j < i + Vec::vector_element_count(); ++j) {
             auto data = static_cast<TU>(test_data[j]);
-            expected_result[tester_idx++] = (shift >= sizeof(T) * 8) ? 0 : static_cast<T>(data >> shift); 
+            expected_result[tester_idx++] = (shift >= sizeof(T) * 8) ? 0 : static_cast<T>(data >> shift);
           }
           auto vec = loadu<Vec>(&test_data[i]);
           storeu<Vec>(result, shift_right_logical<Vec>(vec, shift));
@@ -572,7 +580,7 @@ testing:
           for (size_t j = i; j < i + Vec::vector_element_count(); ++j) {
             auto data = test_data[element_count + j];
             auto shift = static_cast<TU>(test_data[j]);
-            expected_result[tester_idx++] = (shift >= sizeof(T) * 8) ? 0 : static_cast<T>(data << shift); 
+            expected_result[tester_idx++] = (shift >= sizeof(T) * 8) ? 0 : static_cast<T>(data << shift);
           }
           auto vec1 = loadu<Vec>(&test_data[element_count + i]);
           auto vec2 = loadu<Vec>(&test_data[i]);
@@ -607,17 +615,21 @@ definitions:
     implementation: "return _mm512_srav_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #Intel - AVX2
   - target_extension: "avx2"
-    ctype: ["uint16_t", "int16_t"]
+    ctype: ["uint16_t", "int16_t", "uint64_t", "int64_t"]
     lscpu_flags: ["avx512bw", "avx512vl"]
     implementation: "return _mm256_srav_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   - target_extension: "avx2"
-    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    ctype: ["uint32_t", "int32_t"]
     lscpu_flags: ["avx2"]
     implementation: "return _mm256_srav_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #Intel - SSE
   - target_extension: "sse"
-    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["int32_t", "uint32_t"]
     lscpu_flags: ["sse2"]
+    implementation: "return _mm_srav_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "sse"
+    ctype: ["uint16_t", "uint64_t", "int16_t", "int64_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
     implementation: "return _mm_srav_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #ARM - NEON
   - target_extension: "neon"
@@ -629,7 +641,7 @@ definitions:
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
     implementation: |
-      return (shift < 0 || shift >= sizeof(typename Vec::register_type) * 8) 
+      return (shift < 0 || shift >= sizeof(typename Vec::register_type) * 8)
           ? ((data >> (sizeof(typename Vec::register_type) * 8 - 1)) ? -1 : 0)
           : data >> shift;
   - target_extension: "scalar"
@@ -653,9 +665,9 @@ testing:
           for (size_t j = i; j < i + Vec::vector_element_count(); ++j) {
             auto data = test_data[element_count + j];
             auto shift = static_cast<TU>(test_data[j]);
-            expected_result[tester_idx++] = (shift >= sizeof(T) * 8) 
+            expected_result[tester_idx++] = (shift >= sizeof(T) * 8)
               ? ((data >> (sizeof(T) * 8 - 1)) ? (std::is_unsigned_v<T> ? 0 : -1) : 0)
-              : data >> shift; 
+              : data >> shift;
           }
           auto vec1 = loadu<Vec>(&test_data[element_count + i]);
           auto vec2 = loadu<Vec>(&test_data[i]);
@@ -699,9 +711,14 @@ definitions:
     implementation: "return _mm256_srlv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #Intel - SSE
   - target_extension: "sse"
-    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_srlv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "sse"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_srlv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+
   #ARM - NEON
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -712,8 +729,8 @@ definitions:
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
     implementation: |
-      return (shift >= sizeof(typename Vec::register_type) * 8) 
-          ? 0 
+      return (shift >= sizeof(typename Vec::register_type) * 8)
+          ? 0
           : static_cast<typename Vec::register_type>(static_cast<typename std::make_unsigned<typename Vec::register_type>::type>(data)) >> shift;
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
@@ -736,7 +753,7 @@ testing:
           for (size_t j = i; j < i + Vec::vector_element_count(); ++j) {
             auto shift = static_cast<TU>(test_data[j]);
             auto data = static_cast<TU>(test_data[element_count + j]);
-            expected_result[tester_idx++] = (shift >= sizeof(T) * 8) ? 0 : static_cast<T>(data >> shift); 
+            expected_result[tester_idx++] = (shift >= sizeof(T) * 8) ? 0 : static_cast<T>(data >> shift);
           }
           auto vec2 = loadu<Vec>(&test_data[i]);
           auto vec1 = loadu<Vec>(&test_data[element_count + i]);

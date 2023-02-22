@@ -449,7 +449,7 @@ definitions:
      lscpu_flags: ['sse4_2']
      specialization_comment: "Unsigned comparison."
      is_native: False
-     implementation: "__m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63); return _mm_cmpgt_epi64(_mm_xor_epi64(vec_b, sign_bits), _mm_xor_epi64(vec_a, sign_bits));"
+     implementation: "__m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63); return _mm_cmpgt_epi64(_mm_xor_si128(vec_b, sign_bits), _mm_xor_si128(vec_a, sign_bits));"
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -565,7 +565,7 @@ definitions:
      lscpu_flags: ['sse4_2']
      specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
      is_native: False
-     implementation: "__m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63); return _mm_cmpgt_epi64(_mm_xor_epi64(vec_a, sign_bits), _mm_xor_epi64(vec_b, sign_bits));"
+     implementation: "__m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63); return _mm_cmpgt_epi64(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits));"
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -689,7 +689,7 @@ definitions:
      specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
      implementation: |
       __m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63);
-      return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_epi64(_mm_xor_epi64(vec_a, sign_bits), _mm_xor_epi64(vec_b, sign_bits)));
+      return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_epi64(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits)));
 #ARM - NEON
    - target_extension: "neon"
      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -784,7 +784,7 @@ definitions:
      specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
      is_native: False
      implementation: |
-      __m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63); 
+      __m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63);
       __m256i less_than = _mm256_cmpgt_epi64(_mm256_xor_si256(vec_b, sign_bits), _mm256_xor_si256(vec_a, sign_bits));
       return _mm256_xor_si256(_mm256_set1_epi8(-1), less_than);
 
@@ -811,7 +811,7 @@ definitions:
      is_native: False
      implementation: |
       __m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63);
-      __m128i less_than = _mm_cmpgt_epi64(_mm_xor_epi64(vec_b, sign_bits), _mm_xor_epi64(vec_a, sign_bits));
+      __m128i less_than = _mm_cmpgt_epi64(_mm_xor_si128(vec_b, sign_bits), _mm_xor_si128(vec_a, sign_bits));
       return _mm_xor_si128(_mm_set1_epi8(-1), less_than);
 #ARM - NEON
    - target_extension: "neon"
