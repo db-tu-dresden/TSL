@@ -52,11 +52,11 @@ if("cxx_std_20" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
 		message(STATUS "Compiler does support C++20 and concepts.")
 	else()
 		message(STATUS "Compiler does support C++20 but not concepts.")
-		set(DEFAULT_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTIONS} "--no-concepts")
+		set(DEFAULT_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTS} "--no-concepts")
 	endif()
 else()
 	message(STATUS "Compiler does not support C++20.")
-	set(DEFAULT_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTIONS} "--no-concepts")
+	set(DEFAULT_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTS} "--no-concepts")
 endif()
 
 set(TVL_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTS} CACHE STRING "additonal cli options for the generator, semicolon separated")
@@ -71,10 +71,3 @@ execute_process(
 
 # run the CMakeLists.txt created by the generator
 add_subdirectory("${GENERATOR_OUTPUT_PATH}")
-
-# disable -W-attributes
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag(-Wno-attributes HAVE_W_NO_ATTRIBUTES)
-if (HAVE_W_NO_ATTRIBUTES)
-    target_compile_options(tvl INTERFACE -Wno-attributes)
-endif()
