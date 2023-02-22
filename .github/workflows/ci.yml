@@ -4,10 +4,8 @@ on:
   push:
     branches: [ main ]
 jobs:
-
   build:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -38,3 +36,102 @@ jobs:
       run: |
         cd build
         ./build/generator_output/src/test/tvl_test
+  update_tvl:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: "Install packages"
+      run: |
+        sudo apt-get update
+        sudo apt-get install graphviz-dev
+        sudo apt-get install util-linux
+    - name: Checkout TVL repository (recursive)
+      uses: actions/checkout@v3
+      with:
+        repository: db-tu-dresden/TVL.git
+        ref: main
+        token: '${{ secrets.DHTVL_AT }}'
+        submodules: recursive
+    - name: Setup Git Creds
+      run: |
+        git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+        git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+    - name: Update TVL repository (main branch)
+      run: |
+        set -x
+        pwd
+        ls -halt
+        git submodule foreach -q --recursive 'branch="$(git config -f $toplevel/.gitmodules submodule.$name.branch)"; git switch $branch'
+        git add generator
+        git commit -m "Updated submodule generator"
+    - name: Update TVL repository (hardware branches)
+      run: |
+        #!/bin/bash
+        set -x
+        git fetch --all
+        git pull --all
+        git switch main
+        for remote_branch in $(git for-each-ref --format='%(refname)' refs/remotes/origin/); do
+           branch=$(echo $remote_branch | sed 's/refs\/remotes\/origin\///g')
+           if [[ "$branch" != *(main|HEAD) ]]; then
+              echo "In branch: $branch"
+              git switch $branch
+              git merge --strategy ours --no-commit --allow-unrelated-histories main
+              git reset -- lib
+              git commit -am "Updated branch $branch"
+              git push
+              git switch main
+           fi
+        done
+        git switch main
+    - name: Set up latest Python version
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.x"
+    - name: Install generator dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ./generator/requirements.txt
+    - name: Generate complete code
+      run: |
+        #!/bin/bash
+        git fetch --all
+        git pull --all
+        git switch main
+        python3 generator/main.py -o ../lib
+        git add -A
+        git commit -m "updated tvl sources, generated with db-tu-dresden/TVLGen@${GITHUB_SHA}" -a
+        git push
+    - name: Generate SSE code
+      run: |
+        #!/bin/bash
+        git fetch --all
+        git pull --all
+        git switch sse
+        python3 generator/main.py --targets sse sse2 sse3 ssse3 sse4_1 sse4_2 -o ../lib
+        git add -A
+        git commit -m "updated SSE sources, generated with db-tu-dresden/TVLGen@${GITHUB_SHA}" -a
+        git push
+        git switch main
+    - name: Generate AVX2 code
+      run: |
+        #!/bin/bash
+        git fetch --all
+        git pull --all
+        git switch avx2
+        python3 generator/main.py --targets sse sse2 sse3 ssse3 sse4_1 sse4_2 avx avx2 -o ../lib
+        git add -A
+        git commit -m "updated SSE+AVX(2) sources, generated with db-tu-dresden/TVLGen@${GITHUB_SHA}" -a
+        git push
+        git switch main
+    - name: Generate NEON code
+      run: |
+        #!/bin/bash
+        git fetch --all
+        git pull --all
+        git switch neon
+        python3 generator/main.py --targets neon -o ../lib
+        git add -A
+        git commit -m "updated Neon sources, generated with db-tu-dresden/TVLGen@${GITHUB_SHA}" -a
+        git push
+        git switch main
