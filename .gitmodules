@@ -1,5 +1,4 @@
 [submodule "primitive_data"]
 	path = primitive_data
 	url = git@github.com:db-tu-dresden/TVLPrimitiveData.git
-	branch = main
-	
+	branch = conversion
