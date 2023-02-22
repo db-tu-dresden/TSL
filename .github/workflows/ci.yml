@@ -1,4 +1,4 @@
-name: Integrity Check (Primitive Data)
+name: CI
 
 on:
   push:
