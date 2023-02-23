@@ -43,8 +43,8 @@ parameters:
      description: "Number of bytes which should be allocated."
    - ctype: "std::size_t"
      name: "alignment"
-     description: "Alignment bytes."
      declaration_attributes: "[[maybe_unused]]"
+     description: "Alignment bytes."
 returns:
    ctype: "typename Vec::base_type *"
    description: "Pointer to allocated memory."
@@ -116,8 +116,8 @@ parameters:
    - ctype: "int"
      name: "copy_kind"
      default_value: "0"
-     description: "Which type of copy should be performed: {0: host->host, 1: host->device, 2: device->host, 3: device->device}"
      declaration_attributes: "[[maybe_unused]]"
+     description: "Which type of copy should be performed: {0: host->host, 1: host->device, 2: device->host, 3: device->device}"
 definitions:
 #INTEL - AVX512
    - target_extension: "avx512"

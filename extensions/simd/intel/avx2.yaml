@@ -8,17 +8,18 @@ includes: ['"immintrin.h"']
 simdT_name: "avx2"
 simdT_default_size_in_bits: 256
 simdT_register_type_attributes: "__attribute__((__vector_size__(VectorSizeInBits/8),__may_alias__,__aligned__(VectorSizeInBits/8)))"
-simdT_register_type: |-
+simdT_register_type: "BaseType"
+simdT_mask_type: "register_t"
+simdT_integral_mask_type: |-
    TVL_DEP_TYPE(
-                     (std::is_integral_v< BaseType >),
-                     long long,
+                     (sizeof(BaseType)==1),
+                     uint32_t,
                      TVL_DEP_TYPE(
-                        (sizeof( BaseType ) == 4),
-                        float,
-                        double
+                        (sizeof(BaseType)==2),
+                        uint16_t,
+                        uint8_t
                      )
                   )
-simdT_mask_type: "register_t"
 intrin_tp: {uint8_t: ["epu", 8], uint16_t: ["epu", 16], uint32_t: ["epu", 32], uint64_t: ["epu", 64], int8_t: ["epi", 8], int16_t: ["epi", 16], int32_t: ["epi", 32], int64_t: ["epi", 64], float: ["p", "s"], double: ["p", "d"]}
 intrin_tp_full: {uint8_t: "epu8", uint16_t: "epu16", uint32_t: "epu32", uint64_t: "epi64", int8_t: "epi8", int16_t: "epi16", int32_t: "epi32", int64_t: "epi64", float: "ps", double: "pd"}
 ...

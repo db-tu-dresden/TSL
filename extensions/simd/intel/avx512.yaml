@@ -8,27 +8,18 @@ includes: ['"immintrin.h"']
 simdT_name: "avx512"
 simdT_default_size_in_bits: 512
 simdT_register_type_attributes: "__attribute__((__vector_size__(VectorSizeInBits/8),__may_alias__,__aligned__(VectorSizeInBits/8)))"
-simdT_register_type: |-
-   TVL_DEP_TYPE(
-                     (std::is_integral_v< BaseType >),
-                     long long,
-                     TVL_DEP_TYPE(
-                        (sizeof( BaseType ) == 4),
-                        float,
-                        double
-                     )
-                  )
+simdT_register_type: "BaseType"
 simdT_mask_type: |-
    TVL_DEP_TYPE(
                      ( VectorSizeInBits == 512 ),
                      TVL_DEP_TYPE(
-                        ( sizeof( register_t ) / sizeof( BaseType ) ) == 64,
+                        ( sizeof( BaseType ) ) == 1,
                         __mmask64,
                         TVL_DEP_TYPE(
-                           ( sizeof( register_t ) / sizeof( BaseType ) ) == 32,
+                           ( sizeof( BaseType ) ) == 2,
                            __mmask32,
                            TVL_DEP_TYPE(
-                              ( sizeof( register_t ) / sizeof( BaseType ) ) == 16,
+                              ( sizeof( BaseType ) ) == 4,
                               __mmask16,
                               __mmask8
                            )
@@ -37,21 +28,21 @@ simdT_mask_type: |-
                      TVL_DEP_TYPE(
                         ( VectorSizeInBits == 256 ),
                         TVL_DEP_TYPE(
-                           ( sizeof( register_t ) / sizeof( BaseType ) ) == 32,
+                           ( sizeof( BaseType ) ) == 1,
                            __mmask32,
                            TVL_DEP_TYPE(
-                              ( sizeof( register_t ) / sizeof( BaseType ) ) == 16,
+                              ( sizeof( BaseType ) ) == 2,
                               __mmask16,
                               __mmask8
                            )
                         ),
                         TVL_DEP_TYPE(
-                           ( sizeof( register_t ) / sizeof( BaseType ) ) == 16,
+                           ( sizeof( BaseType ) ) == 1,
                            __mmask16,
                            __mmask8
                         )
                      )
                   )
 intrin_tp: {uint8_t: ["epu", 8], uint16_t: ["epu", 16], uint32_t: ["epu", 32], uint64_t: ["epu", 64], int8_t: ["epi", 8], int16_t: ["epi", 16], int32_t: ["epi", 32], int64_t: ["epi", 64], float: ["p", "s"], double: ["p", "d"]}
-intrin_tp_full: {uint8_t: "epu8", uint16_t: "epu16", uint32_t: "epu32", uint64_t: "epi64", int8_t: "epi8", int16_t: "epi16", int32_t: "epi32", int64_t: "epi64", float: "ps", double: "pd"}
+intrin_tp_full: {uint8_t: "epu8", uint16_t: "epu16", uint32_t: "epu32", uint64_t: "epu64", int8_t: "epi8", int16_t: "epi16", int32_t: "epi32", int64_t: "epi64", float: "ps", double: "pd"}
 ...
