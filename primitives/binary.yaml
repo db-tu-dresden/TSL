@@ -146,6 +146,117 @@ definitions:
         return result;
 ...
 ---
+primitive_name: "binary_or"
+brief_description: "Binary ANDs two vector registers."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "a"
+     description: "First vector."
+   - ctype: "const typename Vec::register_type"
+     name: "b"
+     description: "Second vector."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing result of the binary AND."
+testing: 
+   -  requires: ["loadu"]
+      includes: ["<cstddef>"]
+      implementation: |
+        using T = typename Vec::base_type;
+        std::size_t element_count = 1024;
+        testing::test_memory_helper_t<Vec> test_helper{element_count * 2, Vec::vector_element_count(), false};
+        bool allOk = true;
+        auto reference_data_ptr = test_helper.data_ref();
+        auto reference_result_ptr = test_helper.result_ref();
+        for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            for(size_t j = 0; j < Vec::vector_element_count(); ++j) {
+                uint8_t* a = (uint8_t*)&reference_data_ptr[i + j];
+                uint8_t* b = (uint8_t*)&reference_data_ptr[element_count + i + j];
+                uint8_t* res = (uint8_t*)&reference_result_ptr[j];
+                for (int k = 0; k < sizeof(T); k++) res[k] = a[k] | b[k];
+            }
+            auto vec1 = loadu<Vec>(&reference_data_ptr[i]);
+            auto vec2 = loadu<Vec>(&reference_data_ptr[element_count + i]);
+            auto result = binary_or<Vec>(vec1, vec2);
+            allOk &= test_helper.validate_simd_register(result);
+        }
+        return allOk;
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_or_si512(a, b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512dq"]
+    implementation: "return _mm512_or_{{ intrin_tp_full[ctype] }}(a, b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: "return _mm512_cast{{ intrin_tp_full[ctype] }}_si512(_mm512_or_si512(_mm512_castsi512_{{ intrin_tp_full[ctype] }}(a), _mm512_castsi512_{{ intrin_tp_full[ctype] }}(b)));"
+#Intel - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_or_si256(a, b);"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_or_{{ intrin_tp_full[ctype] }}(a, b);"
+#Intel - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_or_si128(a, b);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(a, b);"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(a, b);"
+#ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vorq_{{ intrin_tp_full[ctype] }}( a, b );"
+  - target_extension: "neon"
+    ctype: ["float", "double"]
+    lscpu_flags: ['neon']
+    implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vorq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: "return a & b;"
+  - target_extension: "scalar"
+    ctype: ["float"]
+    lscpu_flags: []
+    is_native: False
+    implementation: "uint32_t r = *((uint32_t *)&a) | *((uint32_t *)&b); return *(float*)&r;"
+  - target_extension: "scalar"
+    ctype: ["double"]
+    lscpu_flags: []
+    is_native: False
+    implementation: "uint64_t r = *((uint64_t *)&a) | *((uint64_t *)&b); return *(double*)&r;"
+#INTEL - FPGA
+  - target_extension: "fpga"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t"]
+    lscpu_flags: ["fpga"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = a[i] | b[i];
+      }
+      return result;
+...
+---
 primitive_name: "binary_xor"
 brief_description: "Binary XORs two vector registers."
 parameters:
