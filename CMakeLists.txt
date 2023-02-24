@@ -62,7 +62,10 @@ endif()
 set(TVL_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTS} CACHE STRING "additonal cli options for the generator, semicolon separated")
 
 # run the generator
-set(GENERATOR_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/generator_output")
+if( NOT DEFINED GENERATOR_OUTPUT_PATH)
+    set(GENERATOR_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/generator_output")
+endif()
+
 message(STATUS "Running TVL Generator...")
 execute_process(
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" ${TVL_GENERATOR_OPTS} -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
@@ -70,4 +73,4 @@ execute_process(
 )
 
 # run the CMakeLists.txt created by the generator
-add_subdirectory("${GENERATOR_OUTPUT_PATH}")
+add_subdirectory("${GENERATOR_OUTPUT_PATH}" "${GENERATOR_OUTPUT_PATH}/build")
