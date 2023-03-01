@@ -28,7 +28,7 @@ class TVLGenerator:
     def __add_extension(self, extension_file: Path) -> None:
         extension_data_dict = None
         try:
-            extension_data_dict = config.get_schema("extension").validate(yaml_load(extension_file))
+            extension_data_dict = config.get_schema("extension").validate(yaml_load(extension_file, **config.yaml_loader_params()))
         except Exception as e:
             self.log(logging.ERROR,
                      f"Error while validating extension {extension_file}. Exception: {str(e)}")
@@ -40,7 +40,7 @@ class TVLGenerator:
         primitive_schema = config.get_schema("primitive")
 
         primitive_class: TVLPrimitiveClass = None
-        for yaml_document in yaml_load_all(primitive_class_file):
+        for yaml_document in yaml_load_all(primitive_class_file, **(config.yaml_loader_params())):
             if primitive_class is None:
                 class_dict = None
                 try:
