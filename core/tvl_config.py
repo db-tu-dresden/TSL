@@ -27,7 +27,7 @@ class TVLGeneratorConfig:
             return self.__env
 
     def __init__(self) -> None:
-        self.include_guard_regex = re.compile(r"[/\.\\: ]")
+        self.include_guard_regex = re.compile(r"\W|[^\x00-\x7F]")
         self.path_seperator: str = pathlib.os.sep
         self.__valid = False
         self.__logger = None
