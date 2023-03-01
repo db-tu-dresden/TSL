@@ -412,7 +412,7 @@ def parse_args() -> dict:
     parser.add_argument('--emit-tsl-extensions-to', type=pathlib.Path, dest='configuration:emit_tsl_extensions_to', required=False,
                         help="", metavar="ExOutPath")
 
-    add_bool_arg(parser, 'debug-gen', 'configuration:debug_generator', "Enable ", "Disable ", False, help='loc of yaml files', required=False)
+    parser.add_argument('--no-debug-info', dest='configuration:debug_generator', action='store_false', required=False)
     add_bool_arg(parser, 'workaround-warnings', 'configuration:emit_workaround_warnings', "Enable ", "Disable ", True, help='workaround warnings', required=False)
     add_bool_arg(parser, 'concepts', 'configuration:use_concepts', "Enable ", "Disable ", True, help='C++20 concepts.', required=False)
     add_bool_arg(parser, 'draw-test-dependencies', 'configuration:expansions:unit_tests:draw_dependency_graph', "Enable ", "Disable ", False, help="draw dependency graph for test generation", required=False)
