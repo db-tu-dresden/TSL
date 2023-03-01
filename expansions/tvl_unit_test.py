@@ -25,7 +25,6 @@ import os
 class TVLPrimitiveTestCaseData:
     def __init__(self, class_name: str, primitive_name: str, data_dict: YamlDataType, lib_definitions: Dict[str, List[str]], conversion_types: Dict[str, Dict[str, List[str]]], missing_primitive_definitions: Dict[str, Dict[str, List[str]]]):
         self.__class_name: str = class_name
-        print(f"TEST primitive_name: {primitive_name}")
         self.__primitive_name: str = primitive_name
         self.__test_name: str = data_dict["test_name"]
         self.__data_dict: YamlDataType = data_dict
@@ -295,7 +294,6 @@ class TVLTestSuite:
                                          f"Could not create test case \"{test['test_name']}\" for any type and extension.")
                         else:
                             self.__test_cases.append(TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.functor_name, test, primitive_definition_extension_ctype, primitive.conversion_types(primitive_definition_extension_ctype), missing_primitive_definitions))
-                            print(f"{primitive_class.name}::{primitive.declaration.functor_name}_{test['test_name']}:")
                             for ext in missing_primitive_definitions:
                                 for t in missing_primitive_definitions[ext]:
                                     print(f"{ext.center(10)}{t.center(10)}: {missing_primitive_definitions[ext][t]}")
@@ -502,17 +500,18 @@ class TVLTestGenerator:
         if unit_test_config["draw_dependency_graph"]:
             dependency_graph.draw(root_path.joinpath("test_dependencies.png"))
 
-        print(f"Downloading ... {unit_test_config['test_header_url']}", end='', flush=True)
+        # print(f"Downloading ... {unit_test_config['test_header_url']}", end='', flush=True)
+        tvltestgenerator = TVLTestGenerator()
+        tvltestgenerator.log(logging.DEBUG, f"Starting download of {unit_test_config['test_header_url']}")
         header_name = unit_test_config['test_header_url'].split("/")[-1]
         
         if ( os.path.exists( f"{str(root_path)}/{header_name}") ):
-            print(" -- Test header already present, skipping download.")
+            tvltestgenerator.log(logging.DEBUG, f"File (test header) already present, skipping download")
         else:
-            print("")
             try:
                 wget.download(unit_test_config["test_header_url"], out=str(root_path))
             except Exception as e:
-                TVLTestGenerator().log(logging.WARN,
+                tvltestgenerator.log(logging.WARN,
                                     f"Could not download the necessary test header file. Check your network connection. {e}")
 
         tests: List[TVLPrimitiveClassTests] = []
