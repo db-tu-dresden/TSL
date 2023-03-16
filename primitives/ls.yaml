@@ -1463,12 +1463,12 @@ definitions:
 primitive_name: "masked_copy"
 brief_description: "Copy elements from a vector, where the mask bit it set, otherwise write zero"
 parameters:
-   - ctype: "const typename Vec::register_type"
-     name: "src"
-     description: "Base Vector."
    - ctype: "const typename Vec::imask_type"
      name: "mask"
      description: "Mask of elements to change."
+   - ctype: "const typename Vec::register_type"
+     name: "src"
+     description: "Base Vector."
 returns:
    ctype: "typename Vec::register_type"
    description: "Base Vector, with the elements specified by mask changed to value."
@@ -1487,7 +1487,7 @@ testing:
             typename Vec::imask_type random_integral;
             testing::rnd_init(&random_integral, 1);
             auto src = &test_data_ptr[i];
-            auto result = masked_copy<Vec>(loadu<Vec>(src), random_integral);
+            auto result = masked_copy<Vec>(random_integral, loadu<Vec>(src));
             for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
                reference_result_ptr[j] = (random_integral >> j) & 1 ? src[j] : 0;
             }
