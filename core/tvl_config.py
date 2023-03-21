@@ -13,7 +13,8 @@ from utils.file_utils import StaticFileTree
 from utils.git_utils import GitUtils
 from utils.requirement import requirement
 from utils.yaml_schema import Schema
-from utils.yaml_utils import yaml_load
+from utils.yaml_utils import yaml_load, SafeLineLoader
+from yaml.loader import SafeLoader
 
 
 class TVLGeneratorConfig:
@@ -26,7 +27,7 @@ class TVLGeneratorConfig:
             return self.__env
 
     def __init__(self) -> None:
-        self.include_guard_regex = re.compile(r"[/\.\\: ]")
+        self.include_guard_regex = re.compile(r"\W|[^\x00-\x7F]")
         self.path_seperator: str = pathlib.os.sep
         self.__valid = False
         self.__logger = None
@@ -114,6 +115,16 @@ class TVLGeneratorConfig:
         """
         if not self.__valid:
             self.__setup(config_dict)
+
+    @property
+    def yaml_loader(self):
+        if self.__general_configuration_dict["debug_generator"]:
+            return SafeLineLoader
+        else:
+            return SafeLoader
+
+    def yaml_loader_params(self):
+        return {"Loader": self.yaml_loader, "save_filename": self.__general_configuration_dict["debug_generator"]}
 
     @requirement(entry_name="NonEmptyString")
     def get_template(self, template_name: str) -> Template:
@@ -401,6 +412,7 @@ def parse_args() -> dict:
     parser.add_argument('--emit-tsl-extensions-to', type=pathlib.Path, dest='configuration:emit_tsl_extensions_to', required=False,
                         help="", metavar="ExOutPath")
 
+    parser.add_argument('--no-debug-info', dest='configuration:debug_generator', action='store_false', required=False)
     add_bool_arg(parser, 'workaround-warnings', 'configuration:emit_workaround_warnings', "Enable ", "Disable ", True, help='workaround warnings', required=False)
     add_bool_arg(parser, 'concepts', 'configuration:use_concepts', "Enable ", "Disable ", True, help='C++20 concepts.', required=False)
     add_bool_arg(parser, 'draw-test-dependencies', 'configuration:expansions:unit_tests:draw_dependency_graph', "Enable ", "Disable ", False, help="draw dependency graph for test generation", required=False)

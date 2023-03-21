@@ -19,8 +19,10 @@ class Schema:
                 self.error["example"] = field_data["example"]
 
         def __str__(self):
-            errors = ", ".join(f"{x}: {self.error[x]}" for x in self.error)
-            return f"{self.message} ({errors})"
+            if "yaml_origin_line" in self.error["data"]:
+                errors = ", ".join(f"{x}: {self.error[x]}" for x in self.error)
+                return f"In file {self.error['data']['yaml_origin_file']} around line {self.error['data']['yaml_origin_line']}: {self.message} ({errors})"
+            return f"{self.message}"
 
     class RequiredFieldError(Exception):
         def __init__(self, message, errors):
@@ -29,8 +31,10 @@ class Schema:
             self.error = errors
 
         def __str__(self):
-            errors = ", ".join(f"{x}: {self.error[x]}" for x in self.error)
-            return f"{self.message} ({errors})"
+            if "yaml_origin_line" in self.error["data"]:
+                errors = ", ".join(f"{x}: {self.error[x]}" for x in self.error)
+                return f"In file {self.error['data']['yaml_origin_file']} around line {self.error['data']['yaml_origin_line']}: {self.message} ({errors})"
+            return f"{self.message}"
 
     class UnknownTypeError(Exception):
         def __init__(self, message, errors):
@@ -39,8 +43,10 @@ class Schema:
             self.error = errors
 
         def __str__(self):
-            errors = ", ".join(f"{x}: {self.error[x]}" for x in self.error)
-            return f"{self.message} ({errors})"
+            if "yaml_origin_line" in self.error["data"]:
+                errors = ", ".join(f"{x}: {self.error[x]}" for x in self.error)
+                return f"In file {self.error['data']['yaml_origin_file']} around line {self.error['data']['yaml_origin_line']}: {self.message} ({errors})"
+            return f"{self.message}"
 
     class SchemaNode:
         @LogInit()
@@ -179,14 +185,14 @@ class Schema:
                             casted_data = eval(self.__type)(data)
                     except:
                         raise Schema.TypeCastError("Cast was not possible.",
-                                                   {"cast candidate": data, "target type": self.__type})
+                                                   {"data": data, "cast candidate": data, "target type": self.__type})
                 if self.__entry_type is not None:
                     if "list" == self.__type:
                         return [self.__entry_type.validate(d) for d in casted_data]
                     elif "dict" == self.__type:
                         casted_data = self.__entry_type.validate(casted_data)
                     else:
-                        raise Schema.UnknownTypeError("Type has to be list or dict", {"type": self.__type})
+                        raise Schema.UnknownTypeError("Type has to be list or dict", {"data": data, "type": self.__type})
 
                 return casted_data
 

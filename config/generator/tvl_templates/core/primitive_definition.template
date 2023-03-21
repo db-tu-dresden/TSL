@@ -84,6 +84,9 @@ namespace {{ tvl_implementation_namespace }} {
        * Target Extension: {{ target_extension }}.
        *        Data Type: {{ ctype }}
        *  Extension Flags: {{ lscpu_flags }}
+       {% if yaml_origin_line and yaml_origin_file %}
+       *      Yaml Source: {{ yaml_origin_file }}::{{ yaml_origin_line }}
+       {% endif %}
        {% if specialization_comment != "" %}
        * @note: {{ specialization_comment }}
        {% endif %}
