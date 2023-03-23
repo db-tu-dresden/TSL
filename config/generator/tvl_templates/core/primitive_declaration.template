@@ -66,7 +66,18 @@ namespace {{ tvl_implementation_namespace }} {
    }
 {{ tvl_function_doxygen }}
    {# This is the templated free function for the primitive which is called by the user of TVL. #}
-   template<VectorProcessingStyle {{ vector_name }}, {{ ns.additional_template_type_name}}ImplementationDegreeOfFreedom {{ idof_name }} = workaround{{ ns.parameter_pack_typenames_str }}>
+   template<
+      VectorProcessingStyle {{ vector_name }}
+      , {{ ns.additional_template_type_name}}ImplementationDegreeOfFreedom {{ idof_name }} = workaround{{ ns.parameter_pack_typenames_str }}
+      {% if functor_name != primitive_name %}
+      , typename std::enable_if_t<
+         !std::is_same_v<
+            typename {{ tvl_implementation_namespace }}::{{ primitive_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>::param_tuple_t,
+            typename {{ tvl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>::param_tuple_t>,
+         std::nullptr_t
+    > = nullptr
+      {% endif %}
+   >
    {# If the primitive returns something, the caller has to capture the result. #}
       {{ '[[nodiscard]] ' if returns['ctype'] != 'void' else '' }}{# If force_inline is set to True, we use TVL_FORCE_INLINE. #}{{ 'TVL_FORCE_INLINE ' if force_inline else '' }}{{ returns['ctype'] }} {{ primitive_name }}(
          {{ ns.full_qualified_parameters_str }}
