@@ -17,6 +17,7 @@ class TVLPrimitive:
         @LogInit()
         def __init__(self, data_dict: dict):
             self.__data_dict = data_dict
+            self.__data_dict["tvl_namespace"] = config.get_config_entry("namespace")
             if len(data_dict["functor_name"]) == 0:
                 self.__data_dict["functor_name"] = data_dict["primitive_name"]
             self.log(logging.INFO, f"Created Primitive Declaration {self.__data_dict['primitive_name']}")
