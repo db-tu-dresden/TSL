@@ -87,7 +87,7 @@ class TVLGenerator:
 
     def generate(self, relevant_hardware_flags: List[str] = None):
         self.update()
-        slicer = TVLSlicer(relevant_hardware_flags)
+        slicer = TVLSlicer(relevant_hardware_flags, config.relevant_types)
 
         relevant_extensions_set: TVLExtensionSet = slicer.slice_extensions(self.__tvl_extension_set)
         if config.emit_tsl_extensions_to_file:
@@ -95,7 +95,7 @@ class TVLGenerator:
             template = config.create_template(tsl_extension_name)
             extensions_list = []
             for extension in relevant_extensions_set:
-                for dtype in config.default_types:
+                for dtype in config.relevant_types:
                     extensions_list.append(
                         {
                             "tsl_extension_name": template.render({

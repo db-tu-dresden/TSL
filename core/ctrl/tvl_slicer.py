@@ -5,14 +5,16 @@ from typing import List, Dict, Set
 
 from core.model.tvl_extension import TVLExtensionSet
 from core.model.tvl_primitive import TVLPrimitiveClassSet, TVLPrimitiveClass, TVLPrimitive
+from utils.dict_utils import intersects, deep_update_dict
 from utils.log_utils import LogInit, log
 from utils.requirement import requirement
 
 
 class TVLSlicer:
     @LogInit()
-    def __init__(self, relevant_hardware_flags: List[str] = None):
+    def __init__(self, relevant_hardware_flags: List[str] = None, relevant_types: List[str] = []):
         self.__relevant_hardware_flags: List[str] = relevant_hardware_flags
+        self.__relevant_types: Set[str] = set(relevant_types)
         # self.__relevant_hardware_flags_set: Set[str] = set(relevant_hardware_flags)
 
     @requirement(data_dict="NotNone")
@@ -65,13 +67,26 @@ class TVLSlicer:
                 result.add_extension(deepcopy(extension), logging.WARNING)
         return result
 
+    def __is_definition_relevant(self, definition: TVLPrimitive.Definition) -> bool:
+        if intersects(set(definition.ctypes), self.__relevant_types) and intersects(set(definition.additional_simd_template_base_types), self.__relevant_types):
+            if len(definition.additional_simd_template_base_type_mapping_dict) != 0:
+                return len(deep_update_dict(definition.additional_simd_template_base_type_mapping_dict, self.__relevant_types, False)) != 0
+            else:
+                return True
+        return False
+
+    # def __update_definition(self, definition: TVLPrimitive.Definition):
+    #     definition.ctypes = list((set(definition.ctypes)).intersection(self.__relevant_types))
     @log
     def __slice_primitive(self, primitive: TVLPrimitive) -> TVLPrimitive:
         relevant_hw_flags_set: Set[str] = set(self.__relevant_hardware_flags)
         definitions: Dict[str, List[TVLPrimitive.Definition]] = dict()
         for definition in primitive.definitions:
             copied_definition: TVLPrimitive.Definition = copy.deepcopy(definition)
-            if self.is_primitive_relevant(copied_definition.data):
+            if self.is_primitive_relevant(copied_definition.data) and self.__is_definition_relevant(copied_definition):
+                copied_definition.update_types(list(self.__relevant_types))
+                # copied_definition.ctypes = list((set(copied_definition.ctypes)).intersection(self.__relevant_types))
+                # copied_definition.additional_simd_template_base_types = list((set(copied_definition.additional_simd_template_base_types)).intersection(self.__relevant_types))
                 if copied_definition.target_extension not in definitions:
                     definitions[copied_definition.target_extension] = [copied_definition]
                 else:
