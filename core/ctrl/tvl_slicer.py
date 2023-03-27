@@ -70,7 +70,7 @@ class TVLSlicer:
     def __is_definition_relevant(self, definition: TVLPrimitive.Definition) -> bool:
         if intersects(set(definition.ctypes), self.__relevant_types) and intersects(set(definition.additional_simd_template_base_types), self.__relevant_types):
             if len(definition.additional_simd_template_base_type_mapping_dict) != 0:
-                return len(deep_update_dict(definition.additional_simd_template_base_type_mapping_dict, self.__relevant_types, False)) != 0
+                return len(deep_update_dict(definition.additional_simd_template_base_type_mapping_dict, list(self.__relevant_types), False)) != 0
             else:
                 return True
         return False
