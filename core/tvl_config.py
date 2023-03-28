@@ -272,8 +272,8 @@ class TVLGeneratorConfig:
         return self.get_config_entry("compiler_architecture_prefix")
 
     @property
-    def default_types(self) -> List[str]:
-        return self.get_config_entry("default_types")
+    def relevant_types(self) -> List[str]:
+        return self.get_config_entry("relevant_types")
 
     @property
     def use_concepts(self) -> bool:
@@ -396,7 +396,7 @@ def add_bool_arg(parser, name, dest, help_true_prefix="", help_false_prefix="", 
 
 
 
-def parse_args() -> dict:
+def parse_args(**kwargs) -> dict:
     parser = argparse.ArgumentParser(description="TVL Generator", epilog="To apply fine-tuned changes to the generator please change the config files (config/default_conf.yaml and config/log_conf.yaml).")
     parser.add_argument('-o', '--out', type=pathlib.Path, help="Generation output path.", required=False,
                                   dest='configuration:root_path', metavar="OutPath")
@@ -406,6 +406,12 @@ def parse_args() -> dict:
     parser.add_argument('--targets', default=None, nargs='*',
                         help='List of target flags which match the lscpu_flags from the extension/primitive files.',
                         dest='targets')
+    types_help = 'List of types which should be considered for generation.'
+    if "known_types" in kwargs:
+        types_help += f" Choose from the following list: [{', '.join(kwargs['known_types'])}]"
+    parser.add_argument('--types', default=None, nargs='*',
+                        help=types_help,
+                        dest='configuration:relevant_types', metavar="TYPES")
 
     parser.add_argument('--print-outputs-only', dest='configuration:print_output_only', action="store_true",
                         help="Print only the files which would be generated as list (separator by semicolon)")
@@ -436,5 +442,7 @@ def parse_args() -> dict:
 
     if "targets" not in args_dict:
         args_dict["targets"] = None
+    # if "relevant_types" not in args_dict:
+    #     args_dict["relevant_types"] = None
     return args_dict
 

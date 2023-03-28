@@ -9,6 +9,7 @@
 {% for include in includes %}
 #include {{ include }}
 {% endfor %}
+#include <tuple>
 {% if codes %}
 namespace {{ tvl_namespace }} {
 {% if nested_namespaces is defined %}
