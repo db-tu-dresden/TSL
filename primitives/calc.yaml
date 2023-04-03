@@ -123,9 +123,9 @@ definitions:
      lscpu_flags: []
      implementation: "return vec_a + vec_b;"
 #INTEL - FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;
@@ -374,9 +374,9 @@ testing:
          return allOk;
 definitions:
 #INTEL - FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
      vector_length_agnostic: True
      implementation: |
         typename Vec::register_type result{};
@@ -413,9 +413,9 @@ definitions:
 #   result += add_3_1 + add_3_2;
 # }
 # return result;
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint64_t", "int64_t", "double"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::base_type;
@@ -569,4 +569,35 @@ definitions:
      ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
      lscpu_flags: [ ]
      implementation: "return value;"
+---
+primitive_name: "lzc"
+brief_description: "Leading zeros counter."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec_a"
+     description: "First vector."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Vector containing leading zeros number."
+definitions:
+   - target_extension: "fpga_native"
+     ctype: ["uint32_t", "int32_t", "float"]
+     lscpu_flags: ["fpga_native"]
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        T result; //initialize the result
+        T lzc_data;
+        #pragma unroll
+        for(int i = 0; i < Vec::vector_element_count(); ++i) {
+         lzc_data[i] = Lzc32Uint(vec_a[i]);
+        }
+        #pragma unroll
+        for(int i = 0; i < Vec::vector_element_count(); ++i) {
+         if(lzc_data[i]>32)
+           result[i] = 32;
+         else
+           result[i] = lzc_data[i];
+        }
+        return result;
 ...

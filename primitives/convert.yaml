@@ -137,11 +137,11 @@ definitions:
     lscpu_flags: []
     implementation: "return data;"
 #INTEL - FPGA
-  - target_extension: "fpga"
+  - target_extension: "fpga_generic"
     ctype: ["float","double"]
     additional_simd_template_base_type_mapping_dict: {"float":["int32_t", "uint32_t"],"double":["int64_t", "uint64_t"]}
     vector_length_agnostic: True
-    lscpu_flags: ["fpga"]
+    lscpu_flags: ["fpga_generic"]
     implementation: |
       using U = typename ToType::register_type;
       U result{};
@@ -172,11 +172,11 @@ testing:
       testing::test_memory_helper_t<Vec> test_helper_lower{Vec::vector_element_count(), 1, false, testing::seq_init_start_low<lower_type>};
       auto lower_value_vec = loadu<Vec>(test_helper_lower.data_target());
       auto const lower_inc_vec = set1<Vec>(Vec::vector_element_count());
-      
+
       testing::test_memory_helper_t<ToType> test_helper_upper{ToType::vector_element_count(), ToType::vector_element_count(), false, testing::seq_init_start_low<upper_type>};
       auto test_upper_result_ptr = reinterpret_cast<lower_type*>(test_helper_upper.result_target());
       auto test_upper_ref_ptr = test_helper_upper.result_ref();
-      
+
       for(uint64_t i = 0; i < std::numeric_limits<lower_type>::max(); i+= Vec::vector_element_count()) {
         auto test_upper_result_ptr = reinterpret_cast<lower_type*>(test_helper_upper.result_target());
         auto result = convert_up<Vec, ToType>(lower_value_vec);
@@ -423,10 +423,10 @@ definitions:
     implementation: |
       return { {
         _mm_cvtepi8_epi64(data),
-        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,2)), 
-        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,4)), 
-        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,6)), 
-        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,8)), 
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,2)),
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,4)),
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,6)),
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,8)),
         _mm_cvtepi8_epi64(_mm_bsrli_si128(data,10)),
         _mm_cvtepi8_epi64(_mm_bsrli_si128(data,12)),
         _mm_cvtepi8_epi64(_mm_bsrli_si128(data,14)),
@@ -532,7 +532,7 @@ testing:
     implementation: |
       using upper_type = typename Vec::base_type;
       using lower_type = typename ToType::base_type;
-      
+
       testing::test_memory_helper_t<ToType> test_helper_lower{ToType::vector_element_count(), 1, false, testing::seq_init_start_low<lower_type>};
       auto lower_value_vec = loadu<ToType>(test_helper_lower.data_target());
       auto const lower_inc_vec = set1<ToType>(ToType::vector_element_count());
@@ -558,22 +558,22 @@ definitions:
     is_native: False
     implementation: |
       auto const upper_zero = _mm256_set1_epi32(0xff);
-      const __m256i x = 
+      const __m256i x =
         _mm256_or_si256(
           _mm256_or_si256(
             _mm256_or_si256(
-              _mm256_and_si256(upper_zero, data[0]), 
+              _mm256_and_si256(upper_zero, data[0]),
               _mm256_bslli_epi128(_mm256_and_si256(upper_zero, data[1]),1)
-            ), 
+            ),
             _mm256_bslli_epi128(_mm256_and_si256(upper_zero, data[2]), 2)
-          ), 
+          ),
           _mm256_bslli_epi128(_mm256_and_si256(upper_zero, data[3]), 3)
         );
-      const __m256i y = 
+      const __m256i y =
         _mm256_shuffle_epi8(
-          x, 
+          x,
           _mm256_set_epi32(
-            0xF0B0703,0xE0A0602, 0xD090501,0xC080400, 
+            0xF0B0703,0xE0A0602, 0xD090501,0xC080400,
             0xF0B0703,0xE0A0602, 0xD090501,0xC080400
           )
         );
@@ -615,7 +615,7 @@ definitions:
                     d0,
                     1
                   )
-                ), 
+                ),
                 2
               )
             ),
@@ -632,7 +632,7 @@ definitions:
                     d1,
                     1
                   )
-                ), 
+                ),
                 2
               )
             ),
