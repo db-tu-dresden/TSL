@@ -8,3 +8,5 @@ tvlgen.zip
 tvlgen.log.1
 
 tvlgen.log.2
+supplementary/*/*.a
+supplementary/*/*.o
