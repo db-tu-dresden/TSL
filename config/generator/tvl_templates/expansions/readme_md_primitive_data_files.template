@@ -1,0 +1,47 @@
+# TVL Primitive Data
+< Insert general remarks here >
+
+## Basics
+< Describe the basics here: how is it used within the generator, ...>
+
+## Extension
+< Describe what an extension is, what it represents >
+
+### Fields
+##### Table of Contents
+|Required Fields|Optional Fields
+|:-:|:-:|
+
+
+{% macro traverse_dict(data) %}
+   {% for k, v in data.items() %}
+      {% if v.__class__.__name__ == 'dict' %}
+<details open>
+            {% if k.__class__.__name__ == 'tuple' %}
+<summary><a name="{{ k[0] }}"></a>{{ k[0] }}: ({{ k[1] }})</summary>
+
+            {% else %}
+<summary><a name="{{ k }}"></a>{{ k }}</summary>
+
+            {% endif %}
+<blockquote>
+
+{{ traverse_dict(v) }}
+
+</blockquote>
+</details>
+
+      {% else %}
+         {% if "links_to" == k %}
+   {{ k }}: [{{ v[0] }}](#{{ v[0] }})
+         {% elif "type" == k %}
+{{ k }}: `{{ v }}` <br />
+         {% else %}
+{{ k }}: {{ v }} <br />
+         {% endif %}
+      {% endif %}
+   {% endfor %}
+{% endmacro %}
+
+{{ traverse_dict(data) }}
+{{ data }}

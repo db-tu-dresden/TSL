@@ -1,11 +1,11 @@
 ---
-includes: &includes_schema
+includes: &includes
    type: "list"
    default: []
    entry_type: "str"
    brief: "A list of includes which are required."
 
-custom_type: &custom_type_schema
+custom_type: &custom_type
    required:
       name:
          type: "str"
@@ -20,11 +20,12 @@ extension:
          type: "str"
          brief: "Vendor Name."
          example: "'intel'"
+         requirement: "required"
       extension_name:
          type: "str"
          brief: "Extension Name (used as filename)."
          example: "'avx512'"
-      lscpu_flags: &lscpu_flags_schema
+      lscpu_flags: &lscpu_flags
          type: "list"
          entry_type: "str"
          brief: "List of extension specific flags, exposed by using lscpu."
@@ -45,6 +46,7 @@ extension:
          type: "str"
          brief: "Integral type for a mask. This may differ from the mask_type."
          default: "mask_t"
+         requirement: "optional"
       language:
          type: "str"
          brief: "Language string used by cmake."
@@ -56,7 +58,7 @@ extension:
          default: True
       custom_types:
          type: "list"
-         entry_type: *custom_type_schema
+         entry_type: *custom_type
          brief: "List of custom types."
          default: []
       simdT_default_size_in_bits:
@@ -103,9 +105,9 @@ extension:
          brief: "Dictionary for mapping architecture flags to compiler related arcitecture flags. Only non-obvious mappings must be included in this dictionary."
          example: "{sse4_1: 'msse4.1', sse4_2: 'msse4.2'}"
          default: "{}"
-      includes: *includes_schema
+      includes: *includes
 
-return: &return_schema
+return: &return
    required:
       ctype:
          type: "str"
@@ -117,7 +119,7 @@ return: &return_schema
          brief: "A short description of the parameter."
          default: "todo."
 
-parameter: &parameter_schema
+parameter: &parameter
    required:
       ctype:
          type: "str"
@@ -150,7 +152,7 @@ parameter: &parameter_schema
          default: false
          brief: "A flag indicating whether the definition is using a 1-to-1 mapping (True) or whether it is some kind of a workaround (False)."
 
-primitive_specialization_requirements: &definition_requirements_schema
+primitive_specialization_requirements: &primitive_specialization_requirements
    target_extension:
       type: "str"
       brief: "The TVL extension for which this definition is a specialization."
@@ -159,11 +161,9 @@ primitive_specialization_requirements: &definition_requirements_schema
       entry_type: "str"
       brief: "List of the C/C++ datatype(s) for which this definition is a specialization. If ctype == 'T', the specialization is base type agnostic."
       example: "['uint32_t', 'uint64_t'], ['uint64_t'], ['T']"
-   lscpu_flags: *lscpu_flags_schema
+   lscpu_flags: *lscpu_flags
 
-type_mapping_dict: &type_mapping_dict_schema
-   required
-primitive_specialization_optionals: &definition_optionals_schema
+primitive_specialization_optionals: &primitive_specialization_optionals
    is_native:
       type: "bool"
       default: True
@@ -193,23 +193,23 @@ primitive_specialization_optionals: &definition_optionals_schema
       type: "str"
       default: ""
       brief: "Return vector extension, which is used for casts."
-   includes: *includes_schema
+   includes: *includes
 
-primitive_definition: &definition_schema
+primitive_definition: &primitive_definition
    required:
-      <<: *definition_requirements_schema
+      <<: *primitive_specialization_requirements
       implementation:
          type: "str"
          brief: "The actual implementation for this definition."
-   optional: *definition_optionals_schema
+   optional: *primitive_specialization_optionals
 
-test_definition: &testing_schema
+test_definition: &test_definition
    required:
       implementation:
          type: "str"
          brief: "Implementation of a test case. If setup and teardown code is needed, this has to be placed inside the definition."
    optional:
-      includes: *includes_schema
+      includes: *includes
       implicitly_reliable:
          type: "bool"
          default: False
@@ -224,7 +224,7 @@ test_definition: &testing_schema
          default: []
          brief: "A list of required primitives for this test (excluded the current tested primitive)."
 
-template_parameter: &template_parameter_schema
+template_parameter: &template_parameter
    required:
       ctype:
          type: "str"
@@ -247,7 +247,7 @@ primitive:
          example: "mask_load"
       testing:
          type: "list"
-         entry_type: *testing_schema
+         entry_type: *test_definition
          default: []
          brief: "Testing code."
       test_function_name:
@@ -269,7 +269,7 @@ primitive:
       parameters:
          type: "list"
          default: []
-         entry_type: *parameter_schema
+         entry_type: *parameter
          brief: "A list of necessary parameters for the primitive."
          example: "[{ctype: 'Vec::vector_type const &', name: 'a', description: 'first summand'}, {ctype: 'Vec::vector_type const &', name: 'b', description: 'second summand'}]"
       vector_name:
@@ -286,7 +286,7 @@ primitive:
          brief: "A flag indicating whether the primitive should be marked as ((always_inline)). (default = True)"
       returns:
          type: "dict"
-         entry_type: *return_schema
+         entry_type: *return
          default: {"ctype": "void", "description": ""}
          brief: "The return type of the primitive. (default = void)"
       additional_simd_template_parameter:
@@ -295,17 +295,17 @@ primitive:
          brief: "Additional template parameter which may be used for conversion operations."
       additional_non_specialized_template_parameters:
          type: "list"
-         entry_type: *template_parameter_schema
+         entry_type: *template_parameter
          default: []
          brief: "Additional template parameters which may be needed"
-      includes: *includes_schema
+      includes: *includes
       definitions:
          type: "list"
          default: [ ]
-         entry_type: *definition_schema
+         entry_type: *primitive_definition
          brief: "A list of definitions for a specific primitive."
 
-primitive_class: &primitive_class_schema
+primitive_class: &primitive_class
    required:
       name:
          type: "str"
@@ -322,6 +322,6 @@ primitive_class: &primitive_class_schema
 #      classes:
 #         type: "list"
 #         default: []
-#         entry_type: *primitive_class_schema
+#         entry_type: *primitive_class
 #         brief: "A list containing the primitive classes."
 ...

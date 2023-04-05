@@ -11,3 +11,4 @@ sphinx_rtd_theme
 breathe
 exhale
 py-cpuinfo
+ruamel.yaml

@@ -16,7 +16,6 @@ from utils.yaml_schema import Schema
 from utils.yaml_utils import yaml_load, SafeLineLoader
 from yaml.loader import SafeLoader
 
-
 class TVLGeneratorConfig:
     class JinjaConfig:
         def __init__(self, root_path: Path):
@@ -57,17 +56,16 @@ class TVLGeneratorConfig:
             """
             Load Schema
             """
-            schema = yaml_load(Path(self.__configuration_files_dict["schema_file"]).resolve())
-            self.__schemes["extension"] = Schema(copy.deepcopy(schema["extension"]))
+            self.__schema_yaml = yaml_load(Path(self.__configuration_files_dict["schema_file"]).resolve())
+            self.__schemes["extension"] = Schema(self.__schema_yaml["extension"])
             self.__logger.info(f"Loaded schema for extension.",
                                extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
-            self.__schemes["primitive"] = Schema(copy.deepcopy(schema["primitive"]))
+            self.__schemes["primitive"] = Schema(self.__schema_yaml["primitive"])
             self.__logger.info(f"Loaded schema for primitive.",
                                extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
-            self.__schemes["primitive_class"] = Schema(copy.deepcopy(schema["primitive_class"]))
+            self.__schemes["primitive_class"] = Schema(self.__schema_yaml["primitive_class"])
             self.__logger.info(f"Loaded schema for primitive class.",
                                extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
-            del schema
 
         def load_jinja_templates():
             """
@@ -160,6 +158,12 @@ class TVLGeneratorConfig:
     def schemes(self):
         return [scheme for scheme in self.__schemes]
 
+    @property
+    def configuration_files_dict(self):
+        return self.__configuration_files_dict
+
+    def get_schema_names(self):
+        return self.__schemes.keys()
     @requirement(entry_name="NonEmptyString")
     def get_schema(self, schema_entry_name: str) -> Schema:
         """
@@ -417,6 +421,8 @@ def parse_args(**kwargs) -> dict:
                         help="Print only the files which would be generated as list (separator by semicolon)")
     parser.add_argument('--emit-tsl-extensions-to', type=pathlib.Path, dest='configuration:emit_tsl_extensions_to', required=False,
                         help="", metavar="ExOutPath")
+
+    parser.add_argument('--generate-readme-files', dest='configuration:expansions:readme_md:enabled', action="store_true", required=False, help="Add README.md generation step.")
 
     parser.add_argument('--no-debug-info', dest='configuration:debug_generator', action='store_false', required=False)
     add_bool_arg(parser, 'workaround-warnings', 'configuration:emit_workaround_warnings', "Enable ", "Disable ", True, help='workaround warnings', required=False)
