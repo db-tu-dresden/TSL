@@ -124,6 +124,10 @@ class TVLGeneratorConfig:
     def yaml_loader_params(self):
         return {"Loader": self.yaml_loader, "save_filename": self.__general_configuration_dict["debug_generator"]}
 
+    @property
+    def schema_dict(self):
+        return self.__schema_yaml
+
     @requirement(entry_name="NonEmptyString")
     def get_template(self, template_name: str) -> Template:
         """
