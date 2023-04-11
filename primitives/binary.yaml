@@ -132,9 +132,9 @@ definitions:
         return c;
      specialization_comment: "Benchmark what to use. Current implementation or: uint64_t c = (*((uint64_t *)&a) & *((uint64_t *)&b)); return *((double *)&c);"
 #INTEL - FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;

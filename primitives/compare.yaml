@@ -326,9 +326,9 @@ definitions:
      lscpu_flags: [ 'neon' ]
      implementation: "return vandq_u64( vcgeq_s64( vec_data, vec_min ), vcleq_s64( vec_data, vec_max ) );"
 #INTEL - FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;

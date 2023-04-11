@@ -287,9 +287,9 @@ definitions:
      lscpu_flags: [ 'neon' ]
      implementation: "return vreinterpretq_s64_u64( mask ); //mask is a vector already."
 #INTEL - FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
      vector_length_agnostic: True
      implementation: "return mask;"
 ...

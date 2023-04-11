@@ -77,9 +77,9 @@ definitions:
      lscpu_flags: []
      implementation: "return *memory;"
 #FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;
@@ -166,9 +166,21 @@ definitions:
      lscpu_flags: []
      implementation: "return *memory;"
 #FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        T reg; //initialize the result
+        #pragma unroll
+        for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+          reg[idx] = memory[idx];
+        }
+        return reg;
+   - target_extension: "fpga_native"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: ["fpga_native"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;
@@ -326,6 +338,27 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: []
      implementation: "*memory = data;"
+#FPGA
+   - target_extension: "fpga_generic"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: ["fpga_generic"]
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        #pragma unroll
+        for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+          memory[idx] = data[idx];
+        }
+   - target_extension: "fpga_native"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: ["fpga_native"]
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        #pragma unroll
+        for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+          memory[idx] = data[idx];
+        }
 ...
 ---
 primitive_name: "to_array"
@@ -447,9 +480,21 @@ definitions:
      lscpu_flags: []
      implementation: "return value;"
 #INTEL - FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        T result;
+        #pragma unroll
+        for(int i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = value;
+        }
+        return result;
+   - target_extension: "fpga_native"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: ["fpga_native"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;
@@ -588,7 +633,7 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        std::integer_sequence<sequence_type, Is...>        
+        std::integer_sequence<sequence_type, Is...>
       ) {
         return tvl::set<Vec>(
           ((T)Is)...
@@ -603,7 +648,7 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        std::integer_sequence<sequence_type, Is...>        
+        std::integer_sequence<sequence_type, Is...>
       ) {
         return tvl::set<Vec>(
           ((T)Is)...
@@ -618,7 +663,7 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        std::integer_sequence<sequence_type, Is...>        
+        std::integer_sequence<sequence_type, Is...>
       ) {
         return tvl::set<Vec>(
           ((T)Is)...
@@ -1084,7 +1129,7 @@ definitions:
               *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
             }
           }
-        }        
+        }
       }
   #INTEL - SSE
   - target_extension: "sse"
@@ -1110,7 +1155,7 @@ definitions:
               *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
             }
           }
-        }        
+        }
       }
   #ARM - NEON
   - target_extension: "neon"
@@ -1138,7 +1183,7 @@ definitions:
               *reinterpret_cast<typename Vec::base_type*>(&reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
             }
           }
-        }        
+        }
       }
   #SCALAR
   - target_extension: "scalar"
@@ -1158,6 +1203,38 @@ definitions:
         }
       }
 ...
+#---
+#primitive_name: "gather"
+#additional_simd_template_parameter: "OffsetType"
+#brief_description: "Transfers data from arbitrary locations into a vector register."
+#additional_non_specialized_template_parameters:
+#  - ctype: "int"
+#    name: "N"
+#parameters:
+#  - ctype: "const typename Vec::base_type *"
+#    attributes: "__restrict__"
+#    name: "memory"
+#    description: "(Start)pointer of the memory (which is used as base for address calculation)."
+#  - ctype: "const std::array<typename OffsetType::register_type, sizeof(typename OffsetType::base_type)/sizeof(Vec::base_type)> &"
+#    name: "indices"
+#    description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
+#  - ctype: "std::integral_constant<int, N>"
+#    name: "scale"
+#    description: "Scale."
+#returns:
+#  ctype: "typename Vec::register_type"
+#  description: "Vector containing gathered data."
+#definitions:
+##INTEL - AVX2
+#  - target_extension: "avx2"
+#    ctype: ["uint8_t", "int8_t"]
+#    additional_simd_template_base_type: ["uint32_t"]
+#    lscpu_flags: ['avx2']
+#    implementation: |
+#      auto base_addr = reinterpret_cast<int const*>(memory);
+#      _mm256_i32gather_epi32(base_addr, indices[0], scale());
+#      return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), scale() );
+#...
 ---
 primitive_name: "compress_store"
 brief_description: "Stores elements from data consecutively, if the corresponding bit in mask is set to 1."
