@@ -29,9 +29,7 @@ definitions:
        alignas(Vec::vector_alignment())
          std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
        _mm512_store_si512(reinterpret_cast<void*>(tmp.data()), data);
-       for(unsigned idx = 0; idx < Vec::vector_element_count(); ++idx) {
-         conflicts[idx] = 0;
-       }
+       _mm512_store_si512(reinterpret_cast<void*>(conflicts.data()), _mm512_setzero_si512());
        for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
          for(unsigned cur = 0; cur < ref; ++cur) {
            if(tmp[ref] == tmp[cur]) {
@@ -51,9 +49,7 @@ definitions:
        alignas(Vec::vector_alignment())
          std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
        _mm256_store_si256(reinterpret_cast<__m256i*>(tmp.data()), data);
-       for(unsigned idx = 0; idx < Vec::vector_element_count(); ++idx) {
-         conflicts[idx] = 0;
-       }
+       _mm256_store_si256(reinterpret_cast<__m256i*>(conflicts.data()), _mm256_setzero_si256());
        for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
          for(unsigned cur = 0; cur < ref; ++cur) {
            if(tmp[ref] == tmp[cur]) {
@@ -73,9 +69,7 @@ definitions:
        alignas(Vec::vector_alignment())
          std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
        _mm_store_si128(reinterpret_cast<__m128i*>(tmp.data()), data);
-       for(unsigned idx = 0; idx < Vec::vector_element_count(); ++idx) {
-         conflicts[idx] = 0;
-       }
+       _mm_store_si128(reinterpret_cast<__m128i*>(conflicts.data()), _mm_setzero_si128());
        for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
          for(unsigned cur = 0; cur < ref; ++cur) {
            if(tmp[ref] == tmp[cur]) {
@@ -110,7 +104,114 @@ definitions:
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
-    implementation: "0;"
+    implementation: "return 0;"
+...
+---
+primitive_name: "conflict_free"
+functor_name: "imask_conflict_free"
+brief_description: "Checks whether all elements are unique in a register and returns a mask indicating which elements don't have preceeding conflicts."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Mask indicating which lanes should be considered for conflict detection. Be aware, that non-valid lanes can still conflict with others."
+    declaration_attributes: "[[maybe_unused]]"
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Data vector."
+    declaration_attributes: "[[maybe_unused]]"
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "integral mask containing result of the uniqueness check."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t","int32_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512cd"]
+    implementation: |
+      auto const conflict_reg = _mm512_maskz_conflict_epi{{ intrin_tp[ctype][1] }}(mask, data);
+      auto const mask_reg = _mm512_set1_epi{{ intrin_tp[ctype][1] }}(mask);
+      auto const cleaned_conflict_reg = _mm512_and_si512(conflict_reg, mask_reg);
+      return _mm512_mask_cmpeq_epi{{ intrin_tp[ctype][1] }}_mask(mask, cleaned_conflict_reg, _mm512_setzero_si512());
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: |
+      typename Vec::imask_type result = 0;
+      alignas(Vec::vector_alignment())
+        std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+      _mm512_store_si512(reinterpret_cast<void*>(tmp.data()), data);
+      typename Vec::imask_type pos = 2;
+      for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+        if(((mask>>ref)&0b1)==1) {
+          for(unsigned cur = 0; cur < ref; ++cur) {
+            if(((mask>>cur)&0b1)==1) {
+              if(tmp[ref] == tmp[cur]) {
+                result |= pos;
+                break;
+              }
+            }
+          }
+        }
+        pos <<= 1;
+      }
+      return (~result & mask);
+  #Intel - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    specialization_comment: "@todo This can be done better using some shuffle instructions cleverly."
+    implementation: |
+       typename Vec::imask_type result = 0;
+       alignas(Vec::vector_alignment())
+         std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+       _mm256_store_si256(reinterpret_cast<__m256i*>(tmp.data()), data);
+       typename Vec::imask_type pos = 2;
+       for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+         if(((mask>>ref)&0b1)==1) {
+           for(unsigned cur = 0; cur < ref; ++cur) {
+             if(((mask>>cur)&0b1)==1) {
+               if(tmp[ref] == tmp[cur]) {
+                 result |= pos;
+                 break;
+               }
+             }
+           }
+         }
+         pos <<= 1;
+       }
+       return (~result & mask);
+  #Intel - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    is_native: False
+    implementation: |
+      typename Vec::imask_type result = 0;
+      alignas(Vec::vector_alignment())
+        std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+      _mm_store_si128(reinterpret_cast<__m128i*>(tmp.data()), data);
+      typename Vec::imask_type pos = 2;
+      for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+        if(((mask>>ref)&0b1)==1) {
+          for(unsigned cur = 0; cur < ref; ++cur) {
+            if(((mask>>cur)&0b1)==1) {
+              if(tmp[ref] == tmp[cur]) {
+                result |= pos;
+                break;
+              }
+            }
+          }
+        }
+        pos <<= 1;
+      }
+      return (~result & mask);
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: "return 1;"
 ...
 ---
 primitive_name: "blend"
@@ -150,7 +251,9 @@ definitions:
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ['avx2']
-    implementation: "return _mm256_or_{{ intrin_tp_full[ctype] }}(_mm256_andnot_{{ intrin_tp_full[ctype] }}(_mm256_castsi256_{{ intrin_tp_full[ctype] }}(control), left), _mm256_and_{{ intrin_tp_full[ctype] }}(_mm256_castsi256_{{ intrin_tp_full[ctype] }}(control),right));"
+    #implementation: "return _mm256_or_{{ intrin_tp_full[ctype] }}(_mm256_andnot_{{ intrin_tp_full[ctype] }}(_mm256_castsi256_{{ intrin_tp_full[ctype] }}(control), left), _mm256_and_{{ intrin_tp_full[ctype] }}(_mm256_castsi256_{{
+    #intrin_tp_full[ctype] }}(control),right));"
+    implementation: "return _mm256_or_{{ intrin_tp_full[ctype] }}(_mm256_andnot_{{ intrin_tp_full[ctype] }}(control, left), _mm256_and_{{ intrin_tp_full[ctype] }}(control,right));"
   #INTEL - SSE
   - target_extension: "sse"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
@@ -159,6 +262,86 @@ definitions:
   - target_extension: "sse"
     ctype: ["float", "double"]
     lscpu_flags: ['avx2']
-    implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}(control), left), _mm_and_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}
-    (control),right));"
+    #implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}(control), left), _mm_and_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}
+    #(control),right));"
+    implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(control, left), _mm_and_{{ intrin_tp_full[ctype] }}(control,right));"
+...
+---
+primitive_name: "blend_add"
+brief_description: "Blends or add two registers using provided bitmask"
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "control"
+  - ctype: "const typename Vec::register_type"
+    name: "left"
+    description: "Left data."
+  - ctype: "const typename Vec::register_type"
+    name: "right"
+    description: "Right data."
+  - ctype: "const typename Vec::register_type"
+    name: "adder"
+    description: "Adder data."
+returns:
+  ctype: "typename Vec::register_type"
+  descriptions: "result[i] = (control[i]==1)? left[i]  : right[i] + adder[i]"
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: |
+      auto const right_added_part = _mm512_add_epi{{ intrin_tp[ctype][1] }}(right, adder);
+      return _mm512_mask_blend_epi{{ intrin_tp[ctype][1] }}(control, right_added_part, left);
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512f", "avx512bw"]
+    is_native: False
+    implementation: |
+      auto const right_added_part = _mm512_add_epi{{ intrin_tp[ctype][1] }}(right, adder);
+      return _mm512_mask_blend_epi{{ intrin_tp[ctype][1] }}(control, right_added_part, left);
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const left_part = _mm256_and_si256(control, left);
+      auto const right_added_part = _mm256_andnot_si256(control, _mm256_add_epi{{ intrin_tp[ctype][1] }}(right, adder));
+      return _mm256_or_si256(left_part, right_added_part);
+...
+---
+primitive_name: "undefined"
+brief_description: "Returns a vector register with undefined data inside."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "SIMD reigster"
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_undefined_epi32();"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_undefined_{{ intrin_tp_full[ctype] }}();"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_undefined_si256();"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_undefined_{{ intrin_tp_full[ctype] }}();"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_undefined_si128();"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["sse", "sse2"]
+    implementation: "return _mm_undefined_{{ intrin_tp_full[ctype] }}();"
 ...

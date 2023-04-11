@@ -136,7 +136,8 @@ definitions:
         }
         return result;
 ---
-primitive_name: "mask_add"
+primitive_name: "add"
+functor_name: "mask_add"
 brief_description: "Adds two vector registers, depending on a mask: result[*] = (m[*])? vec_a[*]+vec_b[*] : vec_a[*]."
 parameters:
   - ctype: "const typename Vec::mask_type"
@@ -159,10 +160,18 @@ definitions:
     implementation: "return _mm512_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
 #INTEL - AVX2
   - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_add_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_and_si256(vec_b, mask));"
+  - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ["avx"]
     implementation: "return _mm256_add_{{ intrin_tp_full[ctype] }}(vec_a, _mm256_and_{{ intrin_tp_full[ctype] }}(vec_b, mask));"
 #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_add_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_and_si128(vec_b, mask));"
   - target_extension: "sse"
     ctype: ["float"]
     lscpu_flags: ["sse"]
