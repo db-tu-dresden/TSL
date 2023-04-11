@@ -36,6 +36,7 @@ configuration:
             root_path:            "static_files/expansions/tests"
       readme_md:
          enabled:                 False
+         root_path:               "./"
 configuration_files:
    log_config_file:               "config/log_conf.yaml"
    schema_file:                   "config/generator/tvl_generator_schema.yaml"

@@ -20,7 +20,6 @@ extension:
          type: "str"
          brief: "Vendor Name."
          example: "'intel'"
-         requirement: "required"
       extension_name:
          type: "str"
          brief: "Extension Name (used as filename)."

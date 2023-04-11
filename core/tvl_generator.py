@@ -10,6 +10,7 @@ from core.ctrl.tvl_slicer import TVLSlicer
 from core.model.tvl_extension import TVLExtensionSet
 from core.model.tvl_primitive import TVLPrimitiveClass, TVLPrimitiveClassSet
 from core.tvl_config import config
+from expansions.tvl_readme_md import create_readme
 from expansions.tvl_translation_unit import TVLTranslationUnitContainer
 from expansions.tvl_unit_test import TVLTestSuite, TVLTestDependencyGraph, TVLTestGenerator
 from utils.log_utils import LogInit
@@ -137,4 +138,4 @@ class TVLGenerator:
         else:
             print(";".join(f"{tvl_file.file_name}" for tvl_file in file_generator.library_files))
 
-
+        create_readme()

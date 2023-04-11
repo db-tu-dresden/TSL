@@ -7,7 +7,7 @@
 <details>
          {% endif %}
          {% if k.__class__.__name__ == 'tuple' %}
-<summary><a name="{{ k[0] }}"></a>{{ k[0] }}: (_{{ k[1] }}_)</summary>
+<summary><a name="{{ k[1] }}"></a>{{ k[0] }}: ({{ k[2] }})</summary>
 
          {% else %}
 <summary><a name="{{ k }}"></a>{{ k }}</summary>
@@ -18,16 +18,16 @@
 {{ traverse_dict(v, level+1,toc_link) }}
 
 </blockquote>
-{% if level == 0 %}
+         {% if level == 0 %}
 
 [Back to Table of Content](#{{ toc_link }})
 
-{% endif %}
+         {% endif %}
 </details>
 
       {% else %}
          {% if "links_to" == k %}
-   {{ k }}: [{{ v[0] }}](#{{ v[0] }})
+   same as: [{{ v[0] }}](#{{ v[1] }})
          {% elif "type" == k or "example" == k %}
 {{ k }}: `{{ v }}` <br />
          {% else %}
@@ -50,7 +50,12 @@
 ##### Table of Contents
 
 |Required Fields|Optional Fields
-|:-:|:-:|
+|:--|:--|
+{% for field in extension_fields_list %}
+{% set req = '[' ~ field[0][0] ~ '](#' ~ field[0][1] ~ ')' if field[0] else '' %}
+{% set opt = '[' ~ field[1][0] ~ '](#' ~ field[1][1] ~ ')' if field[1] else '' %}
+{{ req }} | {{ opt }}
+{% endfor %}
 
 {{ traverse_dict(extension,0,"toc-extension") }}
 
@@ -61,6 +66,10 @@
 <a name="toc-primitive"></a>
 ##### Table of Contents
 |Required Fields|Optional Fields
-|:-:|:-:|
-
+|:--|:--|
+{% for field in primitive_fields_list %}
+{% set req = '[' ~ field[0][0] ~ '](#' ~ field[0][1] ~ ')' if field[0] else '' %}
+{% set opt = '[' ~ field[1][0] ~ '](#' ~ field[1][1] ~ ')' if field[1] else '' %}
+{{ req }} | {{ opt }}
+{% endfor %}
 {{ traverse_dict(primitive,0,"toc-primitive") }}

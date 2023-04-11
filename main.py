@@ -26,9 +26,9 @@ if __name__ == '__main__':
     file_config = get_config(Path("config/default_conf.yaml"))
     args_dict = parse_args(known_types = file_config["configuration"]["relevant_types"])
     tvl_setup(file_config, args_dict)
-    # gen = TVLGenerator()
-    # gen.generate(args_dict["targets"])
+    gen = TVLGenerator()
+    gen.generate(args_dict["targets"])
 
-    create_readme()
+
     print("----%.2f----" % (time.time() - st))
 
