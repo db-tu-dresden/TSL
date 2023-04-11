@@ -1175,7 +1175,7 @@ definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
     ctype: [ "uint32_t", "int32_t", "uint64_t", "int64_t" ]
-    lscpu_flags: [ "avx512f" ]
+    lscpu_flags: [ "avx512f"]
     implementation: "_mm512_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "avx512"
     ctype: ["float", "double"]
@@ -1184,7 +1184,7 @@ definitions:
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx512f", "avx512vbmi2"]
-    implementation: "_mm512_mask_compressstoreu_{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+    implementation: "_mm512_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "avx512"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
     lscpu_flags: ["avx512f"]
