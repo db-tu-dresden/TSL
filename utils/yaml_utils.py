@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Dict, NewType, Union, TypeVar, Generator
 
 import yaml
-import ruamel.yaml
 from yaml.loader import SafeLoader
 
 YamlKeyType = TypeVar('YamlKeyType', bound=str)
@@ -13,11 +12,6 @@ YamlValueType = TypeVar('YamlValueType', str, list, dict)
 YamlDataType = NewType('YamlDataType', Union[str, Dict[YamlKeyType, YamlValueType]])
 
 
-def yaml_load_with_anchor_information(file: Path):
-    yaml_loader = ruamel.yaml.YAML()
-    with open(file) as ifp:
-        data = yaml_loader.load(ifp)
-    return data
 class SafeLineLoader(SafeLoader):
     def construct_mapping(self, node, deep=False):
         mapping = super(SafeLineLoader, self).construct_mapping(node, deep=deep)

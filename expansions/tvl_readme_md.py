@@ -115,10 +115,8 @@ def create_primitive_data_readme(readme_md_root_path: Path):
 
 
 def create_readme():
-    print("HALLO")
     if not config.expansion_enabled("readme_md"):
         return
-    print("BLUBB")
     readme_config_dict: dict = config.get_expansion_config("readme_md")
 
     create_primitive_data_readme(Path(readme_config_dict["root_path"]))
