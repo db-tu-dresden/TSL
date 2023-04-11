@@ -1,11 +1,11 @@
 ---
 description: "Definition of the SIMD TargetExtension fpga for Intel fpga using dpcc."
 vendor: "intel"
-extension_name: "fpga"
-lscpu_flags: ["fpga"]
+extension_name: "fpga_generic"
+lscpu_flags: ["fpga_generic"]
 #includes: ["<array>", "<bitset>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>"]
 includes: ["<array>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>"]
-simdT_name: "fpga_test"
+simdT_name: "fpga_generic"
 needs_arch_flags: False
 simdT_default_size_in_bits: 512 #this is just a default value, we can let it out if we want to
 simdT_register_type_compiler_attributes: "__attribute__((register))"

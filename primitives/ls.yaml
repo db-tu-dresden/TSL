@@ -78,9 +78,9 @@ definitions:
      lscpu_flags: []
      implementation: "return *memory;"
 #FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;
@@ -167,9 +167,21 @@ definitions:
      lscpu_flags: []
      implementation: "return *memory;"
 #FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        T reg; //initialize the result
+        #pragma unroll
+        for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+          reg[idx] = memory[idx];
+        }
+        return reg;
+   - target_extension: "fpga_native"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: ["fpga_native"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;
@@ -329,6 +341,27 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: []
      implementation: "*memory = data;"
+#FPGA
+   - target_extension: "fpga_generic"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: ["fpga_generic"]
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        #pragma unroll
+        for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+          memory[idx] = data[idx];
+        }
+   - target_extension: "fpga_native"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: ["fpga_native"]
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        #pragma unroll
+        for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+          memory[idx] = data[idx];
+        }
 ...
 ---
 primitive_name: "set1"
@@ -415,9 +448,21 @@ definitions:
      lscpu_flags: []
      implementation: "return value;"
 #INTEL - FPGA
-   - target_extension: "fpga"
+   - target_extension: "fpga_generic"
      ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-     lscpu_flags: ["fpga"]
+     lscpu_flags: ["fpga_generic"]
+     vector_length_agnostic: True
+     implementation: |
+        using T = typename Vec::register_type;
+        T result;
+        #pragma unroll
+        for(int i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = value;
+        }
+        return result;
+   - target_extension: "fpga_native"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+     lscpu_flags: ["fpga_native"]
      vector_length_agnostic: True
      implementation: |
         using T = typename Vec::register_type;
@@ -522,7 +567,7 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        std::integer_sequence<sequence_type, Is...>        
+        std::integer_sequence<sequence_type, Is...>
       ) {
         return tvl::set<Vec>(
           ((T)Is)...
@@ -536,7 +581,7 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        std::integer_sequence<sequence_type, Is...>        
+        std::integer_sequence<sequence_type, Is...>
       ) {
         return tvl::set<Vec>(
           ((T)Is)...
@@ -550,7 +595,7 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        std::integer_sequence<sequence_type, Is...>        
+        std::integer_sequence<sequence_type, Is...>
       ) {
         return tvl::set<Vec>(
           ((T)Is)...
@@ -587,7 +632,7 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        T const max, T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
+        T const max, T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tvl::set<Vec>(
           ((max-((T)(Is+1))*sw)+init)...
@@ -602,7 +647,7 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        T const max, T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
+        T const max, T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tvl::set<Vec>(
           ((max-((T)(Is+1))*sw)+init)...
@@ -617,7 +662,7 @@ definitions:
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
       auto seq_fun= []<sequence_type... Is>(
-        T const max, T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
+        T const max, T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tvl::set<Vec>(
           ((max-((T)(Is+1))*sw)+init)...
@@ -750,7 +795,7 @@ definitions:
               *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
             }
           }
-        }        
+        }
       }
   #INTEL - SSE
   - target_extension: "sse"
@@ -777,7 +822,7 @@ definitions:
               *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
             }
           }
-        }        
+        }
       }
   #ARM - NEON
   - target_extension: "neon"
@@ -804,7 +849,7 @@ definitions:
               *reinterpret_cast<typename Vec::base_type*>(reinterpret_cast<uint8_t*>(memory)[(idx_array[i]<<(cilog2(N)))]) = val_array[i];
             }
           }
-        }        
+        }
       }
   #SCALAR
   - target_extension: "scalar"
