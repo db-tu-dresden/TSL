@@ -1,8 +1,8 @@
 from __future__ import annotations
-from typing import Dict, Generator, Tuple, Union
+from typing import Dict, Generator
 
-from utils.log_utils import LogInit, log
-from utils.yaml_utils import YamlDataType
+from generator.utils.log_utils import LogInit, log
+from generator.utils.yaml_utils import YamlDataType
 
 
 class Schema:

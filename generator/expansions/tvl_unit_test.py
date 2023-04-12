@@ -8,17 +8,17 @@ from typing import List, Set, Generator, Dict, Tuple
 
 import networkx as nx
 
-from core.ctrl.tvl_lib import TVLLib
+from generator.core.ctrl.tvl_lib import TVLLib
 
 import wget
 
-from core.model.tvl_file import TVLSourceFile, TVLHeaderFile
-from core.model.tvl_primitive import TVLPrimitive
-from core.tvl_config import config
-from expansions.tvl_translation_unit import TVLTranslationUnit
-from utils.file_utils import strip_common_path_prefix
-from utils.log_utils import LogInit, log
-from utils.yaml_utils import YamlDataType, yaml_load
+from generator.core.model.tvl_file import TVLSourceFile, TVLHeaderFile
+from generator.core.model.tvl_primitive import TVLPrimitive
+from generator.core.tvl_config import config
+from generator.expansions.tvl_translation_unit import TVLTranslationUnit
+from generator.utils.file_utils import strip_common_path_prefix
+from generator.utils.log_utils import LogInit
+from generator.utils.yaml_utils import YamlDataType, yaml_load
 
 import os
 

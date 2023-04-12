@@ -6,11 +6,11 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Set, List, Generator, Dict, Tuple
 
-from core.tvl_config import config
-from utils.dict_utils import deep_update_dict, keep_in_list
-from utils.log_utils import LogInit
-from utils.requirement import requirement
-from utils.yaml_utils import YamlDataType
+from generator.core.tvl_config import config
+from generator.utils.dict_utils import deep_update_dict, keep_in_list
+from generator.utils.log_utils import LogInit
+from generator.utils.requirement import requirement
+from generator.utils.yaml_utils import YamlDataType
 
 
 class TVLPrimitive:

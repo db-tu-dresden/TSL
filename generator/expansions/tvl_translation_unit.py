@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Generator, Dict, Tuple
 
-from core.model.tvl_file import TVLSourceFile, TVLHeaderFile
+from generator.core.model.tvl_file import TVLSourceFile, TVLHeaderFile
 
 
 class TVLTranslationUnit:

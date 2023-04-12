@@ -8,12 +8,12 @@ from typing import Dict, Any, Generator, List
 
 from jinja2 import Template, Environment, FileSystemLoader
 
-from utils.file_template import load_template_from_file
-from utils.file_utils import StaticFileTree
-from utils.git_utils import GitUtils
-from utils.requirement import requirement
-from utils.yaml_schema import Schema
-from utils.yaml_utils import yaml_load, SafeLineLoader
+from generator.utils.file_template import load_template_from_file
+from generator.utils.file_utils import StaticFileTree
+from generator.utils.git_utils import GitUtils
+from generator.utils.requirement import requirement
+from generator.utils.yaml_schema import Schema
+from generator.utils.yaml_utils import yaml_load, SafeLineLoader
 from yaml.loader import SafeLoader
 
 class TVLGeneratorConfig:

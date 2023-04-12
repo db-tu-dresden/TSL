@@ -1,13 +1,13 @@
 from pathlib import Path
 from typing import List, Set, Dict, Tuple
 
-from core.ctrl.tvl_lib import TVLLib
-from core.ctrl.tvl_libfile_generator import TVLFileGenerator
-from core.model.tvl_extension import TVLExtension
-from core.tvl_config import config
-from expansions.tvl_translation_unit import TVLTranslationUnitContainer
-from utils.file_utils import strip_common_path_prefix, strip_path_prefix
-from utils.log_utils import LogInit
+from generator.core.ctrl.tvl_lib import TVLLib
+from generator.core.ctrl.tvl_libfile_generator import TVLFileGenerator
+from generator.core.model.tvl_extension import TVLExtension
+from generator.core.tvl_config import config
+from generator.expansions.tvl_translation_unit import TVLTranslationUnitContainer
+from generator.utils.file_utils import strip_common_path_prefix, strip_path_prefix
+from generator.utils.log_utils import LogInit
 
 
 class TVLCMakeGenerator:

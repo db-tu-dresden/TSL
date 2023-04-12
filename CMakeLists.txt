@@ -19,12 +19,12 @@ string(REGEX REPLACE "[ \t]+" ";" LSCPU_FLAGS_LIST "${TVL_LSCPU_FLAGS}")
 
 # trigger reconfiguration if the source files of the generator changed
 file(GLOB_RECURSE TVL_GENERATOR_SOURCES CONFIGURE_DEPENDS
-    "config/*.template"
-    "config/*.yaml"
-    "static_files/*.yaml"
-    "core/*.py"
-    "expansions/*.py"
-    "utils/*.py"
+    "generator/config/*.template"
+    "generator/config/*.yaml"
+    "generator/static_files/*.yaml"
+    "generator/core/*.py"
+    "generator/expansions/*.py"
+    "generator/utils/*.py"
     "primitive_data/extensions/*.yaml"
     "primitive_data/primitives/*.yaml"
 )

@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 import os
 
-from utils.file_utils import strip_common_path_prefix
+from generator.utils.file_utils import strip_common_path_prefix
 
 
 @dataclass

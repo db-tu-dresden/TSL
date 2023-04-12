@@ -12,3 +12,7 @@ tvlgen.log.*
 
 
 lib/
+
+log
+
+tvl/

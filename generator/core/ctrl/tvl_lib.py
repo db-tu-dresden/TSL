@@ -1,8 +1,8 @@
 from typing import Generator
 
-from core.model.tvl_extension import TVLExtensionSet
-from core.model.tvl_primitive import TVLPrimitiveClassSet
-from utils.log_utils import LogInit
+from generator.core.model.tvl_extension import TVLExtensionSet
+from generator.core.model.tvl_primitive import TVLPrimitiveClassSet
+from generator.utils.log_utils import LogInit
 
 
 class TVLLib:

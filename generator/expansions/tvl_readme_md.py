@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Tuple, Generator, Dict, Any
 
-from core.tvl_config import config
+from generator.core.tvl_config import config
 
 
 def create_primitive_data_readme(readme_md_root_path: Path):

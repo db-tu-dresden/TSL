@@ -3,11 +3,11 @@ import logging
 from copy import deepcopy
 from typing import List, Dict, Set
 
-from core.model.tvl_extension import TVLExtensionSet
-from core.model.tvl_primitive import TVLPrimitiveClassSet, TVLPrimitiveClass, TVLPrimitive
-from utils.dict_utils import intersects, deep_update_dict
-from utils.log_utils import LogInit, log
-from utils.requirement import requirement
+from generator.core.model.tvl_extension import TVLExtensionSet
+from generator.core.model.tvl_primitive import TVLPrimitiveClassSet, TVLPrimitiveClass, TVLPrimitive
+from generator.utils.dict_utils import intersects, deep_update_dict
+from generator.utils.log_utils import LogInit, log
+from generator.utils.requirement import requirement
 
 
 class TVLSlicer:

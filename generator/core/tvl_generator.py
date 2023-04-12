@@ -2,20 +2,19 @@ import logging
 from pathlib import Path
 from typing import List
 
-from core.ctrl.tvl_libfile_generator import TVLFileGenerator
-from core.model.tvl_file import TVLSourceFile
-from expansions.tvl_cmake import TVLCMakeGenerator
-from core.ctrl.tvl_lib import TVLLib
-from core.ctrl.tvl_slicer import TVLSlicer
-from core.model.tvl_extension import TVLExtensionSet
-from core.model.tvl_primitive import TVLPrimitiveClass, TVLPrimitiveClassSet
-from core.tvl_config import config
-from expansions.tvl_readme_md import create_readme
-from expansions.tvl_translation_unit import TVLTranslationUnitContainer
-from expansions.tvl_unit_test import TVLTestSuite, TVLTestDependencyGraph, TVLTestGenerator
-from utils.log_utils import LogInit
-from utils.requirement import requirement
-from utils.yaml_utils import yaml_load, yaml_load_all, yaml_store
+from generator.core.ctrl.tvl_libfile_generator import TVLFileGenerator
+from generator.expansions.tvl_cmake import TVLCMakeGenerator
+from generator.core.ctrl.tvl_lib import TVLLib
+from generator.core.ctrl.tvl_slicer import TVLSlicer
+from generator.core.model.tvl_extension import TVLExtensionSet
+from generator.core.model.tvl_primitive import TVLPrimitiveClass, TVLPrimitiveClassSet
+from generator.core.tvl_config import config
+from generator.expansions.tvl_readme_md import create_readme
+from generator.expansions.tvl_translation_unit import TVLTranslationUnitContainer
+from generator.expansions.tvl_unit_test import TVLTestGenerator
+from generator.utils.log_utils import LogInit
+from generator.utils.requirement import requirement
+from generator.utils.yaml_utils import yaml_load, yaml_load_all, yaml_store
 
 
 class TVLGenerator:

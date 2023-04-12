@@ -5,10 +5,10 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Set, List
 
-from core.tvl_config import config
-from utils.log_utils import LogInit
-from utils.requirement import requirement
-from utils.yaml_utils import YamlDataType
+from generator.core.tvl_config import config
+from generator.utils.log_utils import LogInit
+from generator.utils.requirement import requirement
+from generator.utils.yaml_utils import YamlDataType
 
 
 class TVLExtension:

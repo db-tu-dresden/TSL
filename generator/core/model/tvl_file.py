@@ -7,10 +7,10 @@ from pathlib import Path
 
 from jinja2 import Template
 
-from core.tvl_config import config
-from utils.log_utils import LogInit
-from utils.requirement import requirement
-from utils.yaml_utils import YamlDataType
+from generator.core.tvl_config import config
+from generator.utils.log_utils import LogInit
+from generator.utils.requirement import requirement
+from generator.utils.yaml_utils import YamlDataType
 
 
 class TVLHeaderFile:

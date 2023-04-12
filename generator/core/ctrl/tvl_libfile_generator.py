@@ -1,22 +1,20 @@
-from pathlib import Path
-
-from core.ctrl.tvl_lib import TVLLib
-from core.tvl_config import config
+from generator.core.ctrl.tvl_lib import TVLLib
+from generator.core.tvl_config import config
 
 import copy
 import logging
 from pathlib import Path
-from typing import Dict, Generator, List
+from typing import Generator
 
 from jinja2 import Template
 
 from typing import List, Dict
-from core.model.tvl_extension import TVLExtensionSet, TVLExtension
-from core.model.tvl_file import TVLHeaderFile
-from core.model.tvl_primitive import TVLPrimitiveClassSet
-from utils.file_utils import strip_common_path_prefix
-from utils.log_utils import LogInit
-from utils.yaml_utils import yaml_load, YamlDataType
+from generator.core.model.tvl_extension import TVLExtensionSet, TVLExtension
+from generator.core.model.tvl_file import TVLHeaderFile
+from generator.core.model.tvl_primitive import TVLPrimitiveClassSet
+from generator.utils.file_utils import strip_common_path_prefix
+from generator.utils.log_utils import LogInit
+from generator.utils.yaml_utils import yaml_load, YamlDataType
 
 
 
