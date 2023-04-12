@@ -1,0 +1,16 @@
+---
+description: "Definition of the SIMD TargetExtension fpga for Intel fpga using dpcc."
+vendor: "intel"
+extension_name: "fpga_native"
+lscpu_flags: ["fpga_native"]
+#includes: ["<array>", "<bitset>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>"]
+includes: ["<array>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>", "<lib.hpp>"]
+simdT_name: "fpga_native"
+needs_arch_flags: False
+simdT_default_size_in_bits: 512 #this is just a default value, we can let it out if we want to
+simdT_register_type_compiler_attributes: "__attribute__((register))"
+simdT_mask_type_compiler_attributes: "__attribute__((register))"
+simdT_register_type: "std::array<BaseType, VectorSizeInBits/sizeof(BaseType)>" #this can also be a custom structure or a pointer, but I would *HIGHLY* recommend, using an array
+simdT_mask_type: "std::array<BaseType, VectorSizeInBits/sizeof(BaseType)>" #we can define the mask type as a register type following the general pattern of SSE and AVX
+#simdT_mask_type: "std::bitset<VectorSizeInBits/sizeof(BaseType)>" #the mask-type should contain a bit for every entry within the register_type. maybe we can substitute the bitset with an integral value at some point
+...
