@@ -173,6 +173,20 @@ definitions:
       #else
         return _mm256_zextsi128_si256(data);
       #endif
+  - target_extension: "scalar"
+    ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+    additional_simd_template_extension: "sse"
+    lscpu_flags: ["sse2"]
+    is_native: True
+    implementation: |
+      return _mm_cvtsi{{ intrin_tp[ctype][1] }}_si128(data);
+  - target_extension: "scalar"
+    ctype: ["int16_t", "uint16_t"]
+    additional_simd_template_extension: "sse"
+    lscpu_flags: ["avx512_fp16"]
+    is_native: True
+    implementation: |
+      return _mm_cvtsi{{ intrin_tp[ctype][1] }}_si128(data);
   - target_extension: "avx2"
     additional_simd_template_extension: "avx512"
     ctype: ["float", "int8_t", "int16_t", "int32_t", "uint8_t", "uint16_t", "uint32_t"]
