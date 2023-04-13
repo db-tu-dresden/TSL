@@ -225,6 +225,22 @@ definitions:
       }}{{
         intrin_tp[additional_simd_template_base_type][1]
       }}(data);
+  - target_extension: "avx512"
+    additional_simd_template_extension: "sse"
+    ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
+    additional_simd_template_base_type_mapping_dict: {"int32_t": ["int8_t"], "uint32_t": ["uint8_t"], "int64_t": ["int16_t", "int8_t"], "uint64_t": ["uint16_t", "uint8_t"]}
+    lscpu_flags: ["avx512f"]
+    is_native: True
+    implementation: |
+      return _mm512_cvt{{
+        intrin_tp[ctype if ctype[0] != "u" else ctype[1:]][0]
+      }}{{
+        intrin_tp[ctype][1]
+      }}_{{
+        intrin_tp[additional_simd_template_base_type if additional_simd_template_base_type[0] != "u" else additional_simd_template_base_type[1:]][0]
+      }}{{
+        intrin_tp[additional_simd_template_base_type][1]
+      }}(data);
 
 ...
 ---
