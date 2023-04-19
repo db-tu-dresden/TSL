@@ -10,6 +10,7 @@ from core.ctrl.tvl_slicer import TVLSlicer
 from core.model.tvl_extension import TVLExtensionSet
 from core.model.tvl_primitive import TVLPrimitiveClass, TVLPrimitiveClassSet
 from core.tvl_config import config
+from expansions.tvl_readme_md import create_readme
 from expansions.tvl_translation_unit import TVLTranslationUnitContainer
 from expansions.tvl_unit_test import TVLTestSuite, TVLTestDependencyGraph, TVLTestGenerator
 from utils.log_utils import LogInit
@@ -28,7 +29,7 @@ class TVLGenerator:
     def __add_extension(self, extension_file: Path) -> None:
         extension_data_dict = None
         try:
-            extension_data_dict = config.get_schema("extension").validate(yaml_load(extension_file))
+            extension_data_dict = config.get_schema("extension").validate(yaml_load(extension_file, **config.yaml_loader_params()))
         except Exception as e:
             self.log(logging.ERROR,
                      f"Error while validating extension {extension_file}. Exception: {str(e)}")
@@ -40,7 +41,7 @@ class TVLGenerator:
         primitive_schema = config.get_schema("primitive")
 
         primitive_class: TVLPrimitiveClass = None
-        for yaml_document in yaml_load_all(primitive_class_file):
+        for yaml_document in yaml_load_all(primitive_class_file, **(config.yaml_loader_params())):
             if primitive_class is None:
                 class_dict = None
                 try:
@@ -87,7 +88,7 @@ class TVLGenerator:
 
     def generate(self, relevant_hardware_flags: List[str] = None):
         self.update()
-        slicer = TVLSlicer(relevant_hardware_flags)
+        slicer = TVLSlicer(relevant_hardware_flags, config.relevant_types)
 
         relevant_extensions_set: TVLExtensionSet = slicer.slice_extensions(self.__tvl_extension_set)
         if config.emit_tsl_extensions_to_file:
@@ -95,7 +96,7 @@ class TVLGenerator:
             template = config.create_template(tsl_extension_name)
             extensions_list = []
             for extension in relevant_extensions_set:
-                for dtype in config.default_types:
+                for dtype in config.relevant_types:
                     extensions_list.append(
                         {
                             "tsl_extension_name": template.render({
@@ -137,4 +138,4 @@ class TVLGenerator:
         else:
             print(";".join(f"{tvl_file.file_name}" for tvl_file in file_generator.library_files))
 
-
+        create_readme()

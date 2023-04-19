@@ -7,7 +7,7 @@ configuration:
    compiler_architecture_prefix:  "-m"
    use_concepts:                  True
    emit_workaround_warnings:      True
-   default_types:                 ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+   relevant_types:                 ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
    library:
       root_path:                  "include"
       top_level_header_fname:     "tvlintrin"
@@ -34,6 +34,9 @@ configuration:
          draw_dependency_graph:   True
          static_files:
             root_path:            "static_files/expansions/tests"
+      readme_md:
+         enabled:                 False
+         root_path:               "./"
 configuration_files:
    log_config_file:               "config/log_conf.yaml"
    schema_file:                   "config/generator/tvl_generator_schema.yaml"

@@ -13,8 +13,8 @@ from utils.file_utils import StaticFileTree
 from utils.git_utils import GitUtils
 from utils.requirement import requirement
 from utils.yaml_schema import Schema
-from utils.yaml_utils import yaml_load
-
+from utils.yaml_utils import yaml_load, SafeLineLoader
+from yaml.loader import SafeLoader
 
 class TVLGeneratorConfig:
     class JinjaConfig:
@@ -26,7 +26,7 @@ class TVLGeneratorConfig:
             return self.__env
 
     def __init__(self) -> None:
-        self.include_guard_regex = re.compile(r"[/\.\\: ]")
+        self.include_guard_regex = re.compile(r"\W|[^\x00-\x7F]")
         self.path_seperator: str = pathlib.os.sep
         self.__valid = False
         self.__logger = None
@@ -56,17 +56,16 @@ class TVLGeneratorConfig:
             """
             Load Schema
             """
-            schema = yaml_load(Path(self.__configuration_files_dict["schema_file"]).resolve())
-            self.__schemes["extension"] = Schema(copy.deepcopy(schema["extension"]))
+            self.__schema_yaml = yaml_load(Path(self.__configuration_files_dict["schema_file"]).resolve())
+            self.__schemes["extension"] = Schema(self.__schema_yaml["extension"])
             self.__logger.info(f"Loaded schema for extension.",
                                extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
-            self.__schemes["primitive"] = Schema(copy.deepcopy(schema["primitive"]))
+            self.__schemes["primitive"] = Schema(self.__schema_yaml["primitive"])
             self.__logger.info(f"Loaded schema for primitive.",
                                extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
-            self.__schemes["primitive_class"] = Schema(copy.deepcopy(schema["primitive_class"]))
+            self.__schemes["primitive_class"] = Schema(self.__schema_yaml["primitive_class"])
             self.__logger.info(f"Loaded schema for primitive class.",
                                extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
-            del schema
 
         def load_jinja_templates():
             """
@@ -115,6 +114,20 @@ class TVLGeneratorConfig:
         if not self.__valid:
             self.__setup(config_dict)
 
+    @property
+    def yaml_loader(self):
+        if self.__general_configuration_dict["debug_generator"]:
+            return SafeLineLoader
+        else:
+            return SafeLoader
+
+    def yaml_loader_params(self):
+        return {"Loader": self.yaml_loader, "save_filename": self.__general_configuration_dict["debug_generator"]}
+
+    @property
+    def schema_dict(self):
+        return self.__schema_yaml
+
     @requirement(entry_name="NonEmptyString")
     def get_template(self, template_name: str) -> Template:
         """
@@ -149,6 +162,12 @@ class TVLGeneratorConfig:
     def schemes(self):
         return [scheme for scheme in self.__schemes]
 
+    @property
+    def configuration_files_dict(self):
+        return self.__configuration_files_dict
+
+    def get_schema_names(self):
+        return self.__schemes.keys()
     @requirement(entry_name="NonEmptyString")
     def get_schema(self, schema_entry_name: str) -> Schema:
         """
@@ -261,8 +280,8 @@ class TVLGeneratorConfig:
         return self.get_config_entry("compiler_architecture_prefix")
 
     @property
-    def default_types(self) -> List[str]:
-        return self.get_config_entry("default_types")
+    def relevant_types(self) -> List[str]:
+        return self.get_config_entry("relevant_types")
 
     @property
     def use_concepts(self) -> bool:
@@ -385,7 +404,7 @@ def add_bool_arg(parser, name, dest, help_true_prefix="", help_false_prefix="", 
 
 
 
-def parse_args() -> dict:
+def parse_args(**kwargs) -> dict:
     parser = argparse.ArgumentParser(description="TVL Generator", epilog="To apply fine-tuned changes to the generator please change the config files (config/default_conf.yaml and config/log_conf.yaml).")
     parser.add_argument('-o', '--out', type=pathlib.Path, help="Generation output path.", required=False,
                                   dest='configuration:root_path', metavar="OutPath")
@@ -395,12 +414,21 @@ def parse_args() -> dict:
     parser.add_argument('--targets', default=None, nargs='*',
                         help='List of target flags which match the lscpu_flags from the extension/primitive files.',
                         dest='targets')
+    types_help = 'List of types which should be considered for generation.'
+    if "known_types" in kwargs:
+        types_help += f" Choose from the following list: [{', '.join(kwargs['known_types'])}]"
+    parser.add_argument('--types', default=None, nargs='*',
+                        help=types_help,
+                        dest='configuration:relevant_types', metavar="TYPES")
 
     parser.add_argument('--print-outputs-only', dest='configuration:print_output_only', action="store_true",
                         help="Print only the files which would be generated as list (separator by semicolon)")
     parser.add_argument('--emit-tsl-extensions-to', type=pathlib.Path, dest='configuration:emit_tsl_extensions_to', required=False,
                         help="", metavar="ExOutPath")
 
+    parser.add_argument('--generate-readme-files', dest='configuration:expansions:readme_md:enabled', action="store_true", required=False, help="Add README.md generation step.")
+
+    parser.add_argument('--no-debug-info', dest='configuration:debug_generator', action='store_false', required=False)
     add_bool_arg(parser, 'workaround-warnings', 'configuration:emit_workaround_warnings', "Enable ", "Disable ", True, help='workaround warnings', required=False)
     add_bool_arg(parser, 'concepts', 'configuration:use_concepts', "Enable ", "Disable ", True, help='C++20 concepts.', required=False)
     add_bool_arg(parser, 'draw-test-dependencies', 'configuration:expansions:unit_tests:draw_dependency_graph', "Enable ", "Disable ", False, help="draw dependency graph for test generation", required=False)
@@ -424,5 +452,7 @@ def parse_args() -> dict:
 
     if "targets" not in args_dict:
         args_dict["targets"] = None
+    # if "relevant_types" not in args_dict:
+    #     args_dict["relevant_types"] = None
     return args_dict
 

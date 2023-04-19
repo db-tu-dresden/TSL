@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Set, List, Generator, Dict, Tuple
 
 from core.tvl_config import config
+from utils.dict_utils import deep_update_dict, keep_in_list
 from utils.log_utils import LogInit
 from utils.requirement import requirement
 from utils.yaml_utils import YamlDataType
@@ -17,6 +18,7 @@ class TVLPrimitive:
         @LogInit()
         def __init__(self, data_dict: dict):
             self.__data_dict = data_dict
+            self.__data_dict["tvl_namespace"] = config.get_config_entry("namespace")
             if len(data_dict["functor_name"]) == 0:
                 self.__data_dict["functor_name"] = data_dict["primitive_name"]
             self.log(logging.INFO, f"Created Primitive Declaration {self.__data_dict['primitive_name']}")
@@ -126,6 +128,10 @@ class TVLPrimitive:
                 return [self.ctype]
             return self.ctype
 
+        @ctypes.setter
+        def ctypes(self, ct: List[str]):
+            self.__data_dict["ctype"] = ct
+
         @property
         def additional_simd_template_base_types(self) -> List[str]:
             if isinstance(self.__data_dict["additional_simd_template_base_type"], str):
@@ -135,9 +141,24 @@ class TVLPrimitive:
                     return []
             return self.__data_dict["additional_simd_template_base_type"]
 
+        @additional_simd_template_base_types.setter
+        def additional_simd_template_base_types(self, ct: List[str]):
+            self.__data_dict["additional_simd_template_base_type"] = ct
+
         @property
         def additional_simd_template_base_type_mapping_dict(self) -> Dict[str, List[str]]:
             return self.__data_dict["additional_simd_template_base_type_mapping_dict"]
+
+        def update_types(self, ct: List[str]):
+            ctypes = copy.deepcopy(self.ctypes)
+            astbt = copy.deepcopy(self.additional_simd_template_base_types)
+            astbtmd = copy.deepcopy(self.additional_simd_template_base_type_mapping_dict)
+            keep_in_list(self.ctypes, ct)
+            keep_in_list(self.additional_simd_template_base_types, ct)
+            deep_update_dict(self.additional_simd_template_base_type_mapping_dict, ct, True)
+            # if ctypes != self.ctypes or astbt != self.additional_simd_template_base_types or astbtmd != self.additional_simd_template_base_type_mapping_dict:
+            #     print("SOMETHING CHANGED")
+
 
         @property
         def types(self) -> Generator[Tuple[str, str], None, None]:
@@ -383,7 +404,7 @@ class TVLPrimitiveClassSet:
 
     @property
     def known_ctypes(self) -> List[str]:
-        known_ctypes_set = set(config.default_types)
+        known_ctypes_set = set(config.relevant_types)
         for primitive_class in self.__primitive_classes:
             for primitive in primitive_class:
                 for definition in primitive.definitions:
@@ -416,6 +437,11 @@ class TVLPrimitiveClassSet:
         for primitive_class in self.__primitive_classes:
             for primitive in primitive_class:
                 yield from primitive.definitions
+
+    def primitives(self) -> Generator[TVLPrimitive, None, None]:
+        for primitive_class in self.__primitive_classes:
+            for primitive in primitive_class:
+                yield primitive
 
     def definitions_names(self) -> Generator[str, None, None]:
         for primitive_class in self.__primitive_classes:

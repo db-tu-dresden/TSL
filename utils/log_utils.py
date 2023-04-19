@@ -9,7 +9,7 @@ class TVLLogAdapter(logging.LoggerAdapter):
         super().__init__(logger, {})
 
     def process(self, msg, kwargs):
-        return '%s (%s)' % (msg, f"({kwargs['extra']['decorated_filename']}::{kwargs['extra']['decorated_funcName']}"), kwargs
+        return '%s (%s)' % (msg, f"{kwargs['extra']['decorated_filename']}::{kwargs['extra']['decorated_funcName']}"), kwargs
 
 def get_logging_instance_from_self(*args) -> Union[logging.Logger, None]:
     first_args = next(iter(args), None)  # capture first arg to check for `self`
