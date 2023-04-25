@@ -106,7 +106,7 @@ namespace {{ tvl_implementation_namespace }} {
             using param_tuple_t = std::tuple<{{ ns.parameters_types }}>;
             {% endif %}
             static constexpr bool parameters_queryable() {
-               return {{ 'true' if ns.has_parameter_tuple else 'false' }};
+               return {{ 'true' if ns.has_parameters_tuple else 'false' }};
             }
             static constexpr bool has_return_value() {
                 return {{ 'true' if returns['ctype'] != 'void' else 'false' }};
@@ -129,7 +129,7 @@ namespace {{ tvl_implementation_namespace }} {
                {% if not is_native %}
                static_assert( !std::is_same_v< {{ idof_name }}, native >, "The primitive {{ functor_name }} is not supported by your hardware natively while it is forced by using native" );
                {% endif %}
-               {%- filter indent(width=15) +%}
+               {% filter indent(width=15) %}
 {{ implementation }}
                {% endfilter %}
             }
