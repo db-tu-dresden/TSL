@@ -72,11 +72,10 @@
     {% set ns.return_template_type = 'simd<' ~ additional_simd_template_base_type ~ ', ' ~ ns.additional_target_extension ~ ns.simd_register_length ~ '>, ' %}
 {% endif %}
 {% if additional_non_specialized_template_parameters|length > 0 %}
-{% set types_joiner = joiner(",") %}
-{% set params_joiner = joiner(",") %}
 {% for parameter_dict in additional_non_specialized_template_parameters %}
-{% set ns.additional_templates = ns.additional_templates ~ types_joiner() ~ parameter_dict["ctype"] ~ ' ' ~ parameter_dict["name"] %}
-{% set ns.additional_template_params = ns.additional_template_params ~ params_joiner() ~ parameter_dict["name"] %}
+{% set loop_comma = '' if loop.first else ', ' %}
+{% set ns.additional_templates = ns.additional_templates ~ loop_comma ~ parameter_dict["ctype"] ~ ' ' ~ parameter_dict["name"] %}
+{% set ns.additional_template_params = ns.additional_template_params ~ loop_comma ~ parameter_dict["name"] %}
 {% endfor %}
 {% set ns.additional_templates = ns.additional_templates ~ ", " %}
 {% set ns.additional_template_params = ns.additional_template_params ~ ", " %}

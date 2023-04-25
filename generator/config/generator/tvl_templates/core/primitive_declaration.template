@@ -47,11 +47,10 @@
 {% endif %}
 {% if additional_non_specialized_template_parameters|length > 0 %}
 {% set rtp_ns = namespace(types='', params='') %}
-{% set types_joiner = joiner(",") %}
-{% set params_joiner = joiner(",") %}
 {% for parameter_dict in additional_non_specialized_template_parameters %}
-{% set rtp_ns.types = rtp_ns.types ~ types_joiner() ~ parameter_dict["ctype"] ~ ' ' ~ parameter_dict["name"] %}
-{% set rtp_ns.params = rtp_ns.params ~ params_joiner() ~ parameter_dict["name"] %}
+{% set loop_comma = '' if loop.first else ', ' %}
+{% set rtp_ns.types = rtp_ns.types ~ loop_comma ~ parameter_dict["ctype"] ~ ' ' ~ parameter_dict["name"] %}
+{% set rtp_ns.params = rtp_ns.params ~ loop_comma ~ parameter_dict["name"] %}
 {% endfor %}
 {% set ns.additional_template_type_name = ns.additional_template_type_name ~ rtp_ns.types ~ ", "%}
 {% set ns.additional_template_name = ns.additional_template_name ~ rtp_ns.params ~ ", "%}
