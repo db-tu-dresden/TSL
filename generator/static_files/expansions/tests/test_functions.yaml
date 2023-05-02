@@ -9,6 +9,8 @@ includes:
    - "<functional>"
    - "<algorithm>"
    - "<utility>"
+   - "<type_traits>"
+   - "<limits>"
 implementations:
    - |
       template<typename T>
@@ -23,6 +25,35 @@ implementations:
                dist_type dist(static_cast<T>(0), max);
                for(std::size_t i = 0; i < element_count; ++i) {
                   data[i] = dist(engine);
+               }
+            }
+   - |
+      template<typename T>
+            void alternate_init_no_zero(T* data, std::size_t element_count) {
+               T max =
+                  static_cast<T>(
+                     std::clamp<size_t>(
+                        element_count,
+                        static_cast<size_t>(std::numeric_limits<T>::lowest()),
+                        static_cast<size_t>(std::numeric_limits<T>::max())
+                     )
+                  );
+               T val = (T)1;
+               size_t pos = 0;
+               for(size_t i = 0; i < element_count/2; ++i) {
+                  data[pos++] = val;
+                  if constexpr (std::is_signed_v<T>) {
+                      data[pos++] = -val;
+                     if constexpr (std::is_floating_point_v<T>) {
+                        ++val;
+                     } else {
+                        val = (++val%max) == 0 ? 1 : val;
+                     }
+                  } else {
+                     val = (++val%max) == 0 ? 1 : val;
+                     data[pos++] = val;
+                     val = (++val%max) == 0 ? 1 : val;
+                  }
                }
             }
    - |
