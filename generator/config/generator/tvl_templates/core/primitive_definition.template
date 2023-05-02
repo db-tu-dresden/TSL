@@ -39,7 +39,7 @@
    {% else %}
       {% set comma = '' %}
    {% endif %}
-   {% if param['is_parameter_pack'] %}
+   {% if 'is_parameter_pack' in param and param['is_parameter_pack'] %}
       {% set ns.contains_parameter_pack = True %}
       {% set ns.parameter_pack_typenames_str = ns.parameter_pack_typenames_str ~ 'typename... ' ~ param['ctype'] ~ comma %}
       {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ param['ctype'] ~ '... ' ~ param['name'] ~ comma %}
@@ -47,17 +47,17 @@
       {% set ns.parameters_types = ns.parameters_types ~ param['ctype'] ~ '... ' ~ comma %}
       {% set ns.has_parameters_tuple = False %}
    {% else %}
-      {% if param['declaration_attributes'] == "" %}
+      {% if 'declaration_attributes' not in param or param['declaration_attributes'] == "" %}
       {% set decl_attribs = ' ' %}
       {% else %}
       {% set decl_attribs = ' ' ~ param['declaration_attributes'] ~ ' ' %}
       {% endif %}
-      {% if param['attributes'] == "" %}
+      {% if 'attributes' not in param or param['attributes'] == "" %}
       {% set attribs = ' ' %}
       {% else %}
       {% set attribs = ' ' ~ param['attributes'] ~ ' ' %}
       {% endif %}
-      {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ decl_attribs ~ param['ctype'] ~ attribs ~ param['name'] ~ dv ~ comma %}
+      {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ decl_attribs ~ param['ctype'] ~ attribs ~ param['name'] ~ comma %}
       {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ comma %}
       {% set ns.parameters_types = ns.parameters_types ~ param['ctype'] ~ comma %}
    {% endif %}

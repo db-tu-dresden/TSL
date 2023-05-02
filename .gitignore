@@ -16,3 +16,7 @@ lib/
 log
 
 tvl/
+
+generator/config/generator/tvl_templates/core/.twing/
+
+generator/config/generator/tvl_templates/expansions/.twing/

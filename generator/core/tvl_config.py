@@ -19,7 +19,7 @@ from yaml.loader import SafeLoader
 class TVLGeneratorConfig:
     class JinjaConfig:
         def __init__(self, root_path: Path):
-            self.__env = Environment(trim_blocks=True, lstrip_blocks=True, loader=FileSystemLoader(root_path))
+            self.__env = Environment(trim_blocks=True, lstrip_blocks=True, loader=FileSystemLoader(f"{root_path.resolve()}"))
 
         @property
         def env(self) -> Environment:
