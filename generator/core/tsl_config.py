@@ -16,7 +16,7 @@ from generator.utils.yaml_schema import Schema
 from generator.utils.yaml_utils import yaml_load, SafeLineLoader
 from yaml.loader import SafeLoader
 
-class TVLGeneratorConfig:
+class TSLGeneratorConfig:
     class JinjaConfig:
         def __init__(self, root_path: Path):
             self.__env = Environment(trim_blocks=True, lstrip_blocks=True, loader=FileSystemLoader(f"{root_path.resolve()}"))
@@ -49,8 +49,8 @@ class TVLGeneratorConfig:
             """
             logging.config.dictConfig(yaml_load(Path(self.__configuration_files_dict["log_config_file"]).resolve()))
             self.__logger = logging.getLogger(f"{self.__class__.__name__}")
-            self.__logger.info(f"Started TVL Generator. Loaded Logging Context.",
-                               extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
+            self.__logger.info(f"Started TSL Generator. Loaded Logging Context.",
+                               extra={"decorated_funcName": "setup", "decorated_filename": "tsl_config.py"})
 
         def load_schemes():
             """
@@ -59,13 +59,13 @@ class TVLGeneratorConfig:
             self.__schema_yaml = yaml_load(Path(self.__configuration_files_dict["schema_file"]).resolve())
             self.__schemes["extension"] = Schema(self.__schema_yaml["extension"])
             self.__logger.info(f"Loaded schema for extension.",
-                               extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
+                               extra={"decorated_funcName": "setup", "decorated_filename": "tsl_config.py"})
             self.__schemes["primitive"] = Schema(self.__schema_yaml["primitive"])
             self.__logger.info(f"Loaded schema for primitive.",
-                               extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
+                               extra={"decorated_funcName": "setup", "decorated_filename": "tsl_config.py"})
             self.__schemes["primitive_class"] = Schema(self.__schema_yaml["primitive_class"])
             self.__logger.info(f"Loaded schema for primitive class.",
-                               extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
+                               extra={"decorated_funcName": "setup", "decorated_filename": "tsl_config.py"})
 
         def load_jinja_templates():
             """
@@ -75,13 +75,13 @@ class TVLGeneratorConfig:
             substituted by '::'.
             """
             template_root_path: Path = Path(self.__configuration_files_dict["jinja_templates"]["root_path"]).resolve()
-            self.__jinja_config = TVLGeneratorConfig.JinjaConfig(template_root_path)
+            self.__jinja_config = TSLGeneratorConfig.JinjaConfig(template_root_path)
             for template_file in StaticFileTree(template_root_path, "*.template").get_files():
                 template_name = re.sub(rf"{self.path_seperator}", "::", str(template_file.relative_to(template_root_path)))[
                                 : -len(''.join(template_file.suffix))]
                 self.__jinja_templates[template_name] = self.__jinja_config.env.from_string(load_template_from_file(template_file))
                 self.__logger.info(f"Loaded template {template_name} (from file {template_file}).",
-                                   extra={"decorated_funcName": "setup", "decorated_filename": "tvl_config.py"})
+                                   extra={"decorated_funcName": "setup", "decorated_filename": "tsl_config.py"})
 
 
         def create_file_tress_for_primitive_data():
@@ -144,13 +144,13 @@ class TVLGeneratorConfig:
             if len(result_keys) == 0:
                 self.__logger.critical(f"Template {template_name} not found.",
                                        extra={"decorated_funcName": "get_template",
-                                              "decorated_filename": "tvl_config.py"})
+                                              "decorated_filename": "tsl_config.py"})
                 raise ValueError
             if len(result_keys) > 1:
                 self.__logger.critical(f"Template {template_name} is ambiguous. "
                                        f"Found following templates {result_keys}.",
                                        extra={"decorated_funcName": "get_template",
-                                              "decorated_filename": "tvl_config.py"})
+                                              "decorated_filename": "tsl_config.py"})
                 raise ValueError
             return self.__jinja_templates[result_keys[0]]
         return self.__jinja_templates[template_name]
@@ -177,7 +177,7 @@ class TVLGeneratorConfig:
         """
         if schema_entry_name not in self.__schemes:
             self.__logger.critical(f"Schema {schema_entry_name} not found.",
-                                   extra={"decorated_funcName": "get_schema", "decorated_filename": "tvl_config.py"})
+                                   extra={"decorated_funcName": "get_schema", "decorated_filename": "tsl_config.py"})
             raise ValueError
         return copy.deepcopy(self.__schemes[schema_entry_name])
 
@@ -190,7 +190,7 @@ class TVLGeneratorConfig:
         """
         if entry_name not in self.__general_configuration_dict:
             self.__logger.critical(f"Entry {entry_name} not found.",
-                                   extra={"decorated_funcName": "get_schema", "decorated_filename": "tvl_config.py"})
+                                   extra={"decorated_funcName": "get_schema", "decorated_filename": "tsl_config.py"})
             raise ValueError
         return copy.deepcopy(self.__general_configuration_dict[entry_name])
 
@@ -214,7 +214,7 @@ class TVLGeneratorConfig:
         """
         if entry_name not in self.__general_configuration_dict["library"]:
             self.__logger.critical(f"Entry {entry_name} not found.",
-                                   extra={"decorated_funcName": "get_schema", "decorated_filename": "tvl_config.py"})
+                                   extra={"decorated_funcName": "get_schema", "decorated_filename": "tsl_config.py"})
             raise ValueError
         return copy.deepcopy(self.__general_configuration_dict["library"][entry_name])
 
@@ -227,7 +227,7 @@ class TVLGeneratorConfig:
         """
         if entry_name not in self.__configuration_files_dict:
             self.__logger.critical(f"Entry {entry_name} not found.",
-                                   extra={"decorated_funcName": "get_schema", "decorated_filename": "tvl_config.py"})
+                                   extra={"decorated_funcName": "get_schema", "decorated_filename": "tsl_config.py"})
             raise ValueError
         return copy.deepcopy(self.__configuration_files_dict[entry_name])
 
@@ -377,7 +377,7 @@ class TVLGeneratorConfig:
         return Path(self.get_config_entry("emit_tsl_extensions_to"))
 
 
-config = TVLGeneratorConfig()
+config = TSLGeneratorConfig()
 
 
 def add_bool_arg(parser, name, dest, help_true_prefix="", help_false_prefix="", default=True, **kwargs):
@@ -405,11 +405,11 @@ def add_bool_arg(parser, name, dest, help_true_prefix="", help_false_prefix="", 
 
 
 def parse_args(**kwargs) -> dict:
-    parser = argparse.ArgumentParser(description="TVL Generator", epilog="To apply fine-tuned changes to the generator please change the config files (config/default_conf.yaml and config/log_conf.yaml).")
+    parser = argparse.ArgumentParser(description="TSL Generator", epilog="To apply fine-tuned changes to the generator please change the config files (config/default_conf.yaml and config/log_conf.yaml).")
     parser.add_argument('-o', '--out', type=pathlib.Path, help="Generation output path.", required=False,
                                   dest='configuration:root_path', metavar="OutPath")
     parser.add_argument('-i', '--in', type=pathlib.Path,
-                        help='Path where TVL primitive and extension files are located (relative to the script location or absolut).',
+                        help='Path where TSL primitive and extension files are located (relative to the script location or absolut).',
                         dest='configuration_files:primitive_data:root_path', metavar="InPath")
     parser.add_argument('--targets', default=None, nargs='*',
                         help='List of target flags which match the lscpu_flags from the extension/primitive files.',

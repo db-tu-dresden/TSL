@@ -1,25 +1,25 @@
 from pathlib import Path
 from typing import List, Set, Dict, Tuple
 
-from generator.core.ctrl.tvl_lib import TVLLib
-from generator.core.ctrl.tvl_libfile_generator import TVLFileGenerator
-from generator.core.model.tvl_extension import TVLExtension
-from generator.core.tvl_config import config
-from generator.expansions.tvl_translation_unit import TVLTranslationUnitContainer
+from generator.core.ctrl.tsl_lib import TSLLib
+from generator.core.ctrl.tsl_libfile_generator import TSLFileGenerator
+from generator.core.model.tsl_extension import TSLExtension
+from generator.core.tsl_config import config
+from generator.expansions.tsl_translation_unit import TSLTranslationUnitContainer
 from generator.utils.file_utils import strip_common_path_prefix, strip_path_prefix
 from generator.utils.log_utils import LogInit
 
 
-class TVLCMakeGenerator:
+class TSLCMakeGenerator:
     @LogInit()
     def __init__(self):
         pass
     @staticmethod
-    def generate_lib(lib: TVLLib, file_generator: TVLFileGenerator, translation_units: TVLTranslationUnitContainer, cmake_config: dict) -> None:
-        def get_architecture_flags(lib: TVLLib) -> str:
+    def generate_lib(lib: TSLLib, file_generator: TSLFileGenerator, translation_units: TSLTranslationUnitContainer, cmake_config: dict) -> None:
+        def get_architecture_flags(lib: TSLLib) -> str:
             result: Set[str] = set()
             for primitive_definition in lib.primitive_class_set.definitions():
-                extension: TVLExtension = lib.extension_set.get_extension_by_name(
+                extension: TSLExtension = lib.extension_set.get_extension_by_name(
                     primitive_definition.target_extension)
                 if extension.data["needs_arch_flags"]:
                     arch_flags: dict = extension.data["arch_flags"] if "arch_flags" in extension.data else dict()
@@ -44,17 +44,17 @@ class TVLCMakeGenerator:
                     **{
                         "header_files": header_files,
                         "library_root_path": f"{strip_common_path_prefix(config.lib_root_path, config.generation_out_path)}/",
-                        "tvl_target_compile_options": f"{get_architecture_flags(lib)} {get_warning_options()} -flax-vector-conversions",
+                        "tsl_target_compile_options": f"{get_architecture_flags(lib)} {get_warning_options()} -flax-vector-conversions",
                         "use_concepts": config.use_concepts,
                         "subdirectories": [strip_common_path_prefix(path, config.generation_out_path) for path, translation_units in translation_units.translation_units]
                     }
                 }
             )
         )
-        print("To use TVL, apply the following changes:")
+        print("To use TSL, apply the following changes:")
         print(f"   CMakeLists.txt (top-level):                 add_subdirectory({strip_path_prefix(config.generation_out_path)})")
-        print(f"                                               target_link_libraries(<target> tvl)")
-        print(f"   C++ Source/Header file which uses TVL:      #include <{strip_common_path_prefix(config.lib_root_header, config.lib_root_path)}>")
+        print(f"                                               target_link_libraries(<target> tsl)")
+        print(f"   C++ Source/Header file which uses TSL:      #include <{strip_common_path_prefix(config.lib_root_header, config.lib_root_path)}>")
         print(f"General usage:")
         print(f"   Using namespace declaration:                /*...*/ ")
         print(f"   (we generally discourage this               using namespace {config.lib_namespace};")
@@ -66,7 +66,7 @@ class TVLCMakeGenerator:
 
 
     @staticmethod
-    def generate_source_file(tus: TVLTranslationUnitContainer, cmake_config: dict) -> None:
+    def generate_source_file(tus: TSLTranslationUnitContainer, cmake_config: dict) -> None:
         for path, translation_units in tus.translation_units:
             path.mkdir(parents=True, exist_ok=True)
             targets: Dict[str, Tuple[List[Path], List[Path]]] = {}

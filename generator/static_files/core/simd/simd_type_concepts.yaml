@@ -6,9 +6,9 @@ includes:
 implementations:
    - |
 
-      #ifdef TVL_USE_CONCEPTS
+      #ifdef TSL_USE_CONCEPTS
          template<typename T, typename U>
-         concept TargetExtension = TVLArithmetic<U> && requires {
+         concept TargetExtension = TSLArithmetic<U> && requires {
             typename T:: template types<U>;
             typename T:: template types<U>::default_size_in_bits;
             typename T:: template types<U>::register_t;
@@ -32,7 +32,7 @@ implementations:
             { T::vector_mask_ratio() } -> std::same_as<std::size_t>;
             { T::mask_shift() } -> std::same_as<std::size_t>;
          } &&
-            TVLArithmetic<typename T::base_type> &&
+            TSLArithmetic<typename T::base_type> &&
             TargetExtension<typename T::target_extension, typename T::base_type> &&
             ( T::vector_size_b() > 0 ) &&
             ( T::vector_size_B() > 0 ) &&
@@ -45,7 +45,7 @@ implementations:
       #endif
          struct native{};
          struct workaround{};
-      #ifdef TVL_USE_CONCEPTS
+      #ifdef TSL_USE_CONCEPTS
          template<class T>
          concept ImplementationDegreeOfFreedom = std::is_same_v<T, native> || std::is_same_v<T, workaround>;
       #else

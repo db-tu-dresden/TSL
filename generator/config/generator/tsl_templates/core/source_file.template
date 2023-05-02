@@ -1,5 +1,5 @@
-{{ tvl_license }}
-{{ tvl_file_doxygen }}
+{{ tsl_license }}
+{{ tsl_file_doxygen }}
 {% for include in includes %}
 #include {{ include }}
 {% endfor %}

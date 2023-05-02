@@ -6,19 +6,19 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Set, List, Generator, Dict, Tuple
 
-from generator.core.tvl_config import config
+from generator.core.tsl_config import config
 from generator.utils.dict_utils import deep_update_dict, keep_in_list
 from generator.utils.log_utils import LogInit
 from generator.utils.requirement import requirement
 from generator.utils.yaml_utils import YamlDataType
 
 
-class TVLPrimitive:
+class TSLPrimitive:
     class Declaration:
         @LogInit()
         def __init__(self, data_dict: dict):
             self.__data_dict = data_dict
-            self.__data_dict["tvl_namespace"] = config.get_config_entry("namespace")
+            self.__data_dict["tsl_namespace"] = config.get_config_entry("namespace")
             if len(data_dict["functor_name"]) == 0:
                 self.__data_dict["functor_name"] = data_dict["primitive_name"]
             self.log(logging.INFO, f"Created Primitive Declaration {self.__data_dict['primitive_name']}")
@@ -168,17 +168,17 @@ class TVLPrimitive:
                 for t in ctypes_list:
                     yield (t, "")
             elif (len(ctypes_list) == 1) and (len(return_vector_basetypes_list) > 1):
-                yield from TVLPrimitive.Definition.map_types_one2m(ctypes_list, return_vector_basetypes_list)
+                yield from TSLPrimitive.Definition.map_types_one2m(ctypes_list, return_vector_basetypes_list)
             elif (len(ctypes_list) > 1) and (len(return_vector_basetypes_list) == 1):
-                yield from TVLPrimitive.Definition.map_types_m2one(ctypes_list, return_vector_basetypes_list)
+                yield from TSLPrimitive.Definition.map_types_m2one(ctypes_list, return_vector_basetypes_list)
             elif len(ctypes_list) == (len(return_vector_basetypes_list)):
-                yield from TVLPrimitive.Definition.map_types_one2one(ctypes_list, return_vector_basetypes_list)
+                yield from TSLPrimitive.Definition.map_types_one2one(ctypes_list, return_vector_basetypes_list)
             elif len(self.additional_simd_template_base_type_mapping_dict) > 0:
-                yield from TVLPrimitive.Definition.map_types_from_dict(ctypes_list, self.additional_simd_template_base_type_mapping_dict)
+                yield from TSLPrimitive.Definition.map_types_from_dict(ctypes_list, self.additional_simd_template_base_type_mapping_dict)
             elif len(ctypes_list) > 0 and len(return_vector_basetypes_list) == 0:
-                yield from TVLPrimitive.Definition.map_types_m2m(ctypes_list)
+                yield from TSLPrimitive.Definition.map_types_m2m(ctypes_list)
             else:
-                yield from TVLPrimitive.Definition.map_types_cartesian(ctypes_list, return_vector_basetypes_list)
+                yield from TSLPrimitive.Definition.map_types_cartesian(ctypes_list, return_vector_basetypes_list)
 
         @property
         def types_dict(self) -> Dict[str, List[str]]:
@@ -198,14 +198,14 @@ class TVLPrimitive:
                 setattr(result, k, deepcopy(v, memodict))
             return result
 
-        def is_similar(self, other_definition: TVLPrimitive.Definition) -> bool:
+        def is_similar(self, other_definition: TSLPrimitive.Definition) -> bool:
             if other_definition.target_extension != self.target_extension:
                 return False
             selfset = set([f"{x},{y}" for x,y in self.types])
             otherset = set([f"{x},{y}" for x,y in other_definition.types])
             return len(selfset & otherset) > 0
 
-        def greater_than(self, other_definition:TVLPrimitive.Definition, relevant_architecture_flags: Set[str]) -> bool:
+        def greater_than(self, other_definition:TSLPrimitive.Definition, relevant_architecture_flags: Set[str]) -> bool:
             if not self.is_native and other_definition.is_native:
                 return False
             if self.is_native and not other_definition.is_native:
@@ -249,7 +249,7 @@ class TVLPrimitive:
         return f"{self.declaration.name}"
 
     def __eq__(self, other):
-        if isinstance(other, TVLPrimitive):
+        if isinstance(other, TSLPrimitive):
             if other.declaration.name == self.declaration.name:
                 return other.declaration.functor_name == self.declaration.functor_name
         else:
@@ -261,16 +261,16 @@ class TVLPrimitive:
         return f"{name}<{ctype},{target_extension}>"
 
     @LogInit()
-    def __init__(self, declaration: TVLPrimitive.Declaration, definitions: List[TVLPrimitive.Definition]) -> None:
-        self.__declaration: TVLPrimitive.Declaration = declaration
-        self.__definitions: List[TVLPrimitive.Definition] = definitions
+    def __init__(self, declaration: TSLPrimitive.Declaration, definitions: List[TSLPrimitive.Definition]) -> None:
+        self.__declaration: TSLPrimitive.Declaration = declaration
+        self.__definitions: List[TSLPrimitive.Definition] = definitions
 
     @property
-    def declaration(self) -> TVLPrimitive.Declaration:
+    def declaration(self) -> TSLPrimitive.Declaration:
         return self.__declaration
 
     @property
-    def definitions(self) -> Generator[TVLPrimitive.Definition, None, None]:
+    def definitions(self) -> Generator[TSLPrimitive.Definition, None, None]:
         for definition in self.__definitions:
             yield definition
 
@@ -289,14 +289,14 @@ class TVLPrimitive:
 
     @staticmethod
     @requirement(data_dict="NotNone;dict")
-    def create_from_dict(data_dict: dict) -> TVLPrimitive:
+    def create_from_dict(data_dict: dict) -> TSLPrimitive:
         definitions_dict_list = []
-        if TVLPrimitive.Definition.schema_identifier() in data_dict:
-            definitions_dict_list = data_dict.pop(TVLPrimitive.Definition.schema_identifier())
-        declaration: TVLPrimitive.Declaration = TVLPrimitive.Declaration(data_dict)
-        definitions: List[TVLPrimitive.Definition] = [TVLPrimitive.Definition(definition_dict) for definition_dict in
+        if TSLPrimitive.Definition.schema_identifier() in data_dict:
+            definitions_dict_list = data_dict.pop(TSLPrimitive.Definition.schema_identifier())
+        declaration: TSLPrimitive.Declaration = TSLPrimitive.Declaration(data_dict)
+        definitions: List[TSLPrimitive.Definition] = [TSLPrimitive.Definition(definition_dict) for definition_dict in
                                                       definitions_dict_list]
-        return TVLPrimitive(declaration, definitions)
+        return TSLPrimitive(declaration, definitions)
 
     def __deepcopy__(self, memodict={}):
         cls = self.__class__
@@ -333,10 +333,10 @@ class TVLPrimitive:
                     known_conversions[tstype].extend(tsdict[tstype])
         return result
 
-class TVLPrimitiveClass:
+class TSLPrimitiveClass:
     @LogInit()
     def __init__(self, path: Path, data_dict: YamlDataType) -> None:
-        self.__primitives: List[TVLPrimitive] = list()
+        self.__primitives: List[TSLPrimitive] = list()
         self.__file_path = path
         self.__data_dict = data_dict
 
@@ -357,7 +357,7 @@ class TVLPrimitiveClass:
 
     @requirement(other="NotNone")
     def __eq__(self, other):
-        if isinstance(other, TVLPrimitiveClass):
+        if isinstance(other, TSLPrimitiveClass):
             return self.name == other.name
         if isinstance(other, str):
             return self.name == other
@@ -372,14 +372,14 @@ class TVLPrimitiveClass:
 
     @staticmethod
     @requirement(path="NotNone", data_dict="NotNone")
-    def create_from_dict(path: Path, data_dict: YamlDataType) -> TVLPrimitiveClass:
+    def create_from_dict(path: Path, data_dict: YamlDataType) -> TSLPrimitiveClass:
         primitive_data_path = config.get_primitive_files_path("primitives_path")
         primitive_class_file_relative_to_primitive_data_path = path.relative_to(primitive_data_path)
         primitive_file_path = primitive_class_file_relative_to_primitive_data_path.parent
-        return TVLPrimitiveClass(primitive_file_path, data_dict)
+        return TSLPrimitiveClass(primitive_file_path, data_dict)
 
     @requirement(primitive="NotNone")
-    def add_primitive(self, primitive: TVLPrimitive, logLevel=logging.INFO) -> None:
+    def add_primitive(self, primitive: TSLPrimitive, logLevel=logging.INFO) -> None:
         if primitive in self.__primitives:
             self.log(logLevel, f"Overwriting old data for primitive {primitive.declaration.name}")
             self.__primitives.remove(primitive)
@@ -389,7 +389,7 @@ class TVLPrimitiveClass:
 
     @requirement(data_dict="NotNone")
     def add_primitive_from_dict(self, data_dict: YamlDataType) -> None:
-        primitive = TVLPrimitive.create_from_dict(data_dict)
+        primitive = TSLPrimitive.create_from_dict(data_dict)
         self.__primitives.append(primitive)
 
     def __iter__(self):
@@ -397,10 +397,10 @@ class TVLPrimitiveClass:
             yield primitive
 
 
-class TVLPrimitiveClassSet:
+class TSLPrimitiveClassSet:
     @LogInit()
     def __init__(self):
-        self.__primitive_classes: Set[TVLPrimitiveClass] = set()
+        self.__primitive_classes: Set[TSLPrimitiveClass] = set()
 
     @property
     def known_ctypes(self) -> List[str]:
@@ -413,7 +413,7 @@ class TVLPrimitiveClassSet:
         return sorted(list(known_ctypes_set))
 
     @requirement(primitive_class="NotNone")
-    def add_primitive_class(self, primitive_class: TVLPrimitiveClass):
+    def add_primitive_class(self, primitive_class: TSLPrimitiveClass):
         if primitive_class in self.__primitive_classes:
             self.log(logging.INFO, f"Overwriting old data for extension {primitive_class.name}")
             self.__primitive_classes.discard(primitive_class)
@@ -433,12 +433,12 @@ class TVLPrimitiveClassSet:
             setattr(result, k, deepcopy(v, memodict))
         return result
 
-    def definitions(self) -> Generator[TVLPrimitive.Definition, None, None]:
+    def definitions(self) -> Generator[TSLPrimitive.Definition, None, None]:
         for primitive_class in self.__primitive_classes:
             for primitive in primitive_class:
                 yield from primitive.definitions
 
-    def primitives(self) -> Generator[TVLPrimitive, None, None]:
+    def primitives(self) -> Generator[TSLPrimitive, None, None]:
         for primitive_class in self.__primitive_classes:
             for primitive in primitive_class:
                 yield primitive
@@ -449,10 +449,10 @@ class TVLPrimitiveClassSet:
                 name = primitive.declaration.functor_name
                 for definition in primitive.definitions:
                     for ctype in definition.ctypes:
-                        yield TVLPrimitive.human_readable(name, ctype, definition.target_extension)
+                        yield TSLPrimitive.human_readable(name, ctype, definition.target_extension)
 
-    def get_declaration_dict(self) -> Dict[Dict[str, TVLPrimitive.Declaration]]:
-        result: Dict[Dict[str, TVLPrimitive.Declaration]] = dict()
+    def get_declaration_dict(self) -> Dict[Dict[str, TSLPrimitive.Declaration]]:
+        result: Dict[Dict[str, TSLPrimitive.Declaration]] = dict()
         for primitive_class in self.__primitive_classes:
             result[primitive_class.name] = {primitive.declaration.functor_name: primitive.declaration for primitive in
                                             primitive_class}

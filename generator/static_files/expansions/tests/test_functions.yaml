@@ -72,7 +72,7 @@ implementations:
                private:
                   template<std::size_t... Is>
                   static auto call_set_impl(typename Vec::base_type const * data, std::index_sequence<Is...>) {
-                     return tvl::set<Vec>(data[(Vec::vector_element_count()-1)-Is]...);
+                     return tsl::set<Vec>(data[(Vec::vector_element_count()-1)-Is]...);
                   }
                public:
                   static auto call_set(typename Vec::base_type const * data) {
@@ -98,9 +98,9 @@ implementations:
                      m_result_count         {p_result_count},
                      m_data_ref             {nullptr},
                      m_data_target          {nullptr},
-                     m_result_ref           {tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_result_count*sizeof(base_t))},
-                     m_result_target_for_ref{tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_result_count*sizeof(base_t))},
-                     m_result_target        {(aligned) ? tvl::allocate_aligned<Vec>(p_result_count*sizeof(base_t), Vec::vector_alignment()) : tvl::allocate<Vec>(p_result_count*sizeof(base_t))}
+                     m_result_ref           {tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_result_count*sizeof(base_t))},
+                     m_result_target_for_ref{tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_result_count*sizeof(base_t))},
+                     m_result_target        {(aligned) ? tsl::allocate_aligned<Vec>(p_result_count*sizeof(base_t), Vec::vector_alignment()) : tsl::allocate<Vec>(p_result_count*sizeof(base_t))}
                   { 
                      
                    }
@@ -108,35 +108,35 @@ implementations:
                   test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, std::function<void(base_t*,std::size_t)> const & fun = rnd_init<base_t>, Ts... init_args):
                      m_data_element_count   {p_data_element_count},
                      m_result_count         {p_result_count},
-                     m_data_ref             {tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_data_element_count*sizeof(base_t))},
-                     m_data_target          {(aligned) ? tvl::allocate_aligned<Vec>(p_data_element_count*sizeof(base_t), Vec::vector_alignment()) : tvl::allocate<Vec>(p_data_element_count*sizeof(base_t))},
-                     m_result_ref           {tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_result_count*sizeof(base_t))},
-                     m_result_target_for_ref{tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_result_count*sizeof(base_t))},
-                     m_result_target        {(aligned) ? tvl::allocate_aligned<Vec>(p_result_count*sizeof(base_t), Vec::vector_alignment()) : tvl::allocate<Vec>(p_result_count*sizeof(base_t))}
+                     m_data_ref             {tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_data_element_count*sizeof(base_t))},
+                     m_data_target          {(aligned) ? tsl::allocate_aligned<Vec>(p_data_element_count*sizeof(base_t), Vec::vector_alignment()) : tsl::allocate<Vec>(p_data_element_count*sizeof(base_t))},
+                     m_result_ref           {tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_result_count*sizeof(base_t))},
+                     m_result_target_for_ref{tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_result_count*sizeof(base_t))},
+                     m_result_target        {(aligned) ? tsl::allocate_aligned<Vec>(p_result_count*sizeof(base_t), Vec::vector_alignment()) : tsl::allocate<Vec>(p_result_count*sizeof(base_t))}
                   {
                      fun(m_data_ref, p_data_element_count, init_args...);
-                     tvl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
+                     tsl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
                   }
                   template<typename... Ts>
                   test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, std::function<void(base_t*,std::size_t, base_t)> const & fun, base_t start):
                     m_data_element_count   {p_data_element_count},
                     m_result_count         {p_result_count},
-                    m_data_ref             {tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_data_element_count*sizeof(base_t))},
-                    m_data_target          {(aligned) ? tvl::allocate_aligned<Vec>(p_data_element_count*sizeof(base_t), Vec::vector_alignment()) : tvl::allocate<Vec>(p_data_element_count*sizeof(base_t))},
-                    m_result_ref           {tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_result_count*sizeof(base_t))},
-                    m_result_target_for_ref{tvl::allocate<tvl::simd<base_t, tvl::scalar>>(p_result_count*sizeof(base_t))},
-                    m_result_target        {(aligned) ? tvl::allocate_aligned<Vec>(p_result_count*sizeof(base_t), Vec::vector_alignment()) : tvl::allocate<Vec>(p_result_count*sizeof(base_t))}
+                    m_data_ref             {tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_data_element_count*sizeof(base_t))},
+                    m_data_target          {(aligned) ? tsl::allocate_aligned<Vec>(p_data_element_count*sizeof(base_t), Vec::vector_alignment()) : tsl::allocate<Vec>(p_data_element_count*sizeof(base_t))},
+                    m_result_ref           {tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_result_count*sizeof(base_t))},
+                    m_result_target_for_ref{tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_result_count*sizeof(base_t))},
+                    m_result_target        {(aligned) ? tsl::allocate_aligned<Vec>(p_result_count*sizeof(base_t), Vec::vector_alignment()) : tsl::allocate<Vec>(p_result_count*sizeof(base_t))}
                   {
                     fun(m_data_ref, p_data_element_count, start);
-                    tvl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
+                    tsl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
                   }
                   virtual ~test_memory_helper_t() {
-                     tvl::deallocate<Vec>(m_result_target);
-                     tvl::deallocate<tvl::simd<base_t, tvl::scalar>>(m_result_target_for_ref);
-                     tvl::deallocate<tvl::simd<base_t, tvl::scalar>>(m_result_ref);
+                     tsl::deallocate<Vec>(m_result_target);
+                     tsl::deallocate<tsl::simd<base_t, tsl::scalar>>(m_result_target_for_ref);
+                     tsl::deallocate<tsl::simd<base_t, tsl::scalar>>(m_result_ref);
                      if(m_data_element_count > 0) {
-                        tvl::deallocate<Vec>(m_data_target);
-                        tvl::deallocate<tvl::simd<base_t, tvl::scalar>>(m_data_ref);
+                        tsl::deallocate<Vec>(m_data_target);
+                        tsl::deallocate<tsl::simd<base_t, tsl::scalar>>(m_data_ref);
                      }
                   }
                public:
@@ -146,10 +146,10 @@ implementations:
                   auto result_target() { return m_result_target; }
                public:
                   void ship_to_dev() {
-                     tvl::memory_cp<Vec>(m_data_target, m_data_ref, m_data_element_count*sizeof(base_t), 1);
+                     tsl::memory_cp<Vec>(m_data_target, m_data_ref, m_data_element_count*sizeof(base_t), 1);
                   }
                   void synchronize() {
-                     tvl::memory_cp<Vec>(m_result_target_for_ref, m_result_target, m_result_count*sizeof(base_t), 2);
+                     tsl::memory_cp<Vec>(m_result_target_for_ref, m_result_target, m_result_count*sizeof(base_t), 2);
                   }
                   bool validate() const {
                      bool result = true;
@@ -159,20 +159,20 @@ implementations:
                      return result;
                   }
                   bool validate_simd_register(typename Vec::register_type reg) const {
-                     auto tmp_target_buf = tvl::allocate_aligned<Vec>(Vec::vector_size_B(), Vec::vector_alignment());
-                     auto tmp_reference_buf = tvl::allocate<tvl::simd<base_t, tvl::scalar>>(Vec::vector_size_B());
+                     auto tmp_target_buf = tsl::allocate_aligned<Vec>(Vec::vector_size_B(), Vec::vector_alignment());
+                     auto tmp_reference_buf = tsl::allocate<tsl::simd<base_t, tsl::scalar>>(Vec::vector_size_B());
                      if constexpr(Vec::register_type_is_pointer_v) {
-                        tvl::memory_cp<Vec>(tmp_target_buf, reinterpret_cast<typename Vec::base_type const *>(reg), Vec::vector_size_B(), 3);
+                        tsl::memory_cp<Vec>(tmp_target_buf, reinterpret_cast<typename Vec::base_type const *>(reg), Vec::vector_size_B(), 3);
                      } else {
-                        tvl::memory_cp<Vec>(tmp_target_buf, reinterpret_cast<typename Vec::base_type const *>(&reg), Vec::vector_size_B(), 3);
+                        tsl::memory_cp<Vec>(tmp_target_buf, reinterpret_cast<typename Vec::base_type const *>(&reg), Vec::vector_size_B(), 3);
                      }
-                     tvl::memory_cp<Vec>(tmp_reference_buf, tmp_target_buf, Vec::vector_size_B(), 2);
+                     tsl::memory_cp<Vec>(tmp_reference_buf, tmp_target_buf, Vec::vector_size_B(), 2);
                      bool result = true;
                      for(auto i = 0; i < Vec::vector_element_count(); ++i) {
                         result &= check_value<base_t>(tmp_reference_buf[i], m_result_ref[i]);
                      }
-                     tvl::deallocate<tvl::simd<base_t, tvl::scalar>>(tmp_reference_buf);
-                     tvl::deallocate<Vec>(tmp_target_buf);
+                     tsl::deallocate<tsl::simd<base_t, tsl::scalar>>(tmp_reference_buf);
+                     tsl::deallocate<Vec>(tmp_target_buf);
                      return result;
                   }
             };

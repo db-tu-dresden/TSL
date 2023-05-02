@@ -5,7 +5,7 @@ includes:
 implementations:
    - |
       
-      #ifdef TVL_USE_CONCEPTS
+      #ifdef TSL_USE_CONCEPTS
          template< typename T >
          concept SimdPrimitiveImpl = requires {
             { T::native_supported() } -> std::same_as< bool >;

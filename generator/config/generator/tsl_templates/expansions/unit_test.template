@@ -10,7 +10,7 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-namespace {{ tvl_namespace }} {
+namespace {{ tsl_namespace }} {
   {% for primitive_class_test in tests %}
   {%    for primitive_test in primitive_class_test['primitive_tests'] %}
   {%       for case in primitive_test['cases'] %}
@@ -20,7 +20,7 @@ namespace {{ tvl_namespace }} {
   template<VectorProcessingStyle {{ primitive_test['vector_name'] }}>
   {%        endif %}
      bool test_{{ case['primitive_name'] }}_{{ case['test_name'] }}() {
-        using namespace {{ tvl_namespace }};
+        using namespace {{ tsl_namespace }};
         {%- filter indent(width=8) +%}
 {{ case['implementation'] }}
         {% endfilter %}
@@ -34,7 +34,7 @@ namespace {{ tvl_namespace }} {
 {%    for primitive_test in primitive_class_test['primitive_tests'] %}
 {%       for extension in known_extensions %}
 TEST_CASE("Testing primitive '{{ primitive_test['functor_name'] }}' for {{ extension }}", "[{{ primitive_test['functor_name'] }}],[{{ extension }}]") {
-   using namespace {{ tvl_namespace }};
+   using namespace {{ tsl_namespace }};
 {%             for case in primitive_test['cases'] %}
    SECTION("{{ case['test_name'] }}") {
 {%                   if extension not in case['complete_tests_lib_definitions'] %}

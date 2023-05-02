@@ -81,7 +81,7 @@
 {% set ns.additional_template_params = ns.additional_template_params ~ ", " %}
 {% endif %}
 {# Every implementation is in the (nested) namespace "details" #}
-namespace {{ tvl_implementation_namespace }} {
+namespace {{ tsl_implementation_namespace }} {
       /**
        * @brief: Template specialization of implementation for "{{ functor_name }}" (primitive {{ primitive_name }}).
        * @details:
@@ -118,9 +118,9 @@ namespace {{ tvl_implementation_namespace }} {
             template< {{ ns.parameter_pack_typenames_str }} >
    {% endif %}
    {# If the primitive returns something, the caller has to capture the result. #}
-            {{ '[[nodiscard]] ' if returns['ctype'] != 'void' else ''}}{{ '' if is_native else "TVL_NO_NATIVE_SUPPORT_WARNING" }}
-   {# If force_inline is set to True, we use TVL_FORCE_INLINE. #}
-            {{ 'TVL_FORCE_INLINE ' if force_inline else '' }}
+            {{ '[[nodiscard]] ' if returns['ctype'] != 'void' else ''}}{{ '' if is_native else "TSL_NO_NATIVE_SUPPORT_WARNING" }}
+   {# If force_inline is set to True, we use TSL_FORCE_INLINE. #}
+            {{ 'TSL_FORCE_INLINE ' if force_inline else '' }}
             static {{ returns['ctype'] }} apply(
    {# Iterate over all parameters and write them out. #}
                {{ ns.full_qualified_parameters_str }}
@@ -133,4 +133,4 @@ namespace {{ tvl_implementation_namespace }} {
                {% endfilter %}
             }
          };
-   } // end of namespace {{ tvl_implementation_namespace }} for template specialization of {{ functor_name }} for {{ target_extension }} using {{ ctype }}.
+   } // end of namespace {{ tsl_implementation_namespace }} for template specialization of {{ functor_name }} for {{ target_extension }} using {{ ctype }}.

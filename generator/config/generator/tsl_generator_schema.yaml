@@ -31,7 +31,7 @@ extension:
          example: "[ 'avx512cd', 'avx512f' ]"
       simdT_name:
          type: "str"
-         brief: "Extension Name which will be used inside the TVL."
+         brief: "Extension Name which will be used inside the TSL."
          example: "'avx512'"
       simdT_register_type:
          type: "str"
@@ -110,7 +110,7 @@ return: &return
    required:
       ctype:
          type: "str"
-         brief: "TVL type of the parameter with all cvref qualifiers."
+         brief: "TSL type of the parameter with all cvref qualifiers."
          example: "Vec::vector_type const &"
    optional:
       description:
@@ -122,7 +122,7 @@ parameter: &parameter
    required:
       ctype:
          type: "str"
-         brief: "TVL type of the parameter with all cvref qualifiers."
+         brief: "TSL type of the parameter with all cvref qualifiers."
          example: "Vec::vector_type const &"
       name:
          type: "str"
@@ -154,7 +154,7 @@ parameter: &parameter
 primitive_specialization_requirements: &primitive_specialization_requirements
    target_extension:
       type: "str"
-      brief: "The TVL extension for which this definition is a specialization."
+      brief: "The TSL extension for which this definition is a specialization."
    ctype:
       type: "list"
       entry_type: "str"
@@ -253,7 +253,7 @@ primitive:
          type: "str"
          brief: "@TODO"
          example: "test_add"
-      tvl_implementation_namespace:
+      tsl_implementation_namespace:
          type: "str"
          default: "functors"
          brief: "Namespace for template specializations."

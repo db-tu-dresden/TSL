@@ -22,12 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     name: "${{ matrix.generator_opts }} ${{ matrix.compiler }}"
     steps:
-    - name: Checkout TVL repository (recursive)
+    - name: Checkout TSL repository (recursive)
       uses: actions/checkout@v3
       with:
-        repository: ${{ github.repository_owner }}/TVLGen.git
+        repository: ${{ github.repository_owner }}/TSLGen.git
         ref: main
-        token: '${{ secrets.DHTVL_AT }}'
+        token: '${{ secrets.DHTSL_AT }}'
     - name: Checkout primitive_data submodule
       uses: actions/checkout@v3
       with:
@@ -48,7 +48,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. "-DTVL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}" "-DCMAKE_CXX_COMPILER=${{ matrix.compiler_appname }}"
+        cmake .. "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}" "-DCMAKE_CXX_COMPILER=${{ matrix.compiler_appname }}"
     - name: Build Tests
       run: |
         cd build
@@ -56,26 +56,26 @@ jobs:
     - name: Run Tests
       run: |
         cd build
-        ./build/generator_output/src/test/tvl_test
+        ./build/generator_output/src/test/tsl_test
 
-  update_tvl_gen_submodule:
+  update_tsl_gen_submodule:
     if: "github.event_name == 'push'"
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout TVL repository (recursive)
+    - name: Checkout TSL repository (recursive)
       uses: actions/checkout@v3
       with:
-        repository: ${{ github.repository_owner }}/TVLGen.git
+        repository: ${{ github.repository_owner }}/TSLGen.git
         ref: main
-        token: '${{ secrets.DHTVL_AT }}'
+        token: '${{ secrets.DHTSL_AT }}'
         submodules: recursive
     - name: Setup Git Creds
       run: |
         git config --global user.email "johannes.pietrzyk@tu-dresden.de"
         git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
-    - name: Update TVL generator repository
+    - name: Update TSL generator repository
       run: |
         cd primitive_data
         git checkout "$(git config -f ../.gitmodules submodule.primitive_data.branch)"

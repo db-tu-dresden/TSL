@@ -3,14 +3,14 @@ import logging
 from copy import deepcopy
 from typing import List, Dict, Set
 
-from generator.core.model.tvl_extension import TVLExtensionSet
-from generator.core.model.tvl_primitive import TVLPrimitiveClassSet, TVLPrimitiveClass, TVLPrimitive
+from generator.core.model.tsl_extension import TSLExtensionSet
+from generator.core.model.tsl_primitive import TSLPrimitiveClassSet, TSLPrimitiveClass, TSLPrimitive
 from generator.utils.dict_utils import intersects, deep_update_dict
 from generator.utils.log_utils import LogInit, log
 from generator.utils.requirement import requirement
 
 
-class TVLSlicer:
+class TSLSlicer:
     @LogInit()
     def __init__(self, relevant_hardware_flags: List[str] = None, relevant_types: List[str] = []):
         self.__relevant_hardware_flags: List[str] = relevant_hardware_flags
@@ -56,18 +56,18 @@ class TVLSlicer:
         return (set(data_dict["lscpu_flags"]).issubset(set(self.__relevant_hardware_flags)))
 
     @log
-    def slice_extensions(self, extension_set: TVLExtensionSet) -> TVLExtensionSet:
+    def slice_extensions(self, extension_set: TSLExtensionSet) -> TSLExtensionSet:
         if self.__relevant_hardware_flags is None:
             return deepcopy(extension_set)
         self.log(logging.INFO, f"Slicing Extensions for {self.__relevant_hardware_flags}")
-        result = TVLExtensionSet()
+        result = TSLExtensionSet()
         for extension in extension_set:
             if self.is_extension_relevant(extension.data):
                 self.log(logging.DEBUG, f"Found relevant extension {extension.name}.")
                 result.add_extension(deepcopy(extension), logging.WARNING)
         return result
 
-    def __is_definition_relevant(self, definition: TVLPrimitive.Definition) -> bool:
+    def __is_definition_relevant(self, definition: TSLPrimitive.Definition) -> bool:
         if intersects(set(definition.ctypes), self.__relevant_types) and intersects(set(definition.additional_simd_template_base_types), self.__relevant_types):
             if len(definition.additional_simd_template_base_type_mapping_dict) != 0:
                 return len(deep_update_dict(definition.additional_simd_template_base_type_mapping_dict, list(self.__relevant_types), False)) != 0
@@ -75,14 +75,14 @@ class TVLSlicer:
                 return True
         return False
 
-    # def __update_definition(self, definition: TVLPrimitive.Definition):
+    # def __update_definition(self, definition: TSLPrimitive.Definition):
     #     definition.ctypes = list((set(definition.ctypes)).intersection(self.__relevant_types))
     @log
-    def __slice_primitive(self, primitive: TVLPrimitive) -> TVLPrimitive:
+    def __slice_primitive(self, primitive: TSLPrimitive) -> TSLPrimitive:
         relevant_hw_flags_set: Set[str] = set(self.__relevant_hardware_flags)
-        definitions: Dict[str, List[TVLPrimitive.Definition]] = dict()
+        definitions: Dict[str, List[TSLPrimitive.Definition]] = dict()
         for definition in primitive.definitions:
-            copied_definition: TVLPrimitive.Definition = copy.deepcopy(definition)
+            copied_definition: TSLPrimitive.Definition = copy.deepcopy(definition)
             if self.is_primitive_relevant(copied_definition.data) and self.__is_definition_relevant(copied_definition):
                 copied_definition.update_types(list(self.__relevant_types))
                 # copied_definition.ctypes = list((set(copied_definition.ctypes)).intersection(self.__relevant_types))
@@ -115,20 +115,20 @@ class TVLSlicer:
             defs = []
             for val in definitions.values():
                 defs.extend(val)
-            return TVLPrimitive(deepcopy(primitive.declaration), defs)
-            # return TVLPrimitive(deepcopy(primitive.declaration),
+            return TSLPrimitive(deepcopy(primitive.declaration), defs)
+            # return TSLPrimitive(deepcopy(primitive.declaration),
             #                 definitions)
         else:
             return None
 
     @log
-    def slice_primitives(self, primitive_class_set: TVLPrimitiveClassSet) -> TVLPrimitiveClassSet:
+    def slice_primitives(self, primitive_class_set: TSLPrimitiveClassSet) -> TSLPrimitiveClassSet:
         if self.__relevant_hardware_flags is None:
             return deepcopy(primitive_class_set)
         self.log(logging.INFO, f"Slicing Primitives for {self.__relevant_hardware_flags}")
-        result = TVLPrimitiveClassSet()
+        result = TSLPrimitiveClassSet()
         for primitive_class in primitive_class_set:
-            pclass = TVLPrimitiveClass(primitive_class.file_name, primitive_class.data)
+            pclass = TSLPrimitiveClass(primitive_class.file_name, primitive_class.data)
             for primitive in primitive_class:
                 p = self.__slice_primitive(primitive)
                 if p is not None:

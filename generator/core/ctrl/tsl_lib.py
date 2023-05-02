@@ -1,18 +1,18 @@
 from typing import Generator
 
-from generator.core.model.tvl_extension import TVLExtensionSet
-from generator.core.model.tvl_primitive import TVLPrimitiveClassSet
+from generator.core.model.tsl_extension import TSLExtensionSet
+from generator.core.model.tsl_primitive import TSLPrimitiveClassSet
 from generator.utils.log_utils import LogInit
 
 
-class TVLLib:
+class TSLLib:
 
     @property
-    def extension_set(self) -> TVLExtensionSet:
+    def extension_set(self) -> TSLExtensionSet:
         return self.__extension_set
 
     @property
-    def primitive_class_set(self) -> TVLPrimitiveClassSet:
+    def primitive_class_set(self) -> TSLPrimitiveClassSet:
         return self.__primitive_class_set
 
     @property
@@ -22,6 +22,6 @@ class TVLLib:
                 yield primitive.declaration.name
 
     @LogInit()
-    def __init__(self, extension_set: TVLExtensionSet, primitive_class_set: TVLPrimitiveClassSet) -> None:
+    def __init__(self, extension_set: TSLExtensionSet, primitive_class_set: TSLPrimitiveClassSet) -> None:
         self.__extension_set = extension_set
         self.__primitive_class_set = primitive_class_set

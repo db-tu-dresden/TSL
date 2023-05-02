@@ -8,21 +8,21 @@ from typing import List, Set, Generator, Dict, Tuple
 
 import networkx as nx
 
-from generator.core.ctrl.tvl_lib import TVLLib
+from generator.core.ctrl.tsl_lib import TSLLib
 
 import wget
 
-from generator.core.model.tvl_file import TVLSourceFile, TVLHeaderFile
-from generator.core.model.tvl_primitive import TVLPrimitive
-from generator.core.tvl_config import config
-from generator.expansions.tvl_translation_unit import TVLTranslationUnit
+from generator.core.model.tsl_file import TSLSourceFile, TSLHeaderFile
+from generator.core.model.tsl_primitive import TSLPrimitive
+from generator.core.tsl_config import config
+from generator.expansions.tsl_translation_unit import TSLTranslationUnit
 from generator.utils.file_utils import strip_common_path_prefix
 from generator.utils.log_utils import LogInit
 from generator.utils.yaml_utils import YamlDataType, yaml_load
 
 import os
 
-class TVLPrimitiveTestCaseData:
+class TSLPrimitiveTestCaseData:
     def __init__(self, class_name: str, primitive_name: str, data_dict: YamlDataType, lib_definitions: Dict[str, List[str]], conversion_types: Dict[str, Dict[str, List[str]]], missing_primitive_definitions: Dict[str, Dict[str, List[str]]]):
         self.__class_name: str = class_name
         self.__primitive_name: str = primitive_name
@@ -98,7 +98,7 @@ class TVLPrimitiveTestCaseData:
         return self.__complete
 
     def __eq__(self, other):
-        if isinstance(other, TVLPrimitiveTestCaseData):
+        if isinstance(other, TSLPrimitiveTestCaseData):
             if (self.test_name == other.test_name) and (self.__primitive_name == other.primitive_name):
                 return True
         return False
@@ -113,8 +113,8 @@ class TVLPrimitiveTestCaseData:
         return str(self)
 
 
-class TVLPrimitiveTestCase:
-    def __init__(self, case_data: TVLPrimitiveTestCaseData):
+class TSLPrimitiveTestCase:
+    def __init__(self, case_data: TSLPrimitiveTestCaseData):
         self.__data: YamlDataType = case_data.data
         self.__lib_definitions: Dict[str, List[str]] = case_data.lib_definitions
         self.__conversion_types: Dict[str, Dict[str, List[str]]] = case_data.conversion_types
@@ -150,14 +150,14 @@ class TVLPrimitiveTestCase:
         return self.__associated_primitive_class_name
 
 
-class TVLPrimitiveTest:
-    def __init__(self, primitive_name: str, declaration: TVLPrimitive.Declaration):
+class TSLPrimitiveTest:
+    def __init__(self, primitive_name: str, declaration: TSLPrimitive.Declaration):
         self.__primitive_name = primitive_name
-        self.__test_cases: List[TVLPrimitiveTestCase] = []
+        self.__test_cases: List[TSLPrimitiveTestCase] = []
         self.__declaration: dict = {key: value for key, value in declaration.data.items() if key not in ["parameters", "returns", "testing"]}
         self.__complete = False
 
-    def add_case(self, case: TVLPrimitiveTestCase) -> None:
+    def add_case(self, case: TSLPrimitiveTestCase) -> None:
         self.__test_cases.append(case)
         self.__complete = True
 
@@ -166,7 +166,7 @@ class TVLPrimitiveTest:
         return self.__primitive_name
 
     @property
-    def cases(self) -> Generator[TVLPrimitiveTestCase, None, None]:
+    def cases(self) -> Generator[TSLPrimitiveTestCase, None, None]:
         for x in self.__test_cases:
             yield x
 
@@ -183,7 +183,7 @@ class TVLPrimitiveTest:
         return len(self.__test_cases) > 0
 
     def __eq__(self, other):
-        if isinstance(other, TVLPrimitiveTest):
+        if isinstance(other, TSLPrimitiveTest):
             if self.primitive_name == other.primitive_name:
                 return True
         return False
@@ -198,12 +198,12 @@ class TVLPrimitiveTest:
         return str(self)
 
 
-class TVLPrimitiveClassTests:
+class TSLPrimitiveClassTests:
     def __init__(self, primitive_class_name: str):
         self.__primitive_class_name: str = primitive_class_name
-        self.__primitive_tests: List[TVLPrimitiveTest] = []
+        self.__primitive_tests: List[TSLPrimitiveTest] = []
 
-    def add_primitive_test(self, test: TVLPrimitiveTest):
+    def add_primitive_test(self, test: TSLPrimitiveTest):
         self.__primitive_tests.append(test)
 
     def sort(self) -> None:
@@ -214,7 +214,7 @@ class TVLPrimitiveClassTests:
         return self.__primitive_class_name
 
     @property
-    def primitive_tests(self) -> Generator[TVLPrimitiveTest, None, None]:
+    def primitive_tests(self) -> Generator[TSLPrimitiveTest, None, None]:
         for x in self.__primitive_tests:
             yield x
 
@@ -225,10 +225,10 @@ class TVLPrimitiveClassTests:
         }
 
 
-class TVLTestSuite:
+class TSLTestSuite:
     @LogInit()
-    def __init__(self, lib: TVLLib) -> None:
-        self.__test_cases: List[TVLPrimitiveTestCaseData] = []
+    def __init__(self, lib: TSLLib) -> None:
+        self.__test_cases: List[TSLPrimitiveTestCaseData] = []
         self.__test_class_names: Set[str] = set()
         self.__primitive_test: Set[Tuple[str, str]] = set()
         known_definitions_names: Set[str] = {x for x in lib.primitive_class_set.definitions_names()}
@@ -253,14 +253,14 @@ class TVLTestSuite:
                                 for ctype in primitive_definition_extension_ctype[target_extension]:
                                     non_fullfilled_requirements: List[str] = []
                                     for requirement in test["requires"]:
-                                        if TVLPrimitive.human_readable(requirement, ctype,
+                                        if TSLPrimitive.human_readable(requirement, ctype,
                                                                        target_extension) not in known_definitions_names:
                                             non_fullfilled_requirements.append(
-                                                f"{TVLPrimitive.human_readable(requirement, ctype, target_extension)}")
+                                                f"{TSLPrimitive.human_readable(requirement, ctype, target_extension)}")
                                     if len(non_fullfilled_requirements) > 0:
                                         # self.log(logging.WARN,
                                         #          f"Could not create test case \"{test['test_name']}\" for "
-                                        #          f"{TVLPrimitive.human_readable(primitive.declaration.name, ctype, target_extension)}. The following requirements were not met: "
+                                        #          f"{TSLPrimitive.human_readable(primitive.declaration.name, ctype, target_extension)}. The following requirements were not met: "
                                         #          f"{non_fullfilled_requirements}.")
                                         if target_extension not in missing_primitive_definitions:
                                             missing_primitive_definitions[target_extension] = dict()
@@ -274,18 +274,18 @@ class TVLTestSuite:
                                 # else:
                                 #     self.log(logging.WARN,
                                 #              f"Could not create test case \"{test['test_name']}\" for "
-                                #              f"{TVLPrimitive.human_readable(primitive.declaration.name, 'typename T', target_extension)}. The following requirements were not met: "
+                                #              f"{TSLPrimitive.human_readable(primitive.declaration.name, 'typename T', target_extension)}. The following requirements were not met: "
                                 #              f"{non_fullfilled_requirements}.")
                                 #     self.log(logging.WARN,
                                 #              f"Could not create test case for {primitive_class.name}::{primitive.declaration.name}_{test['test_name']}<typename T, {target_extension}>")
                             if len(updated_primitive_definition_extension_ctype) > 0:
                                 self.__test_cases.append(
-                                    TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.functor_name, test, updated_primitive_definition_extension_ctype, primitive.conversion_types(updated_primitive_definition_extension_ctype), missing_primitive_definitions))
+                                    TSLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.functor_name, test, updated_primitive_definition_extension_ctype, primitive.conversion_types(updated_primitive_definition_extension_ctype), missing_primitive_definitions))
                                 for ext in missing_primitive_definitions:
                                     for t in missing_primitive_definitions[ext]:
                                         self.log(logging.WARN,
                                                  f"Could not create test case \"{test['test_name']}\" for "
-                                                 f"{TVLPrimitive.human_readable(primitive.declaration.functor_name, t, ext)}. The following requirements were not met: "
+                                                 f"{TSLPrimitive.human_readable(primitive.declaration.functor_name, t, ext)}. The following requirements were not met: "
                                                  f"{missing_primitive_definitions[ext][t]}.")
                                         # self.log(logging.WARN,
                                                  # f"Could not create test case for {primitive_class.name}::{primitive.declaration.name}_{test['test_name']}<{t}, {ext}>: {missing_primitive_definitions[ext][t]}")
@@ -293,14 +293,14 @@ class TVLTestSuite:
                                 self.log(logging.WARN,
                                          f"Could not create test case \"{test['test_name']}\" for any type and extension.")
                         else:
-                            self.__test_cases.append(TVLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.functor_name, test, primitive_definition_extension_ctype, primitive.conversion_types(primitive_definition_extension_ctype), missing_primitive_definitions))
+                            self.__test_cases.append(TSLPrimitiveTestCaseData(primitive_class.name, primitive.declaration.functor_name, test, primitive_definition_extension_ctype, primitive.conversion_types(primitive_definition_extension_ctype), missing_primitive_definitions))
                             for ext in missing_primitive_definitions:
                                 for t in missing_primitive_definitions[ext]:
                                     print(f"{ext.center(10)}{t.center(10)}: {missing_primitive_definitions[ext][t]}")
         self.__test_cases.sort(key=lambda x: (x.class_name, x.primitive_name, x.test_name))
 
     @property
-    def test_cases(self) -> Generator[TVLPrimitiveTestCaseData, None, None]:
+    def test_cases(self) -> Generator[TSLPrimitiveTestCaseData, None, None]:
         for case in self.__test_cases:
             yield case
 
@@ -315,7 +315,7 @@ class TVLTestSuite:
             yield test
 
 
-class TVLTestDependencyGraph:
+class TSLTestDependencyGraph:
 
     class TestProxyNode:
         def __init__(self, name: str):
@@ -333,7 +333,7 @@ class TVLTestDependencyGraph:
             return self.__complete
 
         def __eq__(self, other):
-            if isinstance(other, TVLTestDependencyGraph.TestProxyNode):
+            if isinstance(other, TSLTestDependencyGraph.TestProxyNode):
                 return self.name == other.name
 
         def __hash__(self):
@@ -366,15 +366,15 @@ class TVLTestDependencyGraph:
             result[key] = hsv_to_rgb(hue_partition * pos, 1.0, 1.0)
         return result
 
-    def __init__(self, test_suite: TVLTestSuite) -> None:
+    def __init__(self, test_suite: TSLTestSuite) -> None:
         self.__graph: nx.DiGraph = nx.DiGraph()
 
-        color_map = TVLTestDependencyGraph.create_color_map(test_suite.test_class_names)
+        color_map = TSLTestDependencyGraph.create_color_map(test_suite.test_class_names)
 
         for test in test_suite.primitive_tests:
             # print(f"Adding test {test[1]} from class {test[0]}")
             self.__graph.add_node(
-                TVLTestDependencyGraph.TestProxyNode(test[1]),
+                TSLTestDependencyGraph.TestProxyNode(test[1]),
                 style="filled",
                 fillcolor=color_map[test[0]][0],
                 color="#000000",
@@ -391,18 +391,18 @@ class TVLTestDependencyGraph:
                 shape="note",
                 fontcolor=color_map[test_case.class_name][1]
             )
-            self.__graph.add_edge(test_case, TVLTestDependencyGraph.TestProxyNode(test_case.primitive_name))
+            self.__graph.add_edge(test_case, TSLTestDependencyGraph.TestProxyNode(test_case.primitive_name))
 
         for case in test_suite.test_cases:
             if case.has_dependencies():
-                self.__graph.add_edges_from([(TVLTestDependencyGraph.TestProxyNode(dependency), case) for dependency in case.dependencies])
+                self.__graph.add_edges_from([(TSLTestDependencyGraph.TestProxyNode(dependency), case) for dependency in case.dependencies])
 
     def update_completeness(self) -> None:
         invalid_nodes_dict: dict = dict()
         all_paths = []
         for root in (v for v, d in self.__graph.in_degree if d == 0):
             # print(f"{root} -> {type(root)}")
-            if isinstance(root, TVLTestDependencyGraph.TestProxyNode):
+            if isinstance(root, TSLTestDependencyGraph.TestProxyNode):
                 #if a testproxynode is a root node, no tests are specified for the proxy node (primitive) -> it is incomplete
                 root.set_incomplete()
                 invalid_nodes_dict[root] = "filled,dotted"
@@ -427,7 +427,7 @@ class TVLTestDependencyGraph:
             for node in path:
                 if not node.complete:
                     break
-                if isinstance(node, TVLPrimitiveTestCaseData):
+                if isinstance(node, TSLPrimitiveTestCaseData):
                     if start:
                         start = False
                         complete_tests_extension_ctype_dict = node.lib_definitions
@@ -471,28 +471,28 @@ class TVLTestDependencyGraph:
         # nx.draw(self.__graph, pos=pos)
         # plt.savefig(filename)
 
-    def get_case_data_topological_order(self) -> Generator[TVLPrimitiveTestCaseData, None, None]:
+    def get_case_data_topological_order(self) -> Generator[TSLPrimitiveTestCaseData, None, None]:
         order = nx.topological_sort(self.__graph)
         for case in order:
-            if isinstance(case, TVLPrimitiveTestCaseData):
+            if isinstance(case, TSLPrimitiveTestCaseData):
                 yield case
 
-class TVLTestGenerator:
+class TSLTestGenerator:
     @LogInit()
     def __init__(self):
         pass
 
     @staticmethod
-    def generate(lib: TVLLib) -> Generator[Tuple[Path,TVLTranslationUnit], None, None]:
+    def generate(lib: TSLLib) -> Generator[Tuple[Path,TSLTranslationUnit], None, None]:
         if not config.expansion_enabled("unit_tests"):
             return
 
         unit_test_config: dict = config.get_expansion_config("unit_tests")
 
-        tvltu: TVLTranslationUnit = TVLTranslationUnit(target_name="tvl_test")
+        tsltu: TSLTranslationUnit = TSLTranslationUnit(target_name="tsl_test")
 
-        suite: TVLTestSuite = TVLTestSuite(lib)
-        dependency_graph: TVLTestDependencyGraph = TVLTestDependencyGraph(suite)
+        suite: TSLTestSuite = TSLTestSuite(lib)
+        dependency_graph: TSLTestDependencyGraph = TSLTestDependencyGraph(suite)
         dependency_graph.update_completeness()
         root_path: Path = config.generation_out_path.joinpath(unit_test_config["root_path"])
         root_path.mkdir(parents=True, exist_ok=True)
@@ -501,28 +501,28 @@ class TVLTestGenerator:
             dependency_graph.draw(root_path.joinpath("test_dependencies.png"))
 
         # print(f"Downloading ... {unit_test_config['test_header_url']}", end='', flush=True)
-        tvltestgenerator = TVLTestGenerator()
-        tvltestgenerator.log(logging.DEBUG, f"Starting download of {unit_test_config['test_header_url']}")
+        tsltestgenerator = TSLTestGenerator()
+        tsltestgenerator.log(logging.DEBUG, f"Starting download of {unit_test_config['test_header_url']}")
         header_name = unit_test_config['test_header_url'].split("/")[-1]
         
         if ( os.path.exists( f"{str(root_path)}/{header_name}") ):
-            tvltestgenerator.log(logging.DEBUG, f"File (test header) already present, skipping download")
+            tsltestgenerator.log(logging.DEBUG, f"File (test header) already present, skipping download")
         else:
             try:
                 wget.download(unit_test_config["test_header_url"], out=str(root_path))
             except Exception as e:
-                tvltestgenerator.log(logging.WARN,
+                tsltestgenerator.log(logging.WARN,
                                     f"Could not download the necessary test header file. Check your network connection. {e}")
 
-        tests: List[TVLPrimitiveClassTests] = []
-        primitive_class: TVLPrimitiveClassTests = None
-        primitive_test: TVLPrimitiveTest = None
-        declaration_dict: Dict[Dict[str, TVLPrimitive.Declaration]] = lib.primitive_class_set.get_declaration_dict()
+        tests: List[TSLPrimitiveClassTests] = []
+        primitive_class: TSLPrimitiveClassTests = None
+        primitive_test: TSLPrimitiveTest = None
+        declaration_dict: Dict[Dict[str, TSLPrimitive.Declaration]] = lib.primitive_class_set.get_declaration_dict()
 
-        test_source_file: TVLSourceFile = TVLSourceFile.create_from_dict(
+        test_source_file: TSLSourceFile = TSLSourceFile.create_from_dict(
             root_path.joinpath("unit_test.cpp"),
             {
-                "description": "Unit test file for TVL Primitives using Catch2",
+                "description": "Unit test file for TSL Primitives using Catch2",
                 "nested_namespaces": [unit_test_config["namespace"]]
             }
         )
@@ -537,34 +537,34 @@ class TVLTestGenerator:
             file_path: Path = root_path.joinpath(static_file_path_without_prefix).with_suffix(
                 config.get_config_entry("header_file_extension"))
             data_dict: YamlDataType = yaml_load(static_yaml_file_path)
-            tvl_file: TVLHeaderFile = TVLHeaderFile.create_from_dict(file_path, {**data_dict, **{
+            tsl_file: TSLHeaderFile = TSLHeaderFile.create_from_dict(file_path, {**data_dict, **{
                 "description": "Utility functions for testing.", "nested_namespaces": [unit_test_config["namespace"]]}})
             if "implementations" in data_dict:
                 for implementation in data_dict["implementations"]:
-                    tvl_file.add_code(implementation)
+                    tsl_file.add_code(implementation)
 
-            tvl_file.render_to_file()
-            test_source_file.add_file_include(tvl_file)
+            tsl_file.render_to_file()
+            test_source_file.add_file_include(tsl_file)
 
 
         for test_data in dependency_graph.get_case_data_topological_order():
-            case: TVLPrimitiveTestCase = TVLPrimitiveTestCase(test_data)
+            case: TSLPrimitiveTestCase = TSLPrimitiveTestCase(test_data)
             if primitive_class is None:
-                primitive_class = TVLPrimitiveClassTests(case.associated_primitive_class_name)
-                primitive_test = TVLPrimitiveTest(case.associated_primitive_name,
+                primitive_class = TSLPrimitiveClassTests(case.associated_primitive_class_name)
+                primitive_test = TSLPrimitiveTest(case.associated_primitive_name,
                                                   declaration_dict[case.associated_primitive_class_name][
                                                       case.associated_primitive_name])
             else:
                 if primitive_class.primitive_class_name != case.associated_primitive_class_name:
                     primitive_class.add_primitive_test(primitive_test)
                     tests.append(primitive_class)
-                    primitive_class = TVLPrimitiveClassTests(case.associated_primitive_class_name)
-                    primitive_test = TVLPrimitiveTest(case.associated_primitive_name,
+                    primitive_class = TSLPrimitiveClassTests(case.associated_primitive_class_name)
+                    primitive_test = TSLPrimitiveTest(case.associated_primitive_name,
                                                       declaration_dict[case.associated_primitive_class_name][
                                                           case.associated_primitive_name])
                 if primitive_test.primitive_name != case.associated_primitive_name:
                     primitive_class.add_primitive_test(primitive_test)
-                    primitive_test = TVLPrimitiveTest(case.associated_primitive_name,
+                    primitive_test = TSLPrimitiveTest(case.associated_primitive_name,
                                                       declaration_dict[case.associated_primitive_class_name][
                                                           case.associated_primitive_name])
             primitive_test.add_case(case)
@@ -576,7 +576,7 @@ class TVLTestGenerator:
         test_source_file.add_code(
             config.get_template("expansions::unit_test").render(
                 {
-                    "tvl_namespace": config.lib_namespace,
+                    "tsl_namespace": config.lib_namespace,
                     "known_extensions": lib.extension_set.known_extensions,
                     "known_ctypes": lib.primitive_class_set.known_ctypes,
                     "tests": [test.as_dict() for test in tests],
@@ -585,7 +585,7 @@ class TVLTestGenerator:
             )
         )
         test_source_file.render_to_file()
-        tvltu.add_source(test_source_file)
+        tsltu.add_source(test_source_file)
 
-        yield root_path, tvltu
+        yield root_path, tsltu
 

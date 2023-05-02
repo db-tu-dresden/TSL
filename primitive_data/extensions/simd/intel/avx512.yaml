@@ -10,33 +10,33 @@ simdT_default_size_in_bits: 512
 simdT_register_type_attributes: "__attribute__((__vector_size__(VectorSizeInBits/8),__may_alias__,__aligned__(VectorSizeInBits/8)))"
 simdT_register_type: "BaseType"
 simdT_mask_type: |-
-   TVL_DEP_TYPE(
+   TSL_DEP_TYPE(
                      ( VectorSizeInBits == 512 ),
-                     TVL_DEP_TYPE(
+                     TSL_DEP_TYPE(
                         ( sizeof( BaseType ) ) == 1,
                         __mmask64,
-                        TVL_DEP_TYPE(
+                        TSL_DEP_TYPE(
                            ( sizeof( BaseType ) ) == 2,
                            __mmask32,
-                           TVL_DEP_TYPE(
+                           TSL_DEP_TYPE(
                               ( sizeof( BaseType ) ) == 4,
                               __mmask16,
                               __mmask8
                            )
                         )
                      ),
-                     TVL_DEP_TYPE(
+                     TSL_DEP_TYPE(
                         ( VectorSizeInBits == 256 ),
-                        TVL_DEP_TYPE(
+                        TSL_DEP_TYPE(
                            ( sizeof( BaseType ) ) == 1,
                            __mmask32,
-                           TVL_DEP_TYPE(
+                           TSL_DEP_TYPE(
                               ( sizeof( BaseType ) ) == 2,
                               __mmask16,
                               __mmask8
                            )
                         ),
-                        TVL_DEP_TYPE(
+                        TSL_DEP_TYPE(
                            ( sizeof( BaseType ) ) == 1,
                            __mmask16,
                            __mmask8

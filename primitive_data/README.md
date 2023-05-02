@@ -1,4 +1,4 @@
-# TVL Primitive Data
+# TSL Primitive Data
 < Insert general remarks here >
 
 ## Basics
@@ -82,7 +82,7 @@ brief: Mask type, depending on the base type. <br />
 <blockquote>
 
 type: `str` <br />
-brief: Extension Name which will be used inside the TVL. <br />
+brief: Extension Name which will be used inside the TSL. <br />
 example: `'avx512'` <br />
 
 
@@ -435,7 +435,7 @@ default: "" <br />
  | [includes](#primitive-testing-entry_type--includes)
  | [requires](#primitive-testing-entry_type--requires)
  | [test_name](#primitive-testing-entry_type--test_name)
- | [tvl_implementation_namespace](#primitive--tvl_implementation_namespace)
+ | [tsl_implementation_namespace](#primitive--tsl_implementation_namespace)
  | [vector_name](#primitive--vector_name)
 <details>
 <summary><a name="primitive--primitive_name"></a>primitive_name: (required)</summary>
@@ -590,7 +590,7 @@ brief: The actual implementation for this definition. <br />
 <blockquote>
 
 type: `str` <br />
-brief: The TVL extension for which this definition is a specialization. <br />
+brief: The TSL extension for which this definition is a specialization. <br />
 
 
 </blockquote>
@@ -819,7 +819,7 @@ default: [] <br />
 <blockquote>
 
 type: `str` <br />
-brief: TVL type of the parameter with all cvref qualifiers. <br />
+brief: TSL type of the parameter with all cvref qualifiers. <br />
 example: `Vec::vector_type const &` <br />
 
 
@@ -1085,7 +1085,7 @@ brief: Testing code. <br />
 </details>
 
 <details>
-<summary><a name="primitive--tvl_implementation_namespace"></a>tvl_implementation_namespace: (optional)</summary>
+<summary><a name="primitive--tsl_implementation_namespace"></a>tsl_implementation_namespace: (optional)</summary>
 
 <blockquote>
 

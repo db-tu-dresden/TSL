@@ -377,7 +377,7 @@ definitions:
     lscpu_flags: ["avx512f"]
     implementation: |
       alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
-      tvl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
+      tsl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
       return tmp;
   #INTEL - AVX2
   - target_extension: "avx2"
@@ -385,7 +385,7 @@ definitions:
     lscpu_flags: ["avx2"]
     implementation: |
       alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
-      tvl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
+      tsl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
       return tmp;
   #INTEL - SSE
   - target_extension: "sse"
@@ -393,7 +393,7 @@ definitions:
     lscpu_flags: ["sse2"]
     implementation: |
       alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
-      tvl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
+      tsl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
       return tmp;
 ---
 primitive_name: "set1"
@@ -635,7 +635,7 @@ definitions:
       auto seq_fun= []<sequence_type... Is>(
         std::integer_sequence<sequence_type, Is...>
       ) {
-        return tvl::set<Vec>(
+        return tsl::set<Vec>(
           ((T)Is)...
         );
       };
@@ -650,7 +650,7 @@ definitions:
       auto seq_fun= []<sequence_type... Is>(
         std::integer_sequence<sequence_type, Is...>
       ) {
-        return tvl::set<Vec>(
+        return tsl::set<Vec>(
           ((T)Is)...
         );
       };
@@ -665,7 +665,7 @@ definitions:
       auto seq_fun= []<sequence_type... Is>(
         std::integer_sequence<sequence_type, Is...>
       ) {
-        return tvl::set<Vec>(
+        return tsl::set<Vec>(
           ((T)Is)...
         );
       };
@@ -703,7 +703,7 @@ definitions:
       auto seq_fun= []<sequence_type... Is>(
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
       ) {
-        return tvl::set<Vec>(
+        return tsl::set<Vec>(
           ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
@@ -718,7 +718,7 @@ definitions:
       auto seq_fun= []<sequence_type... Is>(
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
       ) {
-        return tvl::set<Vec>(
+        return tsl::set<Vec>(
           ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
@@ -733,7 +733,7 @@ definitions:
       auto seq_fun= []<sequence_type... Is>(
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>        
       ) {
-        return tvl::set<Vec>(
+        return tsl::set<Vec>(
           ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
@@ -803,7 +803,7 @@ definitions:
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tvl::to_array<offsetExt>(index);
+      auto const idx_array = tsl::to_array<offsetExt>(index);
       if constexpr(N == 1) {
         auto mem = reinterpret_cast<char const*>(memory);
         for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
@@ -822,7 +822,7 @@ definitions:
           }
         }
       }
-      return tvl::load<Vec>(result.data());
+      return tsl::load<Vec>(result.data());
   #ARM - NEON
   - target_extension: "neon"
     ctype: "int64_t"
@@ -904,9 +904,9 @@ definitions:
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tvl::to_array<offsetExt>(index);
-      auto const src_array = tvl::to_array<Vec>(source);
-      auto const mask_array = tvl::to_array<Vec>(mask);
+      auto const idx_array = tsl::to_array<offsetExt>(index);
+      auto const src_array = tsl::to_array<Vec>(source);
+      auto const mask_array = tsl::to_array<Vec>(mask);
       if constexpr(N == 1) {
         auto mem = reinterpret_cast<char const*>(memory);
         for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
@@ -925,7 +925,7 @@ definitions:
           }
         }
       }
-      return tvl::load<Vec>(result.data());
+      return tsl::load<Vec>(result.data());
   #ARM - NEON
   - target_extension: "neon"
     ctype: "int64_t"
@@ -985,9 +985,9 @@ definitions:
     is_native: False
     includes: ["<array>"]
     implementation: |
-      auto const val_array = tvl::to_array<Vec>(data);
+      auto const val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tvl::to_array<offsetExt>(index);
+      auto const idx_array = tsl::to_array<offsetExt>(index);
       #pragma unroll
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if constexpr(N==sizeof(typename Vec::base_type)) {
@@ -1008,9 +1008,9 @@ definitions:
     includes: ["<array>"]
     is_native: False
     implementation: |
-      auto const val_array = tvl::to_array<Vec>(data);
+      auto const val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tvl::to_array<offsetExt>(index);
+      auto const idx_array = tsl::to_array<offsetExt>(index);
       #pragma unroll
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if constexpr(N==sizeof(typename Vec::base_type)) {
@@ -1031,9 +1031,9 @@ definitions:
     includes: ["<array>"]
     is_native: False
     implementation: |
-      auto const val_array = tvl::to_array<Vec>(data);
+      auto const val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tvl::to_array<offsetExt>(index);
+      auto const idx_array = tsl::to_array<offsetExt>(index);
       #pragma unroll
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
@@ -1112,10 +1112,10 @@ definitions:
     is_native: False
     includes: ["<array>"]
     implementation: |
-      auto const val_array = tvl::to_array<Vec>(data);
+      auto const val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tvl::to_array<offsetExt>(index);
-      auto const mask_array = tvl::to_array<Vec>(mask);
+      auto const idx_array = tsl::to_array<offsetExt>(index);
+      auto const mask_array = tsl::to_array<Vec>(mask);
       #pragma unroll
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
@@ -1138,10 +1138,10 @@ definitions:
     includes: ["<array>"]
     is_native: False
     implementation: |
-      auto const val_array = tvl::to_array<Vec>(data);
+      auto const val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tvl::to_array<offsetExt>(index);
-      auto const mask_array = tvl::to_array<Vec>(mask);
+      auto const idx_array = tsl::to_array<offsetExt>(index);
+      auto const mask_array = tsl::to_array<Vec>(mask);
       #pragma unroll
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
@@ -1167,9 +1167,9 @@ definitions:
       alignas(Vec::vector_size_B()) std::array<typename Vec::offset_base_type, Vec::vector_element_count()> idx_array{};
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> val_array{};
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> mask_array{};
-      tvl::store<Vec>(val_array.data(), data);
-      tvl::store<typename Vec::transform_extension<Vec::offset_base_type>>(idx_array.data(), index);
-      tvl::store<Vec>(mask_array.data(), mask);
+      tsl::store<Vec>(val_array.data(), data);
+      tsl::store<typename Vec::transform_extension<Vec::offset_base_type>>(idx_array.data(), index);
+      tsl::store<Vec>(mask_array.data(), mask);
       #pragma unroll
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
@@ -1269,7 +1269,7 @@ definitions:
     is_native: False
     implementation: |
       auto const orig_mem = memory;
-      auto const data_array = tvl::to_array<Vec>(data);
+      auto const data_array = tsl::to_array<Vec>(data);
       typename Vec::base_type safe[Vec::vector_element_count()];
       std::memcpy(reinterpret_cast<void*>(safe), reinterpret_cast<void const *>(memory), Vec::vector_size_B());
       #pragma unroll
@@ -1288,7 +1288,7 @@ definitions:
     is_native: False
     implementation: |
       auto const orig_mem = memory;
-      auto const data_array = tvl::to_array<Vec>(data);
+      auto const data_array = tsl::to_array<Vec>(data);
       typename Vec::base_type safe[Vec::vector_element_count()];
       std::memcpy(reinterpret_cast<void*>(safe), reinterpret_cast<void const *>(memory), Vec::vector_size_B());
       #pragma unroll
@@ -1350,7 +1350,7 @@ definitions:
     implementation: |
       //@todo: optimizable
       alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> data_array;
-      auto src_array = tvl::to_array<Vec>(src);
+      auto src_array = tsl::to_array<Vec>(src);
       auto mem = memory;
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(((mask>>i)&0b1)==0) {
@@ -1370,7 +1370,7 @@ definitions:
     implementation: |
       //@todo: optimizable
       alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> data_array;
-      auto src_array = tvl::to_array<Vec>(src);
+      auto src_array = tsl::to_array<Vec>(src);
       auto mem = memory;
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(((mask>>i)&0b1)==0) {
@@ -1380,7 +1380,7 @@ definitions:
           ++mem;
         }
       }
-      return tvl::load<Vec>(data_array.data());
+      return tsl::load<Vec>(data_array.data());
       //return _mm256_load_si256(reinterpret_cast<__m256i const *>(data_array.data()));
   - target_extension: "avx2"
     ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
@@ -1415,7 +1415,7 @@ definitions:
     implementation: |
       return
         _mm256_and_si256(
-          tvl::set1<ToType>(
+          tsl::set1<ToType>(
             (typename Vec::base_type)~0
           ),
           _mm256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(

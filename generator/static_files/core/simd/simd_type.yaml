@@ -8,8 +8,8 @@ includes:
 implementations:
    - >
       template<
-            TVLArithmetic BaseType,
-      #ifdef TVL_USE_CONCEPTS
+            TSLArithmetic BaseType,
+      #ifdef TSL_USE_CONCEPTS
             TargetExtension<BaseType> TargetExtensionType,
       #else
             class TargetExtensionType,
@@ -25,13 +25,13 @@ implementations:
             using imask_type = typename TargetExtensionType::template types<BaseType, VectorSizeInBits>::imask_t;
 
             using offset_base_type = typename
-               TVL_DEP_TYPE(
+               TSL_DEP_TYPE(
                   (sizeof(base_type)==1),
                      uint8_t,
-                     TVL_DEP_TYPE(
+                     TSL_DEP_TYPE(
                         (sizeof(base_type)==2),
                            uint16_t,
-                           TVL_DEP_TYPE(
+                           TSL_DEP_TYPE(
                               (sizeof(base_type)==4),
                                  uint32_t,
                                  uint64_t
@@ -40,7 +40,7 @@ implementations:
                );
             using offset_base_register_type = typename TargetExtensionType::template types<offset_base_type, VectorSizeInBits>::register_t;
             
-            template<TVLArithmetic OtherType>
+            template<TSLArithmetic OtherType>
             using transform_type = 
                std::conditional_t<
                   (sizeof(BaseType) >= sizeof(OtherType)),
@@ -50,7 +50,7 @@ implementations:
                      sizeof(OtherType)/sizeof(BaseType)
                   >                     
                >;
-            template<TVLArithmetic OtherType>
+            template<TSLArithmetic OtherType>
             using transform_extension = simd<OtherType, TargetExtensionType, VectorSizeInBits>;
             //using offset_register_type = std::array<typename TargetExtensionType::template types<offset_t, VectorSizeInBits>::register_t, sizeof(offset_t)/sizeof(BaseType)>;
 

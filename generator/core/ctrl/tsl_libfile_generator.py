@@ -1,5 +1,5 @@
-from generator.core.ctrl.tvl_lib import TVLLib
-from generator.core.tvl_config import config
+from generator.core.ctrl.tsl_lib import TSLLib
+from generator.core.tsl_config import config
 
 import copy
 import logging
@@ -9,40 +9,40 @@ from typing import Generator
 from jinja2 import Template
 
 from typing import List, Dict
-from generator.core.model.tvl_extension import TVLExtensionSet, TVLExtension
-from generator.core.model.tvl_file import TVLHeaderFile
-from generator.core.model.tvl_primitive import TVLPrimitiveClassSet
+from generator.core.model.tsl_extension import TSLExtensionSet, TSLExtension
+from generator.core.model.tsl_file import TSLHeaderFile
+from generator.core.model.tsl_primitive import TSLPrimitiveClassSet
 from generator.utils.file_utils import strip_common_path_prefix
 from generator.utils.log_utils import LogInit
 from generator.utils.yaml_utils import yaml_load, YamlDataType
 
 
 
-class TVLFileGenerator:
+class TSLFileGenerator:
     @classmethod
-    def generate_extension_file(cls, extension: TVLExtension) -> TVLHeaderFile:
+    def generate_extension_file(cls, extension: TSLExtension) -> TSLHeaderFile:
         file_path: Path = config.get_generation_path("extensions").joinpath(extension.file_name).joinpath(
             extension.name).with_suffix(config.get_config_entry("header_file_extension"))
-        tvl_file: TVLHeaderFile = TVLHeaderFile.create_from_dict(file_path, extension.data)
+        tsl_file: TSLHeaderFile = TSLHeaderFile.create_from_dict(file_path, extension.data)
         extension_template: Template = config.get_template("core::extension")
-        tvl_file.add_code(extension_template.render(extension.data))
-        tvl_file.import_includes(extension.data)
-        return tvl_file
+        tsl_file.add_code(extension_template.render(extension.data))
+        tsl_file.import_includes(extension.data)
+        return tsl_file
 
     @property
-    def extension_files(self) -> Generator[TVLHeaderFile, None, None]:
+    def extension_files(self) -> Generator[TSLHeaderFile, None, None]:
         yield from self.__extension_name_to_file_dict.values()
 
     @property
-    def primitive_declaration_files(self) -> Generator[TVLHeaderFile, None, None]:
+    def primitive_declaration_files(self) -> Generator[TSLHeaderFile, None, None]:
         yield from self.__primitive_class_declarations
 
     @property
-    def primitive_definition_files(self) -> Generator[TVLHeaderFile, None, None]:
+    def primitive_definition_files(self) -> Generator[TSLHeaderFile, None, None]:
         yield from self.__primitive_class_definitions
 
     @property
-    def static_files(self) -> Generator[TVLHeaderFile, None, None]:
+    def static_files(self) -> Generator[TSLHeaderFile, None, None]:
         yield from self.__static_files
 
     @property
@@ -56,38 +56,38 @@ class TVLFileGenerator:
             yield p
 
     @property
-    def library_files(self) -> Generator[TVLHeaderFile, None, None]:
+    def library_files(self) -> Generator[TSLHeaderFile, None, None]:
         yield from self.static_files
         yield from self.extension_files
         yield from self.primitive_declaration_files
         yield from self.primitive_definition_files
 
-    def __create_extension_header_files(self, extension_set: TVLExtensionSet) -> None:
+    def __create_extension_header_files(self, extension_set: TSLExtensionSet) -> None:
         self.log(logging.INFO, f"Starting generation of extensions header.")
         for extension in extension_set:
             file_path: Path = config.get_generation_path("extensions").joinpath(extension.file_name).joinpath(
                 extension.name).with_suffix(config.get_config_entry("header_file_extension"))
-            tvl_file: TVLHeaderFile = TVLHeaderFile.create_from_dict(file_path, extension.data)
-            tvl_file.add_code(config.get_template("core::extension").render(extension.data))
+            tsl_file: TSLHeaderFile = TSLHeaderFile.create_from_dict(file_path, extension.data)
+            tsl_file.add_code(config.get_template("core::extension").render(extension.data))
             self.log(logging.INFO,
                      f"Created struct for hardware extension {extension.name}.")
-            tvl_file.import_includes(extension.data)
-            self.__extension_name_to_file_dict[extension.name] = tvl_file
+            tsl_file.import_includes(extension.data)
+            self.__extension_name_to_file_dict[extension.name] = tsl_file
 
-    def __create_primitive_header_files(self, extension_set: TVLExtensionSet,
-                                        primitive_class_set: TVLPrimitiveClassSet):
+    def __create_primitive_header_files(self, extension_set: TSLExtensionSet,
+                                        primitive_class_set: TSLPrimitiveClassSet):
         self.log(logging.INFO, f"Starting generation of primitive header.")
         for primitive_class in primitive_class_set:
             declaration_file_path: Path = config.get_generation_path("primitive_declarations").joinpath(
                 primitive_class.file_name).joinpath(primitive_class.name).with_suffix(
                 config.get_config_entry("header_file_extension"))
-            declaration_file: TVLHeaderFile = TVLHeaderFile.create_from_dict(declaration_file_path,
+            declaration_file: TSLHeaderFile = TSLHeaderFile.create_from_dict(declaration_file_path,
                                                                              primitive_class.data)
 
-            definition_files_per_extension_dict: Dict[str, TVLHeaderFile] = dict()
+            definition_files_per_extension_dict: Dict[str, TSLHeaderFile] = dict()
             for primitive in primitive_class:
                 declaration_data = copy.deepcopy(primitive.declaration.data)
-                declaration_data["tvl_function_doxygen"] = config.get_template("core::doxygen_function").render(
+                declaration_data["tsl_function_doxygen"] = config.get_template("core::doxygen_function").render(
                     declaration_data)
                 declaration_file.add_code(
                     config.get_template("core::primitive_declaration").render(declaration_data))
@@ -102,9 +102,9 @@ class TVLFileGenerator:
                             f"{primitive_class.name}_{definition.target_extension}").with_suffix(
                             config.get_config_entry("header_file_extension"))
                         definition_files_per_extension_dict[
-                            definition.target_extension] = TVLHeaderFile.create_from_dict(primitive_path,
+                            definition.target_extension] = TSLHeaderFile.create_from_dict(primitive_path,
                                                                                           primitive_class.data)
-                    definition_file: TVLHeaderFile = definition_files_per_extension_dict[definition.target_extension]
+                    definition_file: TSLHeaderFile = definition_files_per_extension_dict[definition.target_extension]
 
                     # print(definition)
 
@@ -143,25 +143,25 @@ class TVLFileGenerator:
                     static_file_name).with_suffix(config.get_config_entry("header_file_extension"))
 
             data_dict: YamlDataType = yaml_load(static_yaml_file_path)
-            tvl_file: TVLHeaderFile = TVLHeaderFile.create_from_dict(file_path, data_dict)
+            tsl_file: TSLHeaderFile = TSLHeaderFile.create_from_dict(file_path, data_dict)
             if "implementations" in data_dict:
                 for implementation in data_dict["implementations"]:
-                    tvl_file.add_code_to_be_rendered(implementation)
-            self.__static_files.append(tvl_file)
+                    tsl_file.add_code_to_be_rendered(implementation)
+            self.__static_files.append(tsl_file)
 
     @LogInit()
-    def __init__(self, lib: TVLLib) -> None:
-        self.__static_files: List[TVLHeaderFile] = []
-        self.__extension_name_to_file_dict: Dict[str, TVLHeaderFile] = {}
-        self.__primitive_class_declarations: List[TVLHeaderFile] = []
-        self.__primitive_class_definitions: List[TVLHeaderFile] = []
+    def __init__(self, lib: TSLLib) -> None:
+        self.__static_files: List[TSLHeaderFile] = []
+        self.__extension_name_to_file_dict: Dict[str, TSLHeaderFile] = {}
+        self.__primitive_class_declarations: List[TSLHeaderFile] = []
+        self.__primitive_class_definitions: List[TSLHeaderFile] = []
 
         self.__create_extension_header_files(lib.extension_set)
         self.__create_primitive_header_files(lib.extension_set, lib.primitive_class_set)
 
         self.__create_static_header_files()
 
-        generated_files_root: TVLHeaderFile = TVLHeaderFile.create_from_dict(config.lib_generated_files_root_header, {})
+        generated_files_root: TSLHeaderFile = TSLHeaderFile.create_from_dict(config.lib_generated_files_root_header, {})
         for extension_file in self.extension_files:
             generated_files_root.add_file_include(extension_file)
         for primitive_declaration in self.primitive_declaration_files:

@@ -3,15 +3,15 @@
 {% include 'core/doxygen_file.template' %}
 
 
-#ifndef {{ tvl_include_guard }}
-#define {{ tvl_include_guard }}
+#ifndef {{ tsl_include_guard }}
+#define {{ tsl_include_guard }}
 
 {% for include in includes %}
 #include {{ include }}
 {% endfor %}
 #include <tuple>
 {% if codes %}
-namespace {{ tvl_namespace }} {
+namespace {{ tsl_namespace }} {
 {% if nested_namespaces is defined %}
 {% for nested_namespace in nested_namespaces %}
 namespace {{ nested_namespace }} {
@@ -25,6 +25,6 @@ namespace {{ nested_namespace }} {
 } // end of namespace {{ nested_namespace }}
 {% endfor %}
 {% endif %}
-} // end of namespace {{ tvl_namespace }}
+} // end of namespace {{ tsl_namespace }}
 {% endif %}
-#endif //{{ tvl_include_guard }}
+#endif //{{ tsl_include_guard }}

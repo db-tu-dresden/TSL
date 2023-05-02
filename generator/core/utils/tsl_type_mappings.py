@@ -1,7 +1,7 @@
 import os
 from typing import List, Generator, Tuple, Dict
 
-from tools.tvlgen.core.utils.tvl_misc import get_random_value_str
+from tools.tslgen.core.utils.tsl_misc import get_random_value_str
 
 
 def map_types_cartesian(alist: List[str], blist: List[str]) -> Generator[Tuple[str, str], None, None]:

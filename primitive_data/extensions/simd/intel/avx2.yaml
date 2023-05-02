@@ -11,10 +11,10 @@ simdT_register_type_attributes: "__attribute__((__vector_size__(VectorSizeInBits
 simdT_register_type: "BaseType"
 simdT_mask_type: "register_t"
 simdT_integral_mask_type: |-
-   TVL_DEP_TYPE(
+   TSL_DEP_TYPE(
                      (sizeof(BaseType)==1),
                      uint32_t,
-                     TVL_DEP_TYPE(
+                     TSL_DEP_TYPE(
                         (sizeof(BaseType)==2),
                         uint16_t,
                         uint8_t

@@ -5,13 +5,13 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Set, List
 
-from generator.core.tvl_config import config
+from generator.core.tsl_config import config
 from generator.utils.log_utils import LogInit
 from generator.utils.requirement import requirement
 from generator.utils.yaml_utils import YamlDataType
 
 
-class TVLExtension:
+class TSLExtension:
     @LogInit()
     def __init__(self, path: Path, data_dict: YamlDataType) -> None:
         self.__file_path = path
@@ -39,7 +39,7 @@ class TVLExtension:
 
     @requirement(other="NotNone")
     def __eq__(self, other):
-        if isinstance(other, TVLExtension):
+        if isinstance(other, TSLExtension):
             return self.name == other.name
         return False
 
@@ -54,25 +54,25 @@ class TVLExtension:
         return f"{str(self.name)}: {str(self.data)}"
 
     def __repr__(self):
-        return f"{{TVLExtension {str(self.name)}: {{{str(self.data)}}}}}"
+        return f"{{TSLExtension {str(self.name)}: {{{str(self.data)}}}}}"
 
     @staticmethod
     @requirement(path="NotNone", data_dict="NotNone")
-    def create_from_dict(path: Path, data_dict: YamlDataType) -> TVLExtension:
-        return TVLExtension(path, data_dict)
+    def create_from_dict(path: Path, data_dict: YamlDataType) -> TSLExtension:
+        return TSLExtension(path, data_dict)
 
 
-class TVLExtensionSet:
+class TSLExtensionSet:
     @LogInit()
     def __init__(self) -> None:
-        self.__extensions: Set[TVLExtension] = set()
+        self.__extensions: Set[TSLExtension] = set()
 
     @property
     def known_extensions(self) -> List[str]:
         return sorted([extension.name for extension in self.__extensions])
 
     @requirement(extension="NotNone")
-    def add_extension(self, extension: TVLExtension, logLevel=logging.INFO) -> None:
+    def add_extension(self, extension: TSLExtension, logLevel=logging.INFO) -> None:
         if extension in self.__extensions:
             self.log(logLevel, f"Overwriting old data for extension {extension.name}")
             self.__extensions.discard(extension)
@@ -85,11 +85,11 @@ class TVLExtensionSet:
         extension_data_path = config.get_primitive_files_path("extensions_path")
         extension_file_relative_to_extension_data_path = path.relative_to(extension_data_path)
         extension_file_path = extension_file_relative_to_extension_data_path.parent
-        extension = TVLExtension.create_from_dict(extension_file_path, data_dict)
+        extension = TSLExtension.create_from_dict(extension_file_path, data_dict)
         self.add_extension(extension)
 
     @requirement(extension_name="NonEmptyString")
-    def get_extension_by_name(self, extension_name: str) -> TVLExtension:
+    def get_extension_by_name(self, extension_name: str) -> TSLExtension:
         for extension in self.__extensions:
             if extension.name == extension_name:
                 return extension
@@ -112,4 +112,4 @@ class TVLExtensionSet:
         return f"{str(self.__extensions)}"
 
     def __repr__(self):
-        return f"{{TVLExtensionSet: {{{str(self.__extensions)}}}}}"
+        return f"{{TSLExtensionSet: {{{str(self.__extensions)}}}}}"

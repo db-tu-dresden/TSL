@@ -1,20 +1,20 @@
 ---
 configuration:
-   namespace:                     "tvl"
+   namespace:                     "tsl"
    header_file_extension:         ".hpp"
    source_file_extension:         ".cpp"
-   root_path:                     "../libs/tvl"
+   root_path:                     "../libs/tsl"
    compiler_architecture_prefix:  "-m"
    use_concepts:                  True
    emit_workaround_warnings:      True
    relevant_types:                 ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
    library:
       root_path:                  "include"
-      top_level_header_fname:     "tvlintrin"
+      top_level_header_fname:     "tslintrin"
       static_files:
          root_path:               "static"
       hardware_specific_files:
-         top_level_header_fname:  "tvl_generated"
+         top_level_header_fname:  "tsl_generated"
          root_path:               "generated"
          extensions:              "extensions"
          primitive_declarations:  "declarations"
@@ -25,7 +25,7 @@ configuration:
          enabled:                 True
          minimum_version:         "3.13"
          verbose_make_files:      True
-         tvl_lib_name:            "tvl"
+         tsl_lib_name:            "tsl"
       unit_tests:
          enabled:                 True
          namespace:               "testing"
@@ -39,9 +39,9 @@ configuration:
          root_path:               "./"
 configuration_files:
    log_config_file:               "generator/config/log_conf.yaml"
-   schema_file:                   "generator/config/generator/tvl_generator_schema.yaml"
+   schema_file:                   "generator/config/generator/tsl_generator_schema.yaml"
    jinja_templates:
-      root_path:                  "generator/config/generator/tvl_templates"
+      root_path:                  "generator/config/generator/tsl_templates"
    primitive_data:
       root_path:                  "primitive_data"
       extensions_path:            "extensions"

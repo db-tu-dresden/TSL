@@ -52,9 +52,9 @@ simdT_mask_type: "register_t"
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 #
 #
-#add_library(tvl_gpu STATIC)
-#target_compile_features(tvl_gpu PUBLIC cxx_std_14)
-#target_sources(tvl_gpu
+#add_library(tsl_gpu STATIC)
+#target_compile_features(tsl_gpu PUBLIC cxx_std_14)
+#target_sources(tsl_gpu
 #  PUBLIC include/gpu_test/randomize.cpp
 #  PUBLIC include/gpu_test/randomize.h
 #  PUBLIC include/gpu_test/particle.cu
@@ -62,7 +62,7 @@ simdT_mask_type: "register_t"
 #  PUBLIC include/gpu_test/v3.cu
 #  PUBLIC include/gpu_test/v3.h
 #)
-#set_target_properties(tvl_gpu PROPERTIES
+#set_target_properties(tsl_gpu PROPERTIES
 #   CUDA_SEPARABLE_COMPILATION ON
 #   POSITION_INDEPENDENT_CODE ON
 #   CUDA_ARCHITECTURES OFF
