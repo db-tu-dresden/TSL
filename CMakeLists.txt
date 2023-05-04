@@ -66,7 +66,7 @@ if( NOT DEFINED GENERATOR_OUTPUT_PATH)
     set(GENERATOR_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/generator_output")
 endif()
 
-message(STATUS "Running TVL Generator...")
+message(STATUS "Running TSL Generator...")
 execute_process(
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" ${TSL_GENERATOR_OPTS} -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
     COMMAND_ERROR_IS_FATAL ANY
