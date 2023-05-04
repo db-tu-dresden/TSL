@@ -1,25 +1,34 @@
+import time
+
 from core.tvl_config import config, parse_args
 import sys, os
 from pathlib import Path
 
 from core.tvl_generator import TVLGenerator
+from expansions.tvl_readme_md import create_readme
 from utils.dict_utils import dict_update
 from utils.yaml_utils import yaml_load
 
+def get_config(config_path: Path) -> dict:
+    return yaml_load(config_path)
 
-def tvl_setup(config_path: Path, additional_config=None) -> None:
+def tvl_setup(file_config, additional_config=None) -> None:
     if additional_config is None:
         additional_config = dict()
-    config_file_cfg = yaml_load(config_path)
     # overwrite / extend config file entries with additional config dict entries
-    merged_config = dict_update(config_file_cfg, additional_config)
+    merged_config = dict_update(file_config, additional_config)
     config.setup(merged_config)
 
 
 if __name__ == '__main__':
+    st = time.time()
     os.chdir(Path(os.path.realpath(__file__)).parent)
-    args_dict = parse_args()
-    tvl_setup(Path("config/default_conf.yaml"), args_dict)
+    file_config = get_config(Path("config/default_conf.yaml"))
+    args_dict = parse_args(known_types = file_config["configuration"]["relevant_types"])
+    tvl_setup(file_config, args_dict)
     gen = TVLGenerator()
     gen.generate(args_dict["targets"])
-    # gen.generate(["sse", "sse2", "sse3", "ssse3", "sse4_1", "sse4_2", "avx", "avx2"])
+
+
+    print("----%.2f----" % (time.time() - st))
+

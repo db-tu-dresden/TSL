@@ -5,12 +5,21 @@ from pathlib import Path
 from typing import Dict, NewType, Union, TypeVar, Generator
 
 import yaml
+from yaml.loader import SafeLoader
 
 YamlKeyType = TypeVar('YamlKeyType', bound=str)
 YamlValueType = TypeVar('YamlValueType', str, list, dict)
 YamlDataType = NewType('YamlDataType', Union[str, Dict[YamlKeyType, YamlValueType]])
 
-def yaml_load_all(file: Path) -> Generator[YamlDataType, None, None]:
+
+class SafeLineLoader(SafeLoader):
+    def construct_mapping(self, node, deep=False):
+        mapping = super(SafeLineLoader, self).construct_mapping(node, deep=deep)
+        # Add 1 so line numbering starts at 1
+        mapping['yaml_origin_line'] = node.start_mark.line + 1
+        return mapping
+
+def yaml_load_all(file: Path, save_filename=False, Loader=SafeLoader) -> Generator[YamlDataType, None, None]:
     """
     Load YAML-documents from a given path
     :param yaml_file_path: Filename of YAML file
@@ -23,7 +32,9 @@ def yaml_load_all(file: Path) -> Generator[YamlDataType, None, None]:
             try:
                 with open(rfile.resolve(), "r") as yaml_file:
                     num = 0
-                    for x in yaml.safe_load_all(yaml_file):
+                    for x in yaml.load_all(yaml_file, Loader=Loader):
+                        if save_filename:
+                           x["yaml_origin_file"] = f"{file}"
                         yield copy.deepcopy(x)
                         num += 1
                     if num == 0:
@@ -37,7 +48,7 @@ def yaml_load_all(file: Path) -> Generator[YamlDataType, None, None]:
     else:
         print(f"{error_msg}. File does not exist.")
 
-def yaml_load(file: Path) -> YamlDataType:
+def yaml_load(file: Path, save_filename=False, Loader=SafeLoader) -> YamlDataType:
     """
     Load YAML-documents from a given path
     :param yaml_file_path: Filename of YAML file
@@ -49,7 +60,10 @@ def yaml_load(file: Path) -> YamlDataType:
         if rfile.suffix == ".yaml":
             try:
                 with open(rfile.resolve(), "r") as yaml_file:
-                    return copy.deepcopy(yaml.safe_load(yaml_file))
+                    result = yaml.load(yaml_file, Loader=Loader)
+                    if save_filename:
+                       result["yaml_origin_file"] = f"{file}"
+                    return copy.deepcopy(result)
             except EnvironmentError as e:
                 print(f"{error_msg}.")
         else:

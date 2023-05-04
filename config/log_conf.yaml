@@ -11,11 +11,11 @@ handlers:
   console:
     class : logging.StreamHandler
     formatter: brief
-    level   : WARN
+    level   : ERROR
     stream  : ext://sys.stdout
   file:
     class : logging.handlers.RotatingFileHandler
-    level   : DEBUG
+    level   : WARN
     formatter: precise
     filename: tvlgen.log
     maxBytes: 1048576

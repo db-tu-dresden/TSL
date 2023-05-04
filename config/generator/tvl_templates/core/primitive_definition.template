@@ -12,6 +12,8 @@
    parameter_pack_typenames_str='',
    full_qualified_parameters_str='',
    parameters_str='',
+   parameters_types='',
+   has_parameters_tuple=True,
    using_return_type='',
    return_template_type='',
    additional_templates='',
@@ -42,6 +44,8 @@
       {% set ns.parameter_pack_typenames_str = ns.parameter_pack_typenames_str ~ 'typename... ' ~ param['ctype'] ~ comma %}
       {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ param['ctype'] ~ '... ' ~ param['name'] ~ comma %}
       {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ '...' ~ comma %}
+      {% set ns.parameters_types = ns.parameters_types ~ param['ctype'] ~ '... ' ~ comma %}
+      {% set ns.has_parameters_tuple = False %}
    {% else %}
       {% if param['declaration_attributes'] == "" %}
       {% set decl_attribs = ' ' %}
@@ -55,6 +59,7 @@
       {% endif %}
       {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ decl_attribs ~ param['ctype'] ~ attribs ~ param['name'] ~ dv ~ comma %}
       {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ comma %}
+      {% set ns.parameters_types = ns.parameters_types ~ param['ctype'] ~ comma %}
    {% endif %}
 {% endfor %}
 {% if additional_simd_template_parameter != "" %}
@@ -84,6 +89,9 @@ namespace {{ tvl_implementation_namespace }} {
        * Target Extension: {{ target_extension }}.
        *        Data Type: {{ ctype }}
        *  Extension Flags: {{ lscpu_flags }}
+       {% if yaml_origin_line and yaml_origin_file %}
+       *      Yaml Source: {{ yaml_origin_file }}::{{ yaml_origin_line }}
+       {% endif %}
        {% if specialization_comment != "" %}
        * @note: {{ specialization_comment }}
        {% endif %}
@@ -94,6 +102,12 @@ namespace {{ tvl_implementation_namespace }} {
             using {{ vector_name }} = {{ ns.full_extension_name }};
             {{ ns.using_return_type }}
             using return_type = {{ returns['ctype'] }};
+            {% if ns.has_parameters_tuple %}
+            using param_tuple_t = std::tuple<{{ ns.parameters_types }}>;
+            {% endif %}
+            static constexpr bool parameters_queryable() {
+               return {{ 'true' if ns.has_parameter_tuple else 'false' }};
+            }
             static constexpr bool has_return_value() {
                 return {{ 'true' if returns['ctype'] != 'void' else 'false' }};
             }
