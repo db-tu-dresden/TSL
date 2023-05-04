@@ -1,0 +1,30 @@
+{% include 'core/license.template' %}
+
+{% include 'core/doxygen_file.template' %}
+
+
+#ifndef {{ tsl_include_guard }}
+#define {{ tsl_include_guard }}
+
+{% for include in includes %}
+#include {{ include }}
+{% endfor %}
+#include <tuple>
+{% if codes %}
+namespace {{ tsl_namespace }} {
+{% if nested_namespaces is defined %}
+{% for nested_namespace in nested_namespaces %}
+namespace {{ nested_namespace }} {
+{% endfor %}
+{% endif %}
+{%    for code in codes %}
+   {{ code }}
+{%    endfor %}
+{% if nested_namespaces %}
+{% for nested_namespace in nested_namespaces %}
+} // end of namespace {{ nested_namespace }}
+{% endfor %}
+{% endif %}
+} // end of namespace {{ tsl_namespace }}
+{% endif %}
+#endif //{{ tsl_include_guard }}

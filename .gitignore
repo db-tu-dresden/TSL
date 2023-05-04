@@ -2,13 +2,21 @@
 /**/.idea/
 /.vscode
 
-tvlgen.zip
+tslgen.zip
 
 *.log
-tvlgen.log
-tvlgen.log.*
+tslgen.log
+tslgen.log.*
 
 /build
 
 
 lib/
+
+log
+
+tsl/
+
+generator/config/generator/tsl_templates/core/.twing/
+
+generator/config/generator/tsl_templates/expansions/.twing/

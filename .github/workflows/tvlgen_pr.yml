@@ -1,0 +1,13 @@
+name: 'tvl-validate-pr'
+
+on:
+  pull_request:
+    branches: ['main']
+    types: ['opened', 'reopened']
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-build:
+    uses: ./.github/workflows/generate_build_tvl.yml

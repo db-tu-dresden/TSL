@@ -1,0 +1,797 @@
+---
+name: "convert"
+description: "Conversion primitives."
+...
+---
+primitive_name: "reinterpret"
+additional_simd_template_parameter: "ToType"
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+returns:
+  ctype: "typename ToType::register_type"
+  description: "Casted register."
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return data;"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["float"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_castsi512_ps(data);"
+  - target_extension: "avx512"
+    ctype: ["float"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_castps_si512(data);"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_castsi512_pd(data);"
+  - target_extension: "avx512"
+    ctype: ["double"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_castpd_si512(data);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["int8_t"]
+    additional_simd_template_base_type: ["uint8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["uint8_t"]
+    additional_simd_template_base_type: ["int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["int16_t"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["uint16_t"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["int32_t"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["uint32_t"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["int64_t"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["uint64_t"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return data;"
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["float"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_castsi256_ps(data);"
+  - target_extension: "avx2"
+    ctype: ["float"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_castps_si256(data);"
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_castsi256_pd(data);"
+  - target_extension: "avx2"
+    ctype: ["double"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_castpd_si256(data);"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ["sse"]
+    implementation: "return data;"
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["float"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_castsi128_ps(data);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_castps_si128(data);"
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_castsi128_pd(data);"
+  - target_extension: "sse"
+    ctype: ["double"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_castpd_si128(data);"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return data;"
+#INTEL - FPGA
+  - target_extension: "fpga_generic"
+    ctype: ["float","double"]
+    additional_simd_template_base_type_mapping_dict: {"float":["int32_t", "uint32_t"],"double":["int64_t", "uint64_t"]}
+    vector_length_agnostic: True
+    lscpu_flags: ["fpga_generic"]
+    implementation: |
+      using U = typename ToType::register_type;
+      U result{};
+      #pragma unroll
+      for (size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+        result[i] = *reinterpret_cast< typename ToType::base_type const * >( &(data[i]) );
+      }
+      return result;
+...
+---
+primitive_name: "cast"
+additional_simd_template_parameter: "ToType"
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+returns:
+  ctype: "typename ToType::register_type"
+  description: "Casted SIMD register."
+definitions:
+  #INTEL - AVX2
+  - target_extension: "sse"
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    additional_simd_template_extension: "avx2"
+    lscpu_flags: ["avx2"]
+    is_native: True
+    implementation: |
+      #if (defined(__GNUC__) && defined(__cplusplus) && (__GNUC__ < 10) && !defined(__clang__))
+        return _mm256_inserti128_si256(_mm256_setzero_si256(), data, 0);
+      #else
+        return _mm256_zextsi128_si256(data);
+      #endif
+...
+---
+primitive_name: "convert_up"
+additional_simd_template_parameter: "ToType"
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+returns:
+  ctype: "std::array<typename ToType::register_type, sizeof(typename ToType::base_type)/sizeof(typename Vec::base_type)>"
+  description: "Array containing the upconverted simd registers."
+testing:
+  - test_name: "default"
+    requires: ["loadu", "equal", "to_integral", "add"]
+    includes: ["<limits>", "<cstdint>", "<algorithm>"]
+    implementation: |
+      using lower_type = typename Vec::base_type;
+      using upper_type = typename ToType::base_type;
+      bool allOk = true;
+      upper_type upper_init_start_value;
+      lower_type lower_init_start_value;
+      if constexpr (std::is_unsigned_v<upper_type>) {
+        if constexpr (std::is_unsigned_v<lower_type>) {
+          upper_init_start_value = 0;
+          lower_init_start_value = 0;
+        } else {
+          lower_init_start_value = std::numeric_limits<lower_type>::lowest();
+          upper_init_start_value = ((upper_type)std::numeric_limits<lower_type>::max())+1;
+        }
+      } else {
+        if constexpr (std::is_unsigned_v<lower_type>) {
+          upper_init_start_value = 0;
+          lower_init_start_value = 0;
+        } else {
+          lower_init_start_value = std::numeric_limits<lower_type>::lowest();
+          upper_init_start_value = lower_init_start_value;
+        }
+      }
+      uint64_t max = 0;
+      if(sizeof(lower_type)>2) {
+        max = 1<<16;
+      } else {
+        max = std::numeric_limits<lower_type>::max();
+      }
+      auto lower_reg = custom_sequence<Vec>(lower_init_start_value);
+      auto const lower_inc = set1<Vec>(Vec::vector_element_count());
+      using conversion_type = typename functors::convert_up<Vec, ToType, workaround>::return_type;
+      auto upper_regs = conversion_type{};
+      auto const upper_inc = set1<ToType>(Vec::vector_element_count());
+      for(auto & reg: upper_regs) {
+        reg = custom_sequence<ToType>(upper_init_start_value);
+        upper_init_start_value += ToType::vector_element_count();
+      }
+      typename ToType::imask_type const compare_mask = (1<<ToType::vector_element_count())-1;
+      for(uint64_t i = 0; i < max; i += Vec::vector_element_count()) {
+        auto results = convert_up<Vec, ToType>(lower_reg);
+        for(int j = 0; j < results.size(); ++j) {
+          auto const mask = to_integral<ToType>(equal<ToType>(results[j], upper_regs[j]));
+          if(mask != compare_mask) {
+            allOk = false;
+          }
+        }
+        if(!allOk) {
+          break;
+        }
+        for(auto & reg: upper_regs) {
+          reg = add<ToType>(reg, upper_inc);
+        }
+        lower_reg = add<Vec>(lower_reg, lower_inc);
+      }
+      return allOk;
+
+definitions:
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t"]
+    additional_simd_template_base_type: ["int32_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const b = _mm256_extracti128_si256(data, 0);
+      auto const c = _mm256_extracti128_si256(data, 1);
+      return { {
+        _mm256_cvtepi8_epi32(b),
+        _mm256_cvtepi8_epi32(_mm_bsrli_si128(b,8)),
+        _mm256_cvtepi8_epi32(c),
+        _mm256_cvtepi8_epi32(_mm_bsrli_si128(c,8))
+      } };
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t"]
+    additional_simd_template_base_type_mapping_dict: {"uint8_t": ["uint32_t", "int32_t"], "int8_t": ["uint32_t"]}
+    lscpu_flags: ["avx2"]
+    specialization_comment: "int to uint is unsafe... we should delete this"
+    is_native: False
+    implementation: |
+      auto const b = _mm256_extracti128_si256(data, 0);
+      auto const c = _mm256_extracti128_si256(data, 1);
+      auto const upper_zero = _mm256_set1_epi32(0xff);
+      return { {
+        _mm256_and_si256(_mm256_cvtepi8_epi32(b), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi8_epi32(_mm_bsrli_si128(b,8)), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi8_epi32(c), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi8_epi32(_mm_bsrli_si128(c,8)), upper_zero)
+      } };
+  - target_extension: "avx2"
+    ctype: ["int8_t"]
+    additional_simd_template_base_type: ["int64_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const x = _mm256_extracti128_si256(data, 0);
+      auto const y = _mm256_extracti128_si256(data, 1);
+      return { {
+        _mm256_cvtepi8_epi64(x),
+        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 4)),
+        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 8)),
+        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 12)),
+        _mm256_cvtepi8_epi64(y),
+        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 4)),
+        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 8)),
+        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 12))
+      } };
+#  v2 shuffle_epi
+#      alignas(32) std::array<uint8_t, 32> tmp{};
+#      _mm256_store_si256(reinterpret_cast<__m256i *>(tmp.data()), data);
+#      return { {
+#        _mm256_set_epi64x(tmp[ 3], tmp[ 2], tmp[ 1], tmp[ 0]),
+#        _mm256_set_epi64x(tmp[ 7], tmp[ 6], tmp[ 5], tmp[ 4]),
+#        _mm256_set_epi64x(tmp[11], tmp[10], tmp[ 9], tmp[ 8]),
+#        _mm256_set_epi64x(tmp[15], tmp[14], tmp[13], tmp[12]),
+#        _mm256_set_epi64x(tmp[19], tmp[18], tmp[17], tmp[16]),
+#        _mm256_set_epi64x(tmp[23], tmp[22], tmp[21], tmp[20]),
+#        _mm256_set_epi64x(tmp[27], tmp[26], tmp[25], tmp[24]),
+#        _mm256_set_epi64x(tmp[31], tmp[30], tmp[29], tmp[28])
+#      } };
+#  v3
+#        auto const shift1 = _mm256_set_epi64x(24, 16, 8, 0);
+#        auto const shift2 = _mm256_set_epi64x(56, 48, 40, 32);
+#        auto const andv  = _mm256_set1_epi64x(0xff);
+#        auto const first  = _mm256_permute4x64_epi64(data, 0b00000000);
+#        auto const second = _mm256_permute4x64_epi64(data, 0b01010101);
+#        auto const third  = _mm256_permute4x64_epi64(data, 0b10101010);
+#        auto const fourth = _mm256_permute4x64_epi64(data, 0b11111111);
+#        return { {
+#        _mm256_and_si256(_mm256_srlv_epi64(first, shift1), andv),
+#        _mm256_and_si256(_mm256_srlv_epi64(first, shift2), andv),
+#        _mm256_and_si256(_mm256_srlv_epi64(second, shift1), andv),
+#        _mm256_and_si256(_mm256_srlv_epi64(second, shift2), andv),
+#        _mm256_and_si256(_mm256_srlv_epi64(third, shift1), andv),
+#        _mm256_and_si256(_mm256_srlv_epi64(third, shift2), andv),
+#        _mm256_and_si256(_mm256_srlv_epi64(fourth, shift1), andv),
+#        _mm256_and_si256(_mm256_srlv_epi64(fourth, shift2), andv)
+#        } };
+  - target_extension: "avx2"
+    ctype: [ "uint8_t", "int8_t" ]
+    additional_simd_template_base_type_mapping_dict: { "uint8_t": [ "uint64_t", "int64_t" ], "int8_t": [ "uint64_t" ] }
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const x = _mm256_extracti128_si256(data, 0);
+      auto const y = _mm256_extracti128_si256(data, 1);
+      auto const upper_zero = _mm256_set1_epi64x(0xff);
+      return { {
+        _mm256_and_si256(_mm256_cvtepi8_epi64(x), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 4)), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 8)), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 12)), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi8_epi64(y), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 4)), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 8)), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 12)), upper_zero),
+      } };
+  - target_extension: "avx2"
+    ctype: ["int16_t"]
+    additional_simd_template_base_type: ["int32_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const b = _mm256_extracti128_si256(data, 0);
+      auto const c = _mm256_extracti128_si256(data, 1);
+      return { {
+          _mm256_cvtepi16_epi32(b),
+          _mm256_cvtepi16_epi32(c)
+      } };
+  - target_extension: "avx2"
+    ctype: [ "uint16_t", "int16_t" ]
+    additional_simd_template_base_type_mapping_dict: { "uint16_t": [ "uint32_t", "int32_t" ], "int16_t": [ "uint32_t" ] }
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const b = _mm256_extracti128_si256(data, 0);
+      auto const c = _mm256_extracti128_si256(data, 1);
+      auto const upper_zero = _mm256_set1_epi32(0xffff);
+      return { {
+        _mm256_and_si256(_mm256_cvtepi16_epi32(b), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi16_epi32(c), upper_zero)
+      } };
+  - target_extension: "avx2"
+    ctype: ["int16_t"]
+    additional_simd_template_base_type: ["int64_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const b = _mm256_extracti128_si256(data, 0);
+      auto const c = _mm256_extracti128_si256(data, 1);
+      return { {
+        _mm256_cvtepi16_epi64(b),
+        _mm256_cvtepi16_epi64(_mm_bsrli_si128(b,8)),
+        _mm256_cvtepi16_epi64(c),
+        _mm256_cvtepi16_epi64(_mm_bsrli_si128(c,8)),
+      } };
+  - target_extension: "avx2"
+    ctype: [ "uint16_t", "int16_t" ]
+    additional_simd_template_base_type_mapping_dict: { "uint16_t": [ "uint64_t", "int64_t" ], "int16_t": [ "uint64_t" ] }
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const b = _mm256_extracti128_si256(data, 0);
+      auto const c = _mm256_extracti128_si256(data, 1);
+      auto const upper_zero = _mm256_set1_epi64x(0xffff);
+      return { {
+        _mm256_and_si256(_mm256_cvtepi16_epi64(b), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi16_epi64(_mm_bsrli_si128(b,8)), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi16_epi64(c), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi16_epi64(_mm_bsrli_si128(c,8)), upper_zero)
+      } };
+  - target_extension: "avx2"
+    ctype: ["int32_t"]
+    additional_simd_template_base_type: ["int64_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const b = _mm256_extracti128_si256(data, 0);
+      auto const c = _mm256_extracti128_si256(data, 1);
+      return { {
+        _mm256_cvtepi32_epi64(b),
+        _mm256_cvtepi32_epi64(c),
+      } };
+  - target_extension: "avx2"
+    ctype: [ "uint32_t", "int32_t" ]
+    additional_simd_template_base_type_mapping_dict: { "uint32_t": [ "uint64_t", "int64_t" ], "int32_t": [ "uint64_t" ] }
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const b = _mm256_extracti128_si256(data, 0);
+      auto const c = _mm256_extracti128_si256(data, 1);
+      auto const upper_zero = _mm256_set1_epi64x(0xffffffff);
+      return { {
+        _mm256_and_si256(_mm256_cvtepi32_epi64(b), upper_zero),
+        _mm256_and_si256(_mm256_cvtepi32_epi64(c), upper_zero)
+      } };
+  - target_extension: "avx2"
+    ctype: ["int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["int64_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      return { {
+        data
+      } };
+  - target_extension: "avx2"
+    ctype: ["int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["uint64_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      return { {
+        data
+      } };
+
+#INTEL SSE
+  - target_extension: "sse"
+    ctype: ["int8_t"]
+    additional_simd_template_base_type: ["int32_t"]
+    lscpu_flags: ["sse4_2"]
+    is_native: False
+    implementation: |
+      return { {
+        _mm_cvtepi8_epi32(data),
+        _mm_cvtepi8_epi32(_mm_bsrli_si128(data,4)),
+        _mm_cvtepi8_epi32(_mm_bsrli_si128(data,8)),
+        _mm_cvtepi8_epi32(_mm_bsrli_si128(data,12))
+      } };
+  - target_extension: "sse"
+    ctype: [ "uint8_t", "int8_t" ]
+    additional_simd_template_base_type_mapping_dict: { "uint8_t": [ "uint32_t", "int32_t" ], "int8_t": [ "uint32_t" ] }
+    lscpu_flags: ["sse4_2"]
+    is_native: False
+    implementation: |
+      auto const upper_zero = _mm_set1_epi32(0xff);
+      return { {
+        _mm_and_si128(_mm_cvtepi8_epi32(data), upper_zero),
+        _mm_and_si128(_mm_cvtepi8_epi32(_mm_bsrli_si128(data,4)), upper_zero),
+        _mm_and_si128(_mm_cvtepi8_epi32(_mm_bsrli_si128(data,8)), upper_zero),
+        _mm_and_si128(_mm_cvtepi8_epi32(_mm_bsrli_si128(data,12)), upper_zero)
+      } };
+  - target_extension: "sse"
+    ctype: ["int8_t"]
+    additional_simd_template_base_type: ["int64_t"]
+    lscpu_flags: ["sse4_2"]
+    is_native: False
+    implementation: |
+      return { {
+        _mm_cvtepi8_epi64(data),
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,2)),
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,4)),
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,6)),
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,8)),
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,10)),
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,12)),
+        _mm_cvtepi8_epi64(_mm_bsrli_si128(data,14)),
+      } };
+  - target_extension: "sse"
+    ctype: [ "uint8_t", "int8_t" ]
+    additional_simd_template_base_type_mapping_dict: { "uint8_t": [ "uint64_t", "int64_t" ], "int8_t": [ "uint64_t" ] }
+    lscpu_flags: ["sse4_2"]
+    is_native: False
+    implementation: |
+      auto const upper_zero = _mm_set1_epi64x(0xff);
+      return { {
+      _mm_and_si128(_mm_cvtepi8_epi64(data), upper_zero),
+      _mm_and_si128(_mm_cvtepi8_epi64(_mm_bsrli_si128(data,2)), upper_zero),
+      _mm_and_si128(_mm_cvtepi8_epi64(_mm_bsrli_si128(data,4)), upper_zero),
+      _mm_and_si128(_mm_cvtepi8_epi64(_mm_bsrli_si128(data,6)), upper_zero),
+      _mm_and_si128(_mm_cvtepi8_epi64(_mm_bsrli_si128(data,8)), upper_zero),
+      _mm_and_si128(_mm_cvtepi8_epi64(_mm_bsrli_si128(data,10)), upper_zero),
+      _mm_and_si128(_mm_cvtepi8_epi64(_mm_bsrli_si128(data,12)), upper_zero),
+      _mm_and_si128(_mm_cvtepi8_epi64(_mm_bsrli_si128(data,14)), upper_zero),
+      } };
+  - target_extension: "sse"
+    ctype: ["int16_t"]
+    additional_simd_template_base_type: ["int32_t"]
+    lscpu_flags: ["sse4_2"]
+    is_native: False
+    implementation: |
+      return { {
+        _mm_cvtepi16_epi32(data),
+        _mm_cvtepi16_epi32(_mm_bsrli_si128(data,8))
+      } };
+  - target_extension: "sse"
+    ctype: [ "uint16_t", "int16_t" ]
+    additional_simd_template_base_type_mapping_dict: { "uint16_t": [ "uint32_t", "int32_t" ], "int16_t": [ "uint32_t" ] }
+    lscpu_flags: ["sse4_2"]
+    is_native: False
+    implementation: |
+      auto const upper_zero = _mm_set1_epi32(0xffff);
+      return { {
+        _mm_and_si128(_mm_cvtepi16_epi32(data), upper_zero),
+        _mm_and_si128(_mm_cvtepi16_epi32(_mm_bsrli_si128(data,8)), upper_zero)
+      } };
+  - target_extension: "sse"
+    ctype: ["int16_t"]
+    additional_simd_template_base_type: ["int64_t"]
+    lscpu_flags: ["sse4_2"]
+    is_native: False
+    implementation: |
+      return { {
+        _mm_cvtepi16_epi64(data),
+        _mm_cvtepi16_epi64(_mm_bsrli_si128(data,4)),
+        _mm_cvtepi16_epi64(_mm_bsrli_si128(data,8)),
+        _mm_cvtepi16_epi64(_mm_bsrli_si128(data,12))
+      } };
+  - target_extension: "sse"
+    ctype: [ "uint16_t", "int16_t" ]
+    additional_simd_template_base_type_mapping_dict: { "uint16_t": [ "uint64_t", "int64_t" ], "int16_t": [ "uint64_t" ] }
+    lscpu_flags: ["sse4_2"]
+    is_native: False
+    implementation: |
+      auto const upper_zero = _mm_set1_epi64x(0xffff);
+      return { {
+        _mm_and_si128(_mm_cvtepi16_epi64(data), upper_zero),
+        _mm_and_si128(_mm_cvtepi16_epi64(_mm_bsrli_si128(data,4)), upper_zero),
+        _mm_and_si128(_mm_cvtepi16_epi64(_mm_bsrli_si128(data,8)), upper_zero),
+        _mm_and_si128(_mm_cvtepi16_epi64(_mm_bsrli_si128(data,12)), upper_zero)
+      } };
+  - target_extension: "sse"
+    ctype: ["int32_t"]
+    additional_simd_template_base_type: ["int64_t"]
+    lscpu_flags: ["sse4_2"]
+    is_native: False
+    implementation: |
+      return { {
+        _mm_cvtepi32_epi64(data),
+        _mm_cvtepi32_epi64(_mm_bsrli_si128(data,8))
+      } };
+  - target_extension: "sse"
+    ctype: [ "uint32_t", "int32_t" ]
+    additional_simd_template_base_type_mapping_dict: { "uint32_t": [ "uint64_t", "int64_t" ], "int32_t": [ "uint64_t" ] }
+    lscpu_flags: ["sse4_2"]
+    is_native: False
+    implementation: |
+      auto const upper_zero = _mm_set1_epi64x(0xffffffff);
+      return { {
+        _mm_and_si128(_mm_cvtepi32_epi64(data), upper_zero),
+        _mm_and_si128(_mm_cvtepi32_epi64(_mm_bsrli_si128(data,8)), upper_zero),
+      } };
+...
+---
+primitive_name: "convert_down"
+additional_simd_template_parameter: "ToType"
+parameters:
+  - ctype: "std::array<typename Vec::register_type, sizeof(typename Vec::base_type)/sizeof(typename ToType::base_type)>"
+    name: "data"
+returns:
+  ctype: "typename ToType::register_type"
+  description: "SIMD register containing the down-converted data."
+testing:
+  - test_name: "default"
+    requires: ["loadu", "equal", "to_integral", "add"]
+    includes: ["<limits>", "<cstdint>", "<algorithm>"]
+    implementation: |
+      using upper_type = typename Vec::base_type;
+      using lower_type = typename ToType::base_type;
+
+      testing::test_memory_helper_t<ToType> test_helper_lower{ToType::vector_element_count(), 1, false, testing::seq_init_start_low<lower_type>};
+      auto lower_value_vec = loadu<ToType>(test_helper_lower.data_target());
+      auto const lower_inc_vec = set1<ToType>(ToType::vector_element_count());
+      
+      uint64_t max = 0;
+      if(sizeof(lower_type)>2) {
+        max = 1<<16;
+      } else {
+        max = std::numeric_limits<lower_type>::max();
+      }      
+
+      for(uint64_t i = 0; i < max; i+= ToType::vector_element_count()) {
+        //convert the lower type up to the vec type and convert it back down again -- result should be equal to parameter
+        auto result = convert_down<Vec, ToType>(convert_up<ToType, Vec>(lower_value_vec));
+        auto mask = to_integral<ToType>(equal<ToType>(result, lower_value_vec));
+        for(size_t i = 0; i < ToType::vector_element_count(); ++i) {
+          if(((mask>>i)&0b1) != 1) {
+            return false;
+          }
+        }
+        lower_value_vec = add<ToType>(lower_value_vec, lower_inc_vec);
+      }
+      return true;
+definitions:
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype:  ["int32_t", "uint32_t"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const upper_zero = _mm256_set1_epi32(0xff);
+      const __m256i x =
+        _mm256_or_si256(
+          _mm256_or_si256(
+            _mm256_or_si256(
+              _mm256_and_si256(upper_zero, data[0]),
+              _mm256_bslli_epi128(_mm256_and_si256(upper_zero, data[1]),1)
+            ),
+            _mm256_bslli_epi128(_mm256_and_si256(upper_zero, data[2]), 2)
+          ),
+          _mm256_bslli_epi128(_mm256_and_si256(upper_zero, data[3]), 3)
+        );
+      const __m256i y =
+        _mm256_shuffle_epi8(
+          x,
+          _mm256_set_epi32(
+            0xF0B0703,0xE0A0602, 0xD090501,0xC080400,
+            0xF0B0703,0xE0A0602, 0xD090501,0xC080400
+          )
+        );
+      return _mm256_permutevar8x32_epi32(y, _mm256_set_epi32(7,3,6,2,5,1,4,0));
+#      auto const x = _mm256_extracti128_si256(data, 0);
+#      auto const y = _mm256_extracti128_si256(data, 1);
+#      return { {
+#        _mm256_cvtepi8_epi64(x),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 4)),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 8)),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(x, 12)),
+#        _mm256_cvtepi8_epi64(y),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 4)),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 8)),
+#        _mm256_cvtepi8_epi64(_mm_bsrli_si128(y, 12)),
+#      } };
+  - target_extension: "avx2"
+    ctype: ["int32_t", "uint32_t"]
+    additional_simd_template_base_type: ["int16_t", "uint16_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const upper_zero = _mm256_set1_epi32(0xffff);
+      auto const d0 = _mm256_and_si256(upper_zero, data[0]);
+      auto const d1 = _mm256_and_si256(upper_zero, data[1]);
+      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>; 
+      return
+        _mm256_shuffle_epi8(
+          _mm256_permute2x128_si256(
+            _mm256_or_si256(
+              zext::apply(
+                _mm256_extracti128_si256(
+                  d0,
+                  0
+                )
+              ),
+              _mm256_bslli_epi128(
+                zext::apply(
+                  _mm256_extracti128_si256(
+                    d0,
+                    1
+                  )
+                ),
+                2
+              )
+            ),
+            _mm256_or_si256(
+              zext::apply(
+                _mm256_extracti128_si256(
+                  d1,
+                  0
+                )
+              ),
+              _mm256_bslli_epi128(
+                zext::apply(
+                  _mm256_extracti128_si256(
+                    d1,
+                    1
+                  )
+                ),
+                2
+              )
+            ),
+            0x20
+          ),
+          _mm256_set_epi32(
+            0x0f0e0b0a, 0x07060302, 0x0d0c0908, 0x05040100,
+            0x0f0e0b0a, 0x07060302, 0x0d0c0908, 0x05040100
+          )
+        );
+  - target_extension: "avx2"
+    ctype: ["int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const upper_zero = _mm256_set1_epi64x(0xff);
+      auto const perm = _mm256_set_epi32(7,5,3,1,6,4,2,0);
+      auto const a = _mm256_permutevar8x32_epi32(_mm256_or_si256(
+        _mm256_and_si256(upper_zero, data[0]),
+        _mm256_bslli_epi128(_mm256_and_si256(upper_zero, data[1]), 4)), perm);
+      auto const b = _mm256_permutevar8x32_epi32(_mm256_or_si256(
+        _mm256_and_si256(upper_zero, data[2]),
+        _mm256_bslli_epi128(_mm256_and_si256(upper_zero, data[3]), 4)), perm);
+      auto const c = _mm256_permutevar8x32_epi32(_mm256_or_si256(
+        _mm256_and_si256(upper_zero, data[4]),
+        _mm256_bslli_epi128(_mm256_and_si256(upper_zero, data[5]), 4)), perm);
+      auto const d = _mm256_permutevar8x32_epi32(_mm256_or_si256(
+        _mm256_and_si256(upper_zero, data[6]),
+        _mm256_bslli_epi128(_mm256_and_si256(upper_zero, data[7]), 4)), perm);
+      auto const x = _mm256_or_si256(_mm256_or_si256(_mm256_or_si256(a, _mm256_bslli_epi128(b,1)), _mm256_bslli_epi128(c, 2)), _mm256_bslli_epi128(d, 3));
+      auto const y = _mm256_shuffle_epi8(x, _mm256_set_epi32(0xF0B0703,0xE0A0602, 0xD090501,0xC080400, 0xF0B0703,0xE0A0602, 0xD090501,0xC080400));
+      return _mm256_permutevar8x32_epi32(y, _mm256_set_epi32(7,3,6,2,5,1,4,0));
+  - target_extension: "avx2"
+    ctype: ["int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["int16_t", "uint16_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const upper_zero = _mm256_set1_epi64x(0xffff);
+      auto const d0 = _mm256_and_si256(upper_zero, data[0]);
+      auto const d1 = _mm256_and_si256(upper_zero, data[1]);
+      auto const d2 = _mm256_and_si256(upper_zero, data[2]);
+      auto const d3 = _mm256_and_si256(upper_zero, data[3]);
+      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>; 
+      return
+        _mm256_shuffle_epi8(
+          _mm256_permute2x128_si256(
+            _mm256_or_si256(
+              _mm256_or_si256(
+                zext::apply(_mm256_extracti128_si256(d0,0)),
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d0,1)),2)
+              ),
+              _mm256_or_si256(
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d1,0)),4),
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d1,1)),6)
+              )
+            ),
+            _mm256_or_si256(
+              _mm256_or_si256(
+                zext::apply(_mm256_extracti128_si256(d2,0)),
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d2,1)),2)
+              ),
+              _mm256_or_si256(
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d3,0)),4),
+                _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d3,1)),6)
+              )
+            ),
+            0x20
+          ),
+          _mm256_set_epi32(
+            0x0f0e0706, 0x0d0c0504, 0x0b0a0302, 0x09080100,
+            0x0f0e0706, 0x0d0c0504, 0x0b0a0302, 0x09080100
+          )
+        );
+  - target_extension: "avx2"
+    ctype: ["int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["int32_t", "uint32_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    implementation: |
+      auto const upper_zero = _mm256_set1_epi64x(0xffffffff);
+      auto const d0 = _mm256_and_si256(upper_zero, data[0]);
+      auto const d1 = _mm256_and_si256(upper_zero, data[1]);
+      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>; 
+      return
+        _mm256_shuffle_epi32(
+          _mm256_permute2x128_si256(
+            _mm256_or_si256(
+              zext::apply(_mm256_extracti128_si256(d0, 0)),
+              _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d0, 1)),4)
+            ),
+            _mm256_or_si256(
+              zext::apply(_mm256_extracti128_si256(d1, 0)),
+              _mm256_bslli_epi128(zext::apply(_mm256_extracti128_si256(d1, 1)),4)
+            ),
+            0x20
+          ),
+          0xd8
+        );
+...

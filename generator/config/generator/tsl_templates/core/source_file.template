@@ -1,0 +1,8 @@
+{{ tsl_license }}
+{{ tsl_file_doxygen }}
+{% for include in includes %}
+#include {{ include }}
+{% endfor %}
+{% for code in codes %}
+   {{ code }}
+{% endfor %}
