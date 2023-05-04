@@ -1,23 +1,38 @@
-name: 'tvl-generate-build'
+name: 'tsl-generate-build'
 
-on: ['workflow_call']
+on:
+  workflow_call:
+    inputs:
+      checkout_ref:
+        description: >
+          Branch / tag / SHA which is forwarded to actions/checkout@v3::ref
+        default: ''
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   validate:
-    uses: ./.github/workflows/test_tvlgen.yml
+    uses: ./.github/workflows/test_tslgen.yml
+    with:
+      checkout_ref: ${{ github.event.pull_request.head.sha }}
   build:
     runs-on: ubuntu-latest
     needs: validate
     steps:
-    - name: 'Generate TVL'
+    - name: 'Loads State'
+      uses: actions/cache/restore@v3
+      with:
+        path: ./
+        key: ${{ runner.os }}}-${{ env.GITHUB_SHA }}-checked-out
+    - name: 'Generate TSL'
       run: |
-        cmake -B tvl
-    - name: 'Build TVL'
+        cmake -B tsl
+    - name: 'Build TSL'
       run: |
-        make -C tvl
+        make -C tsl
     - name: 'Run Tests'
       run: |
-        ./tvl/tvl/generator_output/src/test/tvl_test
+        ./tsl/tsl/generator_output/src/test/tsl_test

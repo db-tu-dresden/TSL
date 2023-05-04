@@ -1,4 +1,4 @@
-name: 'tvl-validate-pr'
+name: 'tsl-validate-pr'
 
 on:
   pull_request:
@@ -10,4 +10,6 @@ permissions:
 
 jobs:
   validate-and-build:
-    uses: ./.github/workflows/generate_build_tvl.yml
+    uses: ./.github/workflows/generate_build_tsl.yml
+    with:
+      checkout_ref: ${{ github.event.pull_request.head.sha }}

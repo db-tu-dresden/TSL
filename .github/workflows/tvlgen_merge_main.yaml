@@ -1,4 +1,4 @@
-name: 'tvl-push'
+name: 'tsl-push'
 
 on:
   push:
@@ -9,11 +9,16 @@ permissions:
 
 jobs:
   validate-and-build:
-    uses: ./.github/workflows/generate_build_tvl.yml
+    uses: ./.github/workflows/generate_build_tsl.yml
   update-readme:
     runs-on: ubuntu-latest
     needs: validate-and-build
     steps:
+    - name: 'Loads State'
+      uses: actions/cache/restore@v3
+      with:
+        path: ./
+        key: ${{ runner.os }}}-${{ env.GITHUB_SHA }}-checked-out
     - name: Setup Git Creds
       run: |
         git reset --hard
