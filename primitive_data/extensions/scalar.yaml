@@ -1,0 +1,11 @@
+---
+description: "Definition of the SIMD TargetExtension sse."
+vendor: ""
+extension_name: "scalar"
+lscpu_flags: []
+includes: []
+simdT_name: "scalar"
+simdT_register_type: "BaseType"
+simdT_mask_type: "bool"
+simdT_integral_mask_type: "uint8_t"
+...

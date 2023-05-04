@@ -1,0 +1,326 @@
+---
+includes: &includes
+   type: "list"
+   default: []
+   entry_type: "str"
+   brief: "A list of includes which are required."
+
+custom_type: &custom_type
+   required:
+      name:
+         type: "str"
+         brief: "Name of custom type."
+         example: "gpu_reg_t"
+      struct_code:
+         type: "str"
+         brief: "Implementation code for custom type struct."
+extension:
+   required:
+      vendor:
+         type: "str"
+         brief: "Vendor Name."
+         example: "'intel'"
+      extension_name:
+         type: "str"
+         brief: "Extension Name (used as filename)."
+         example: "'avx512'"
+      lscpu_flags: &lscpu_flags
+         type: "list"
+         entry_type: "str"
+         brief: "List of extension specific flags, exposed by using lscpu."
+         example: "[ 'avx512cd', 'avx512f' ]"
+      simdT_name:
+         type: "str"
+         brief: "Extension Name which will be used inside the TSL."
+         example: "'avx512'"
+      simdT_register_type:
+         type: "str"
+         brief: "Vector register type, depending on the base type."
+         example: "BaseType"
+      simdT_mask_type:
+         type: "str"
+         brief: "Mask type, depending on the base type."
+   optional:
+      simdT_integral_mask_type:
+         type: "str"
+         brief: "Integral type for a mask. This may differ from the mask_type."
+         default: "mask_t"
+         requirement: "optional"
+      language:
+         type: "str"
+         brief: "Language string used by cmake."
+         default: "CXX"
+         example: "'CXX' or 'CUDA'"
+      needs_arch_flags:
+         type: "bool"
+         brief: "Indicates, whether the lscpu-flags should be used as compiler flags."
+         default: True
+      custom_types:
+         type: "list"
+         entry_type: *custom_type
+         brief: "List of custom types."
+         default: []
+      simdT_default_size_in_bits:
+         type: "int"
+         brief: "Default size of a vector register for the specific extension in bits."
+         default: 0
+         example: 512
+      simdT_register_type_attributes:
+         type: "str"
+         brief: "Additional attributes of vector type."
+         example: "__attribute__((vector_size(64), __may_alias__, _aligned_(64)))"
+         default: ""
+      simdT_register_type_compiler_attributes:
+         type: "str"
+         brief: "Additional attributes of vector type."
+         example: "__attribute__((register))"
+         default: ""
+      simdT_mask_type_attributes:
+         type: "str"
+         brief: "Additional attributes of mask type."
+         example: "__attribute__((vector_size(64), __may_alias__, _aligned_(64)))"
+         default: ""
+      simdT_mask_type_compiler_attributes:
+         type: "str"
+         brief: "Additional attributes of mask type."
+         example: "__attribute__((register))"
+         default: ""
+      description:
+         type: "str"
+         brief: "A description of the SIMD extension which is used for doxygen generation."
+         default: "todo."
+      intrin_tp:
+         type: "dict"
+         brief: "If intrinsics follow a specific pattern (for instance by enconding type informations into intrinsic-names), this can be used to generate multiple primitivies."
+         example: "{uint8_t: ['u', '8'], uint16_t: ['u', '16']}. Usage: vaddq_{{ intrin_tp[ctype][0] }}{{ intrin_tp[ctype][1] }}"
+         default: "{}"
+      intrin_tp_full:
+         type: "dict"
+         brief: "If intrinsics follow a specific pattern (for instance by enconding type informations into intrinsic-names), this can be used to generate multiple primitivies."
+         example: "{uint8_t: ['u', '8'], uint16_t: ['u', '16']}. Usage: vaddq_{{ intrin_tp_full[ctype] }}"
+         default: "{}"
+      arch_flags:
+         type: "dict"
+         brief: "Dictionary for mapping architecture flags to compiler related arcitecture flags. Only non-obvious mappings must be included in this dictionary."
+         example: "{sse4_1: 'msse4.1', sse4_2: 'msse4.2'}"
+         default: "{}"
+      includes: *includes
+
+return: &return
+   required:
+      ctype:
+         type: "str"
+         brief: "TSL type of the parameter with all cvref qualifiers."
+         example: "Vec::vector_type const &"
+   optional:
+      description:
+         type: "str"
+         brief: "A short description of the parameter."
+         default: "todo."
+
+parameter: &parameter
+   required:
+      ctype:
+         type: "str"
+         brief: "TSL type of the parameter with all cvref qualifiers."
+         example: "Vec::vector_type const &"
+      name:
+         type: "str"
+         brief: "Name of the parameter."
+   optional:
+      default_value:
+         type: "str"
+         brief: "A default value."
+         default: ""
+      declaration_attributes:
+         type: "str"
+         brief: "Parameter declaration attributes"
+         example: "[[maybe_unused]]"
+         default: ""
+      attributes:
+         type: "str"
+         brief: "Parameter attributes."
+         example: "__restrict__"
+         default: ""
+      description:
+         type: "str"
+         brief: "A short description of the parameter."
+         default: "todo."
+      is_parameter_pack:
+         type: "bool"
+         default: false
+         brief: "A flag indicating whether the definition is using a 1-to-1 mapping (True) or whether it is some kind of a workaround (False)."
+
+primitive_specialization_requirements: &primitive_specialization_requirements
+   target_extension:
+      type: "str"
+      brief: "The TSL extension for which this definition is a specialization."
+   ctype:
+      type: "list"
+      entry_type: "str"
+      brief: "List of the C/C++ datatype(s) for which this definition is a specialization. If ctype == 'T', the specialization is base type agnostic."
+      example: "['uint32_t', 'uint64_t'], ['uint64_t'], ['T']"
+   lscpu_flags: *lscpu_flags
+
+primitive_specialization_optionals: &primitive_specialization_optionals
+   is_native:
+      type: "bool"
+      default: True
+      brief: "A flag indicating whether the definition is using a 1-to-1 mapping (True) or whether it is some kind of a workaround (False)."
+   vector_length_bits:
+      type: "int"
+      default: 0
+      brief: "The size of a vector register for the specific extension in bits. (default: 0 indicates that the default amount of bits - defined for the extension - will be used)."
+   vector_length_agnostic:
+      type: "bool"
+      default: False
+      brief: "Indicates, whether a Primitive specialization is agnostic to the actual vector length (default: False)."
+   specialization_comment:
+      type: "str"
+      default: ""
+      brief: "Brief description of the primitive."
+   additional_simd_template_base_type:
+      type: "list"
+      entry_type: "str"
+      default: []
+      brief: "Return vector base type, which is used for conversion."
+   additional_simd_template_base_type_mapping_dict:
+      type: "dict"
+      default: {}
+      brief: todo
+   additional_simd_template_extension:
+      type: "str"
+      default: ""
+      brief: "Return vector extension, which is used for casts."
+   includes: *includes
+
+primitive_definition: &primitive_definition
+   required:
+      <<: *primitive_specialization_requirements
+      implementation:
+         type: "str"
+         brief: "The actual implementation for this definition."
+   optional: *primitive_specialization_optionals
+
+test_definition: &test_definition
+   required:
+      implementation:
+         type: "str"
+         brief: "Implementation of a test case. If setup and teardown code is needed, this has to be placed inside the definition."
+   optional:
+      includes: *includes
+      implicitly_reliable:
+         type: "bool"
+         default: False
+         brief: "Indicates that this primitive is assumed to be 'correct'. This is necessary to break dependency-cycles of different testcases, e.g., most of the primitives need the ability to transfer the result into memory (simd-store). Even a potential test for store would require store to be tested beforehand. To omit such cycles, one can flag a fundamental primitive as implicitly reliable. However, a valid test-implementation must be provided."
+      test_name:
+         type: "str"
+         default: "default"
+         brief: "Name of a specific test definition."
+      requires:
+         type: "list"
+         entry_type: "str"
+         default: []
+         brief: "A list of required primitives for this test (excluded the current tested primitive)."
+
+template_parameter: &template_parameter
+   required:
+      ctype:
+         type: "str"
+         brief: "Type of template."
+      name:
+         type: "str"
+         brief: "Name of template parameter."
+
+primitive:
+   required:
+      primitive_name:
+         type: "str"
+         brief: "Name of the primitive."
+         example: "load"
+   optional:
+      functor_name:
+         type: "str"
+         default: ""
+         brief: "Name for the functor class. This is used if multiple primitives exist with the same primitive name but with different parameters."
+         example: "mask_load"
+      testing:
+         type: "list"
+         entry_type: *test_definition
+         default: []
+         brief: "Testing code."
+      test_function_name:
+         type: "str"
+         brief: "@TODO"
+         example: "test_add"
+      tsl_implementation_namespace:
+         type: "str"
+         default: "functors"
+         brief: "Namespace for template specializations."
+      brief_description:
+         type: "str"
+         default: "todo."
+         brief: "Brief description of the primitive."
+      detailed_description:
+         type: "str"
+         default: "todo."
+         brief: "Detailed description of the primitive."
+      parameters:
+         type: "list"
+         default: []
+         entry_type: *parameter
+         brief: "A list of necessary parameters for the primitive."
+         example: "[{ctype: 'Vec::vector_type const &', name: 'a', description: 'first summand'}, {ctype: 'Vec::vector_type const &', name: 'b', description: 'second summand'}]"
+      vector_name:
+         type: "str"
+         default: "Vec"
+         brief: "The template class name which is referenced from the parameters and within the code."
+      idof_name:
+         type: "str"
+         default: "Idof"
+         brief: "The template class name which is used to care about the implementation degree of freedom."
+      force_inline:
+         type: "bool"
+         default: True
+         brief: "A flag indicating whether the primitive should be marked as ((always_inline)). (default = True)"
+      returns:
+         type: "dict"
+         entry_type: *return
+         default: {"ctype": "void", "description": ""}
+         brief: "The return type of the primitive. (default = void)"
+      additional_simd_template_parameter:
+         type: "str"
+         default: ""
+         brief: "Additional template parameter which may be used for conversion operations."
+      additional_non_specialized_template_parameters:
+         type: "list"
+         entry_type: *template_parameter
+         default: []
+         brief: "Additional template parameters which may be needed"
+      includes: *includes
+      definitions:
+         type: "list"
+         default: [ ]
+         entry_type: *primitive_definition
+         brief: "A list of definitions for a specific primitive."
+
+primitive_class: &primitive_class
+   required:
+      name:
+         type: "str"
+         brief: "Name of the primitive class."
+      description:
+         type: "str"
+         brief: "A description of the primitive class."
+#      file:
+#         type: "str"
+#         brief: "A file, containing all primitives"
+#
+#primitive_classes:
+#   optional:
+#      classes:
+#         type: "list"
+#         default: []
+#         entry_type: *primitive_class
+#         brief: "A list containing the primitive classes."
+...

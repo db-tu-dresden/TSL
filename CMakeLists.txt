@@ -1,34 +1,34 @@
 cmake_minimum_required(VERSION 3.13)
-project(tvl)
+project(tsl)
 
 find_package(Python3 REQUIRED)
 
 # gather lscpu flags
-set(TVL_LSCPU_FLAGS "" CACHE STRING "space separated lscpu flags for --targets, will attempt to call lscpu if empty")
-if(TVL_LSCPU_FLAGS STREQUAL "")
+set(TSL_LSCPU_FLAGS "" CACHE STRING "space separated lscpu flags for --targets, will attempt to call lscpu if empty")
+if(TSL_LSCPU_FLAGS STREQUAL "")
     execute_process(
         COMMAND "${Python3_EXECUTABLE}" -c "import cpuinfo; print(*cpuinfo.get_cpu_info()['flags'])"
-        OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE TVL_LSCPU_FLAGS
+        OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE TSL_LSCPU_FLAGS
     )
 endif()
-if(TVL_LSCPU_FLAGS STREQUAL "")
-    message(FATAL_ERROR "failed to deduce TVL_LSCPU_FLAGS, please specify manually")
+if(TSL_LSCPU_FLAGS STREQUAL "")
+    message(FATAL_ERROR "failed to deduce TSL_LSCPU_FLAGS, please specify manually")
 endif()
-message(STATUS "lscpu flags: ${TVL_LSCPU_FLAGS}")
-string(REGEX REPLACE "[ \t]+" ";" LSCPU_FLAGS_LIST "${TVL_LSCPU_FLAGS}")
+message(STATUS "lscpu flags: ${TSL_LSCPU_FLAGS}")
+string(REGEX REPLACE "[ \t]+" ";" LSCPU_FLAGS_LIST "${TSL_LSCPU_FLAGS}")
 
 # trigger reconfiguration if the source files of the generator changed
-file(GLOB_RECURSE TVL_GENERATOR_SOURCES CONFIGURE_DEPENDS
-    "config/*.template"
-    "config/*.yaml"
-    "static_files/*.yaml"
-    "core/*.py"
-    "expansions/*.py"
-    "utils/*.py"
+file(GLOB_RECURSE TSL_GENERATOR_SOURCES CONFIGURE_DEPENDS
+    "generator/config/*.template"
+    "generator/config/*.yaml"
+    "generator/static_files/*.yaml"
+    "generator/core/*.py"
+    "generator/expansions/*.py"
+    "generator/utils/*.py"
     "primitive_data/extensions/*.yaml"
     "primitive_data/primitives/*.yaml"
 )
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${TVL_GENERATOR_SOURCES})
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${TSL_GENERATOR_SOURCES})
 
 set(DEFAULT_GENERATOR_OPTS --no-workaround-warnings)
 
@@ -59,7 +59,7 @@ else()
 	set(DEFAULT_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTS} "--no-concepts")
 endif()
 
-set(TVL_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTS} CACHE STRING "additonal cli options for the generator, semicolon separated")
+set(TSL_GENERATOR_OPTS ${DEFAULT_GENERATOR_OPTS} CACHE STRING "additonal cli options for the generator, semicolon separated")
 
 # run the generator
 if( NOT DEFINED GENERATOR_OUTPUT_PATH)
@@ -68,7 +68,7 @@ endif()
 
 message(STATUS "Running TVL Generator...")
 execute_process(
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" ${TVL_GENERATOR_OPTS} -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" ${TSL_GENERATOR_OPTS} -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
     COMMAND_ERROR_IS_FATAL ANY
 )
 

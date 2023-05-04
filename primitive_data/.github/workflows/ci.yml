@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+jobs:
+  build:
+    strategy:
+      matrix:
+        compiler: ["clang", "gcc"]
+        generator_opts: ["", "--no-concepts"]
+        include:
+          - compiler: "gcc"
+            compiler_appname: "g++"
+            compiler_package_name: "g++"
+          - compiler: "clang"
+            compiler_appname: "clang++"
+            compiler_package_name: "clang++"
+
+    runs-on: ubuntu-latest
+    name: "${{ matrix.generator_opts }} ${{ matrix.compiler }}"
+    steps:
+    - name: Checkout TSL repository (recursive)
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ github.repository_owner }}/TSLGen.git
+        ref: main
+        token: '${{ secrets.DHTSL_AT }}'
+    - name: Checkout primitive_data submodule
+      uses: actions/checkout@v3
+      with:
+        path: primitive_data
+    - name: "Install packages"
+      run: |
+        sudo apt-get update
+        sudo apt-get install graphviz-dev util-linux ${{ matrix.compiler_package }}
+    - name: Set up Latest Python Version
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.x"
+    - name: Install generator dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ./requirements.txt
+    - name: Generate Library
+      run: |
+        mkdir build
+        cd build
+        cmake .. "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}" "-DCMAKE_CXX_COMPILER=${{ matrix.compiler_appname }}"
+    - name: Build Tests
+      run: |
+        cd build
+        make
+    - name: Run Tests
+      run: |
+        cd build
+        ./build/generator_output/src/test/tsl_test
+
+  update_tsl_gen_submodule:
+    if: "github.event_name == 'push'"
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout TSL repository (recursive)
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ github.repository_owner }}/TSLGen.git
+        ref: main
+        token: '${{ secrets.DHTSL_AT }}'
+        submodules: recursive
+    - name: Setup Git Creds
+      run: |
+        git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+        git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+    - name: Update TSL generator repository
+      run: |
+        cd primitive_data
+        git checkout "$(git config -f ../.gitmodules submodule.primitive_data.branch)"
+        git pull
+        cd ..
+        git add primitive_data
+        git commit -m "update submodule primitive_data" || : # this might 'fail' if the submodule is already up to date
+        git push
