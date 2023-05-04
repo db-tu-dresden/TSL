@@ -1,6 +1,9 @@
 # TSLGen
 Template Vector Library Generator
 
+<!-- Todo: Move to Readme?? -->
+For detailed information on how to Setup and use TSLGen, please refer to the [GettingStarted](doc/GettingStarted.md) page.
+
 For writing primitives and extensions check out our [VS-Code extension](https://marketplace.visualstudio.com/items?itemName=DBTUD.tslgen-edit)
 
 [![Integrity Check (Primitive Data)](https://github.com/db-tu-dresden/TSLGen/actions/workflows/generator_integrity_check_pipeline.yml/badge.svg)](https://github.com/db-tu-dresden/TSLGen/actions/workflows/generator_integrity_check_pipeline.yml)
