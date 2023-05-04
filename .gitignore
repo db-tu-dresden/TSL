@@ -9,6 +9,7 @@ tslgen.log
 tslgen.log.*
 
 /build
+generator_output/
 
 
 lib/
