@@ -89,13 +89,6 @@ jobs:
         # generator_opts: ["", "--no-concepts"]
     needs: [lint, generate]
     steps:
-    # -
-    # name: Checkout TSL repository (recursive)
-    #   uses: actions/checkout@v3
-    #   with:
-    #     repository: ${{ github.repository_owner }}/TSLGen.git
-    #     ref: main
-    #     token: '${{ secrets.DHTSL_AT }}'
       -
         uses: actions/checkout@v3
         with:
