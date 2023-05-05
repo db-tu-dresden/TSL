@@ -1,0 +1,135 @@
+name: 'tsl-validate-pr'
+
+on:
+  pull_request:
+    branches: ['main']
+    types: ['opened', 'reopened']
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      -
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - 
+        name: 'Lint with ruff'
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          set -x
+          PYTHONV="py${{ matrix.python-version }}"
+          CURRENT_VERSION=$(echo $PYTHONV | sed 's/\.//')
+          echo $CURRENT_VERSION
+          ruff --format=github --select=E9,F63,F7,F82 --target-version="${CURRENT_VERSION}" -v .
+      -
+        name: 'Install python dependencies for primitive data'
+        run: pip install yamllint
+      -
+        name: 'Lint primitive data'
+        run: yamllint -d relaxed ./primitive_data
+  generate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      -
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}        
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - 
+        name: Try generating the whole TSL with python ${{ matrix.python-version }}
+        run: |
+          python main.py -o tmp
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: ["clang++", "g++"]
+        # generator_opts: ["", "--no-concepts"]
+    needs: [lint, generate]
+    steps:
+    # -
+    # name: Checkout TSL repository (recursive)
+    #   uses: actions/checkout@v3
+    #   with:
+    #     repository: ${{ github.repository_owner }}/TSLGen.git
+    #     ref: main
+    #     token: '${{ secrets.DHTSL_AT }}'
+      -
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+      -
+        name: 'Install packages for generated code'
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential cmake g++ clang
+      -
+        name: 'Run CMake'
+        # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: cmake -S . -B tsl
+      -
+        name: 'Build TSL'
+        run: make -C tsl
+      -
+        name: 'Run Tests'
+        run: ./tsl/tsl/generator_output/src/test/tsl_test
