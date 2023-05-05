@@ -1,0 +1,251 @@
+name: 'tsl-merge'
+
+env:
+  DOCKERHUB_NAMESPACE: jpietrzyktud
+  DOCKERHUB_REPOSITORY: tslgen
+  DOCKERHUB_REGISTRY: docker.io
+
+on:
+  push:
+    branches: ['main']
+
+permissions:
+  contents: write
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    name: Create and push Docker container
+    steps:
+      - 
+        name: Check out the repo
+        uses: actions/checkout@v3
+        with:
+          token: '${{ secrets.DHTSL_AT }}'
+      - 
+        name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v4.3.0
+        with:
+          images: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.DOCKERHUB_REPOSITORY }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v4
+        id: push
+        continue-on-error: true
+        with:
+          context: .
+          push: true
+          tags: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.DOCKERHUB_REPOSITORY }}:latest
+      - 
+        name: Setup Git Creds
+        run: |
+          git reset --hard && git clean -fxd
+          git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+          git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+      -
+        name: 'Mkdir badges folder'
+        run: mkdir -p ./doc/badges
+      -
+        name: Update status badge upload to ${{ env.DOCKERHUB_REGISTRY }} for success
+        if: steps.push.outcome == 'success'
+        uses: jaywcjlove/generated-badges@main
+        with:
+          label: ${{ env.DOCKERHUB_REGISTRY }}
+          status: online
+          color: blue
+          output: ./doc/badges/${{ env.DOCKERHUB_REGISTRY }}.svg
+      -
+        name: Update status badge upload to ${{ env.DOCKERHUB_REGISTRY }} for failure
+        if: steps.push.outcome == 'failure'
+        uses: jaywcjlove/generated-badges@main
+        with:
+          label: ${{ env.DOCKERHUB_REGISTRY }}
+          status: outdated
+          color: grey
+          output: ./doc/badges/${{ env.DOCKERHUB_REGISTRY }}.svg
+      -
+        name: 'Update Docker Badges'
+        run: |
+          git add ./doc/badges
+          git commit -a -m "Updated Docker badges."
+          git pull --rebase
+          CHANGECOUNT=`git cherry -v | wc -l`
+          if [ $CHANGECOUNT -ne 0 ]; then git push; fi     
+  generate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - 
+        name: Check out the repo
+        uses: actions/checkout@v3
+        with:
+          token: '${{ secrets.DHTSL_AT }}'
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          pip3 install ruff
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+      - 
+        name: Try generating the whole TSL with python ${{ matrix.python-version }}
+        id: generate
+        continue-on-error: true
+        run: |
+          python main.py -o tmp
+      - 
+        name: Setup Git Creds
+        run: |
+          git reset --hard && git clean -fxd
+          git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+          git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+      -
+        name: 'Mkdir badges folder'
+        run: mkdir -p ./doc/badges
+      -
+        name: Update status badge python ${{ matrix.python-version }} for success
+        if: steps.generate.outcome == 'success'
+        uses: jaywcjlove/generated-badges@main
+        with:
+          label: py${{ matrix.python-version }}
+          status: passed
+          color: green
+          output: ./doc/badges/generate_py${{ matrix.python-version }}.svg
+      -
+        name: Update status badge python ${{ matrix.python-version }} for failure
+        if: steps.generate.outcome == 'failure'
+        uses: jaywcjlove/generated-badges@main
+        with:
+          label: py${{ matrix.python-version }}
+          status: failed
+          color: red
+          output: ./doc/badges/generate_py${{ matrix.python-version }}.svg
+      -
+        name: 'Update Python Badges'
+        run: |
+          git add ./doc/badges
+          git commit -a -m "Updated python badges."
+          git pull --rebase
+          CHANGECOUNT=`git cherry -v | wc -l`
+          if [ $CHANGECOUNT -ne 0 ]; then git push; fi            
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: ["clang++", "g++"]
+        # generator_opts: ["", "--no-concepts"]
+    steps:
+      - 
+        name: Check out the repo
+        uses: actions/checkout@v3
+        with:
+          token: '${{ secrets.DHTSL_AT }}'
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+      -
+        name: 'Install packages for generated code'
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential cmake g++ clang
+      -
+        name: 'Build TSL'
+        # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
+        continue-on-error: true
+        id: build
+        run: cmake -S . -B tsl && make -C tsl
+      -
+        name: 'Run Tests'
+        id: test
+        continue-on-error: true
+        run: ./tsl/tsl/generator_output/src/test/tsl_test
+      - 
+        name: Setup Git Creds
+        run: |
+          git reset --hard && git clean -fxd
+          git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+          git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+          git checkout main
+      -
+        name: 'Mkdir badges folder'
+        run: mkdir -p ./doc/badges
+      -
+        name: Update status badge building with ${{ matrix.compiler }} for success
+        if: steps.build.outcome == 'success'
+        uses: jaywcjlove/generated-badges@main
+        with:
+          label: Build ${{ matrix.compiler }}
+          status: passed
+          color: green
+          output: ./doc/badges/build_${{ matrix.compiler }}.svg
+      -
+        name: Update status badge building with ${{ matrix.compiler }} for failure
+        if: steps.build.outcome == 'failure'
+        uses: jaywcjlove/generated-badges@main
+        with:
+          label: Build ${{ matrix.compiler }}
+          status: failed
+          color: red
+          output: ./doc/badges/build_${{ matrix.compiler }}.svg
+      -
+        name: Update status badge testing with ${{ matrix.compiler }} for success
+        if: steps.test.outcome == 'success'
+        uses: jaywcjlove/generated-badges@main
+        with:
+          label: Test ${{ matrix.compiler }}
+          status: passed
+          color: green
+          output: ./doc/badges/test_${{ matrix.compiler }}.svg
+      -
+        name: Update status badge testing with ${{ matrix.compiler }} for failure
+        if: steps.test.outcome == 'failure'
+        uses: jaywcjlove/generated-badges@main
+        with:
+          label: Test ${{ matrix.compiler }}
+          status: failed
+          color: red
+          output: ./doc/badges/test_${{ matrix.compiler }}.svg
+      -
+        name: Update Readme files
+        run: |
+          python3 main.py --print-outputs-only --generate-readme-files --no-debug-info
+      -
+        name: 'Created Building Badges and updated Readme files'
+        run: |
+          git status
+          git add ./doc/badges
+          git commit -a -m "Updated building badges and updated readme."
+          git pull --rebase
+          CHANGECOUNT=`git cherry -v | wc -l`
+          if [ $CHANGECOUNT -ne 0 ]; then git push; fi            

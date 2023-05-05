@@ -25,6 +25,7 @@ networkx==3.0
 wget==3.2
 PyYaml==6.0
 py-cpuinfo==9.0.0
+networkx==3.0
 #breathe==4.35.0
 #exhale==0.3.5
 neato==1.0.0

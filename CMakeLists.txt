@@ -12,7 +12,14 @@ if(TSL_LSCPU_FLAGS STREQUAL "")
     )
 endif()
 if(TSL_LSCPU_FLAGS STREQUAL "")
-    message(FATAL_ERROR "failed to deduce TSL_LSCPU_FLAGS, please specify manually")
+	execute_process(
+		COMMAND bash -c "LANG=en;lscpu|grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' '"
+		OUTPUT_VARIABLE TSL_LSCPU_FLAGS
+		RESULT_VARIABLE TSLHardwareReturnValue
+	)
+	if(NOT TSLHardwareReturnValue EQUAL 0)
+		message(FATAL_ERROR "Could not determine hardware flags. Please specify them manually.")
+	endif()
 endif()
 message(STATUS "lscpu flags: ${TSL_LSCPU_FLAGS}")
 string(REGEX REPLACE "[ \t]+" ";" LSCPU_FLAGS_LIST "${TSL_LSCPU_FLAGS}")

@@ -44,62 +44,62 @@ definitions:
     lscpu_flags: ["avx2"]
     is_native: False
     implementation: |
-       alignas(Vec::vector_alignment())
-         std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
-       alignas(Vec::vector_alignment())
-         std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
-       _mm256_store_si256(reinterpret_cast<__m256i*>(tmp.data()), data);
-       _mm256_store_si256(reinterpret_cast<__m256i*>(conflicts.data()), _mm256_setzero_si256());
-       for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
-         for(unsigned cur = 0; cur < ref; ++cur) {
-           if(tmp[ref] == tmp[cur]) {
-             conflicts[ref] |= (1<<cur);
-           }
-         }
-       }
-       return _mm256_load_si256(reinterpret_cast<__m256i const*>(conflicts.data()));
+      alignas(Vec::vector_alignment())
+        std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+      alignas(Vec::vector_alignment())
+        std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
+      _mm256_store_si256(reinterpret_cast<__m256i*>(tmp.data()), data);
+      _mm256_store_si256(reinterpret_cast<__m256i*>(conflicts.data()), _mm256_setzero_si256());
+      for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+        for(unsigned cur = 0; cur < ref; ++cur) {
+          if(tmp[ref] == tmp[cur]) {
+            conflicts[ref] |= (1<<cur);
+          }
+        }
+      }
+      return _mm256_load_si256(reinterpret_cast<__m256i const*>(conflicts.data()));
   #Intel - SSE
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["sse2"]
     is_native: False
     implementation: |
-       alignas(Vec::vector_alignment())
-         std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
-       alignas(Vec::vector_alignment())
-         std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
-       _mm_store_si128(reinterpret_cast<__m128i*>(tmp.data()), data);
-       _mm_store_si128(reinterpret_cast<__m128i*>(conflicts.data()), _mm_setzero_si128());
-       for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
-         for(unsigned cur = 0; cur < ref; ++cur) {
-           if(tmp[ref] == tmp[cur]) {
-             conflicts[ref] |= (1<<cur);
-           }
-         }
-       }
-       return _mm_load_si128(reinterpret_cast<__m128i const*>(conflicts.data()));
+      alignas(Vec::vector_alignment())
+        std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+      alignas(Vec::vector_alignment())
+        std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
+      _mm_store_si128(reinterpret_cast<__m128i*>(tmp.data()), data);
+      _mm_store_si128(reinterpret_cast<__m128i*>(conflicts.data()), _mm_setzero_si128());
+      for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+        for(unsigned cur = 0; cur < ref; ++cur) {
+          if(tmp[ref] == tmp[cur]) {
+            conflicts[ref] |= (1<<cur);
+          }
+        }
+      }
+      return _mm_load_si128(reinterpret_cast<__m128i const*>(conflicts.data()));
   #ARM - NEON
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: [ 'neon' ]
     is_native: False
     implementation: |
-       alignas(Vec::vector_alignment())
-         std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
-       alignas(Vec::vector_alignment())
-         std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
-       vst1q_{{ intrin_tp_full[ctype] }}(tmp.data(), data);
-       for(unsigned idx = 0; idx < Vec::vector_element_count(); ++idx) {
-         conflicts[idx] = 0;
-       }
-       for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
-         for(unsigned cur = 0; cur < ref; ++cur) {
-           if(tmp[ref] == tmp[cur]) {
-             conflicts[ref] |= (1<<cur);
-           }
-         }
-       }
-       return vld1q_{{ intrin_tp_full[ctype] }}(conflicts.data());
+      alignas(Vec::vector_alignment())
+        std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+      alignas(Vec::vector_alignment())
+        std::array<typename Vec::base_type, Vec::vector_element_count()> conflicts{};
+      vst1q_{{ intrin_tp_full[ctype] }}(tmp.data(), data);
+      for(unsigned idx = 0; idx < Vec::vector_element_count(); ++idx) {
+        conflicts[idx] = 0;
+      }
+      for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+        for(unsigned cur = 0; cur < ref; ++cur) {
+          if(tmp[ref] == tmp[cur]) {
+            conflicts[ref] |= (1<<cur);
+          }
+        }
+      }
+      return vld1q_{{ intrin_tp_full[ctype] }}(conflicts.data());
   #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -163,25 +163,25 @@ definitions:
     is_native: False
     specialization_comment: "@todo This can be done better using some shuffle instructions cleverly."
     implementation: |
-       typename Vec::imask_type result = 0;
-       alignas(Vec::vector_alignment())
-         std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
-       _mm256_store_si256(reinterpret_cast<__m256i*>(tmp.data()), data);
-       typename Vec::imask_type pos = 2;
-       for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
-         if(((mask>>ref)&0b1)==1) {
-           for(unsigned cur = 0; cur < ref; ++cur) {
-             if(((mask>>cur)&0b1)==1) {
-               if(tmp[ref] == tmp[cur]) {
-                 result |= pos;
-                 break;
-               }
-             }
-           }
-         }
-         pos <<= 1;
-       }
-       return (~result & mask);
+      typename Vec::imask_type result = 0;
+      alignas(Vec::vector_alignment())
+        std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+      _mm256_store_si256(reinterpret_cast<__m256i*>(tmp.data()), data);
+      typename Vec::imask_type pos = 2;
+      for(unsigned ref = 1; ref < Vec::vector_element_count(); ++ref) {
+        if(((mask>>ref)&0b1)==1) {
+          for(unsigned cur = 0; cur < ref; ++cur) {
+            if(((mask>>cur)&0b1)==1) {
+              if(tmp[ref] == tmp[cur]) {
+                result |= pos;
+                break;
+              }
+            }
+          }
+        }
+        pos <<= 1;
+      }
+      return (~result & mask);
   #Intel - SSE
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]

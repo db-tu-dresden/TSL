@@ -6,130 +6,130 @@ description: "Compare primitives."
 primitive_name: "equal"
 brief_description: "Compares two vector registers for equality."
 parameters:
-   - ctype: "const typename Vec::register_type"
-     name: "vec_a"
-     description: "Left vector."
-   - ctype: "const typename Vec::register_type"
-     name: "vec_b"
-     description: "Right vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "Left vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Right vector."
 returns:
-   ctype: "typename Vec::mask_type"
-   description: "Vector mask type indicating whether vec_a[*]==vec_b[*]."
+  ctype: "typename Vec::mask_type"
+  description: "Vector mask type indicating whether vec_a[*]==vec_b[*]."
 testing: #optional
-   -  test_name: "all_equal"
-      requires: ["to_integral", "loadu"]
-      includes: ["<cstddef>"]
-      implementation: |
-         using T = typename Vec::base_type;
-         std::size_t element_count = 1024;
-         testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
-         bool allOk = true;
-         auto reference_data_ptr = test_helper.data_ref();
-         auto reference_result_ptr = test_helper.result_ref();
-         auto test_data_ptr = test_helper.data_target();
-         auto test_result_ptr = test_helper.result_target();
-         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
-            reference_result_ptr[0] = Vec::vector_element_count();
-            auto vec1 = loadu<Vec>( &test_data_ptr[i] );
-            auto vec2 = loadu<Vec>( &test_data_ptr[i] );
-            auto result_mask = equal<Vec>( vec1, vec2 );
-            auto result_integral = to_integral<Vec>( result_mask );
-            size_t matches = 0;
-            for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-              if(((result_integral >> i) & 0b1) == 1 ) {
-                matches += 1;
-              }
-            }
-            test_result_ptr[0] = matches;
-            test_helper.synchronize();
-            allOk &= test_helper.validate();
-         }
-         return allOk;
-   -  test_name: "none_equal"
-      requires: ["to_integral", "loadu"]
-      includes: ["<cstddef>"]
-      implementation: |
-         using T = typename Vec::base_type;
-         std::size_t element_count = 1024;
-         testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
-         bool allOk = true;
-         auto reference_data_ptr = test_helper.data_ref();
-         auto reference_result_ptr = test_helper.result_ref();
-         auto test_data_ptr = test_helper.data_target();
-         auto test_result_ptr = test_helper.result_target();
-         auto vec1 = set1<Vec>( -1 );
-         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
-            reference_result_ptr[0] = 0;
-            auto vec2 = loadu<Vec>( &test_data_ptr[i] );
-            auto result_mask = equal<Vec>( vec1, vec2 );
-            auto result_integral = to_integral<Vec>( result_mask );
-            size_t matches = 0;
-            for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-              if(((result_integral >> i) & 0b1) == 1 ) {
-                matches += 1;
-              }
-            }
-            test_result_ptr[0] = matches;
-            test_helper.synchronize();
-            allOk &= test_helper.validate();
-         }
-         return allOk;
+  - test_name: "all_equal"
+    requires: ["to_integral", "loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        reference_result_ptr[0] = Vec::vector_element_count();
+        auto vec1 = loadu<Vec>( &test_data_ptr[i] );
+        auto vec2 = loadu<Vec>( &test_data_ptr[i] );
+        auto result_mask = equal<Vec>( vec1, vec2 );
+        auto result_integral = to_integral<Vec>( result_mask );
+        size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(((result_integral >> i) & 0b1) == 1 ) {
+            matches += 1;
+          }
+        }
+        test_result_ptr[0] = matches;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "none_equal"
+    requires: ["to_integral", "loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec1 = set1<Vec>( -1 );
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        reference_result_ptr[0] = 0;
+        auto vec2 = loadu<Vec>( &test_data_ptr[i] );
+        auto result_mask = equal<Vec>( vec1, vec2 );
+        auto result_integral = to_integral<Vec>( result_mask );
+        size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(((result_integral >> i) & 0b1) == 1 ) {
+            matches += 1;
+          }
+        }
+        test_result_ptr[0] = matches;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
 #INTEL - AVX512
-   - target_extension: "avx512"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
-     lscpu_flags: ['avx512bw']
-     specialization_comment: "Signed comparison."
-     implementation: "return _mm512_cmpeq_epi{{ intrin_tp[ctype][1] }}_mask(vec_a, vec_b);"
-   - target_extension: "avx512"
-     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
-     lscpu_flags: ['avx512f']
-     specialization_comment: "Signed comparison."
-     implementation: "return _mm512_cmpeq_epi{{ intrin_tp[ctype][1] }}_mask(vec_a, vec_b);"
-   - target_extension: "avx512"
-     ctype: ["float", "double"]
-     lscpu_flags: ['avx512f']
-     implementation: "return _mm512_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    lscpu_flags: ['avx512bw']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm512_cmpeq_epi{{ intrin_tp[ctype][1] }}_mask(vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ['avx512f']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm512_cmpeq_epi{{ intrin_tp[ctype][1] }}_mask(vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: "return _mm512_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
 #todo: Implement 128/256 bit variants.
 #todo: Conceptional challenge: simd<T, avx512, 256> as Processingstyle would require all primitives to have a related definition... Maybe implement a cast?
 #INTEL - AVX2
-   - target_extension: "avx2"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
-     lscpu_flags: ['avx2']
-     specialization_comment: "Signed comparison."
-     implementation: "return _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
-   - target_extension: "avx2"
-     ctype: ["float"]
-     lscpu_flags: ['avx', 'avx2']
-     specialization_comment: "Signed comparison."
-     is_native: False
-     implementation: "return _mm256_castsi256_ps(_mm256_cmpeq_epi32(_mm256_castps_si256(vec_a), _mm256_castps_si256(vec_b)));"
-   - target_extension: "avx2"
-     ctype: ["double"]
-     lscpu_flags: ['avx', 'avx2']
-     specialization_comment: "Signed comparison."
-     is_native: False
-     implementation: "return _mm256_castsi256_pd(_mm256_cmpeq_epi64(_mm256_castpd_si256(vec_a), _mm256_castpd_si256(vec_b)));"
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ['avx2']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["float"]
+    lscpu_flags: ['avx', 'avx2']
+    specialization_comment: "Signed comparison."
+    is_native: False
+    implementation: "return _mm256_castsi256_ps(_mm256_cmpeq_epi32(_mm256_castps_si256(vec_a), _mm256_castps_si256(vec_b)));"
+  - target_extension: "avx2"
+    ctype: ["double"]
+    lscpu_flags: ['avx', 'avx2']
+    specialization_comment: "Signed comparison."
+    is_native: False
+    implementation: "return _mm256_castsi256_pd(_mm256_cmpeq_epi64(_mm256_castpd_si256(vec_a), _mm256_castpd_si256(vec_b)));"
 #INTEL - SSE
-   - target_extension: "sse"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t"]
-     lscpu_flags: ['sse2']
-     implementation: "return _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
-   - target_extension: "sse"
-     ctype: ["int64_t", "uint64_t"]
-     lscpu_flags: ['sse4_1']
-     specialization_comment: "Signed comparison."
-     implementation: "return _mm_cmpeq_epi64(vec_a,vec_b);"
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t"]
+    lscpu_flags: ['sse2']
+    implementation: "return _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["int64_t", "uint64_t"]
+    lscpu_flags: ['sse4_1']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm_cmpeq_epi64(vec_a,vec_b);"
 #ARM - NEON
-   - target_extension: "neon"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
-     lscpu_flags: ['neon']
-     implementation: "return vceqq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+  - target_extension: "neon"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['neon']
+    implementation: "return vceqq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
 #SCALAR
-   - target_extension: "scalar"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
-     lscpu_flags: []
-     implementation: "return (vec_a == vec_b);"
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (vec_a == vec_b);"
 ...
 ---
 primitive_name: "equal"
@@ -149,35 +149,35 @@ returns:
   ctype: "typename Vec::mask_type"
   description: "Vector mask type indicating whether vec_a[*]==vec_b[*]."
 testing: #optional
-  -  test_name: "all_equal"
-     requires: ["to_integral", "loadu"]
-     includes: ["<cstddef>"]
-     implementation: |
-       using T = typename Vec::base_type;
-       std::size_t element_count = 1024;
-       testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
-       bool allOk = true;
-       auto reference_data_ptr = test_helper.data_ref();
-       auto reference_result_ptr = test_helper.result_ref();
-       auto test_data_ptr = test_helper.data_target();
-       auto test_result_ptr = test_helper.result_target();
-       for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
-          reference_result_ptr[0] = Vec::vector_element_count();
-          auto vec1 = loadu<Vec>( &test_data_ptr[i] );
-          auto vec2 = loadu<Vec>( &test_data_ptr[i] );
-          auto result_mask = equal<Vec>( vec1, vec2 );
-          auto result_integral = to_integral<Vec>( result_mask );
-          size_t matches = 0;
-          for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-            if(((result_integral >> i) & 0b1) == 1 ) {
-              matches += 1;
-            }
+  - test_name: "all_equal"
+    requires: ["to_integral", "loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        reference_result_ptr[0] = Vec::vector_element_count();
+        auto vec1 = loadu<Vec>( &test_data_ptr[i] );
+        auto vec2 = loadu<Vec>( &test_data_ptr[i] );
+        auto result_mask = equal<Vec>( vec1, vec2 );
+        auto result_integral = to_integral<Vec>( result_mask );
+        size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(((result_integral >> i) & 0b1) == 1 ) {
+            matches += 1;
           }
-          test_result_ptr[0] = matches;
-          test_helper.synchronize();
-          allOk &= test_helper.validate();
-       }
-       return allOk;
+        }
+        test_result_ptr[0] = matches;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX2
   - target_extension: "avx2"
@@ -240,13 +240,13 @@ definitions:
     is_native: False
     implementation: |
       auto const all_set = _mm256_cmpeq_epi64(_mm256_castpd_si256(vec_a),_mm256_castpd_si256(vec_a));
-      return 
+      return
         _mm256_castsi256_pd(
           _mm256_andnot_si256(
             _mm256_cmpeq_epi64(
-              _mm256_castpd_si256(vec_a), 
+              _mm256_castpd_si256(vec_a),
               _mm256_castpd_si256(vec_b)
-            ), 
+            ),
             all_set
           )
         );
@@ -273,73 +273,73 @@ definitions:
 primitive_name: "between_inclusive"
 brief_description: "Checks if the values of a vector are in a specific range (min[*] <= d[*] <= max[*])."
 parameters:
-   - ctype: "const typename Vec::register_type"
-     name: "vec_data"
-     description: "Data vector."
-   - ctype: "const typename Vec::register_type"
-     name: "vec_min"
-     description: "Minimum vector."
-   - ctype: "typename Vec::register_type"
-     attributes: "const"
-     name: "vec_max"
-     description: "Maximum vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_data"
+    description: "Data vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_min"
+    description: "Minimum vector."
+  - ctype: "typename Vec::register_type"
+    attributes: "const"
+    name: "vec_max"
+    description: "Maximum vector."
 returns:
-   ctype: "typename Vec::mask_type"
-   description: "Vector mask type indicating whether the data is in the given range."
+  ctype: "typename Vec::mask_type"
+  description: "Vector mask type indicating whether the data is in the given range."
 definitions:
 #INTEL - AVX512
-   - target_extension: "avx512"
-     ctype: "int64_t"
-     lscpu_flags: ['avx512f']
-     implementation: "return _mm512_cmple_epu64_mask( vec_min, vec_data ) & _mm512_cmpge_epu64_mask( vec_max, vec_data );"
-   - target_extension: "avx512"
-     ctype: ["float", "double"]
-     lscpu_flags: ["avx512f"]
-     implementation: "return _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_min, vec_data) & _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_data, vec_max);"
+  - target_extension: "avx512"
+    ctype: "int64_t"
+    lscpu_flags: ['avx512f']
+    implementation: "return _mm512_cmple_epu64_mask( vec_min, vec_data ) & _mm512_cmpge_epu64_mask( vec_max, vec_data );"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_min, vec_data) & _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_data, vec_max);"
 #INTEL - AVX2
-   - target_extension: "avx2"
-     ctype: "int64_t"
-     lscpu_flags: [ 'avx2' ]
-     note: "EPI64 INSTEAD OF EPU64!!!"
-     implementation: "return _mm256_andnot_si256( _mm256_cmpgt_epi64( vec_min, vec_data ), _mm256_andnot_si256( _mm256_cmpgt_epi64( vec_data, vec_max ), _mm256_set1_epi64x(-1)));"
-   - target_extension: "avx2"
-     ctype: ["float", "double"]
-     lscpu_flags: ['avx']
-     implementation: "return _mm256_and_{{ intrin_tp_full[ctype] }}(_mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_data, vec_min, _CMP_GE_OQ ), _mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_max, vec_data, _CMP_GE_OQ));"
+  - target_extension: "avx2"
+    ctype: "int64_t"
+    lscpu_flags: [ 'avx2' ]
+    note: "EPI64 INSTEAD OF EPU64!!!"
+    implementation: "return _mm256_andnot_si256( _mm256_cmpgt_epi64( vec_min, vec_data ), _mm256_andnot_si256( _mm256_cmpgt_epi64( vec_data, vec_max ), _mm256_set1_epi64x(-1)));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx']
+    implementation: "return _mm256_and_{{ intrin_tp_full[ctype] }}(_mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_data, vec_min, _CMP_GE_OQ ), _mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_max, vec_data, _CMP_GE_OQ));"
 #INTEL - SSE
-   - target_extension: "sse"
-     ctype: "int64_t"
-     lscpu_flags: [ 'sse2', 'sse4_2' ]
-     note: "EPI64 INSTEAD OF EPU64!!!"
-     implementation: "return _mm_andnot_si128( _mm_cmpgt_epi64( vec_min, vec_data ), _mm_andnot_si128( _mm_cmpgt_epi64( vec_data, vec_max ), _mm_set1_epi64x(-1)));"
-   - target_extension: "sse"
-     ctype: ["float"]
-     lscpu_flags: ['sse']
-     implementation: "return _mm_and_ps(_mm_cmpge_ps(vec_data, vec_min), _mm_cmpge_ps(vec_max, vec_data));"
-   - target_extension: "sse"
-     ctype: ["double"]
-     lscpu_flags: ['sse2']
-     implementation: "return _mm_and_pd(_mm_cmpge_pd(vec_data, vec_min), _mm_cmpge_pd(vec_max, vec_data));"
+  - target_extension: "sse"
+    ctype: "int64_t"
+    lscpu_flags: [ 'sse2', 'sse4_2' ]
+    note: "EPI64 INSTEAD OF EPU64!!!"
+    implementation: "return _mm_andnot_si128( _mm_cmpgt_epi64( vec_min, vec_data ), _mm_andnot_si128( _mm_cmpgt_epi64( vec_data, vec_max ), _mm_set1_epi64x(-1)));"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ['sse']
+    implementation: "return _mm_and_ps(_mm_cmpge_ps(vec_data, vec_min), _mm_cmpge_ps(vec_max, vec_data));"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ['sse2']
+    implementation: "return _mm_and_pd(_mm_cmpge_pd(vec_data, vec_min), _mm_cmpge_pd(vec_max, vec_data));"
 #ARM - NEON
-   - target_extension: "neon"
-     ctype: "int64_t"
-     lscpu_flags: [ 'neon' ]
-     implementation: "return vandq_u64( vcgeq_s64( vec_data, vec_min ), vcleq_s64( vec_data, vec_max ) );"
+  - target_extension: "neon"
+    ctype: "int64_t"
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vandq_u64( vcgeq_s64( vec_data, vec_min ), vcleq_s64( vec_data, vec_max ) );"
 #INTEL - FPGA
-   - target_extension: "fpga_generic"
-     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
-     lscpu_flags: ["fpga_generic"]
-     vector_length_agnostic: True
-     implementation: |
-        using T = typename Vec::register_type;
-        T result{};
-        // Create a value with all bits set to 1, regardless of underlying type
-        typename Vec::base_type checker;
-        memset((void*)&checker, 0xff, sizeof(checker));
+  - target_extension: "fpga_generic"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+    lscpu_flags: ["fpga_generic"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      // Create a value with all bits set to 1, regardless of underlying type
+      typename Vec::base_type checker;
+      memset((void*)&checker, 0xff, sizeof(checker));
 
-        #pragma unroll
-        for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-            result[i] = ((vec_data[i] >= vec_min[i]) && (vec_data[i] <= vec_max[i])) ? checker : 0;
-        }
-        return result;
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = ((vec_data[i] >= vec_min[i]) && (vec_data[i] <= vec_max[i])) ? checker : 0;
+      }
+      return result;
 ...
