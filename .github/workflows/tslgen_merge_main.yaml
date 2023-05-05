@@ -73,11 +73,11 @@ jobs:
       -
         name: 'Update Docker Badges'
         run: |
-          git add ./doc/badges
-          git commit -a -m "Updated Docker badges."
+          CHANGECOUNT=`git status --porcelain | wc -l`
+          if [ $CHANGECOUNT -ne 0 ]; then git add -A && git commit -a -m "Updated Docker badges."; fi
           git pull --rebase
-          CHANGECOUNT=`git cherry -v | wc -l`
-          if [ $CHANGECOUNT -ne 0 ]; then git push; fi     
+          COMMITS=`git cherry -v | wc -l`
+          if [ $COMMITS -ne 0 ]; then git push; fi
   generate:
     runs-on: ubuntu-latest
     strategy:
@@ -141,11 +141,11 @@ jobs:
       -
         name: 'Update Python Badges'
         run: |
-          git add ./doc/badges
-          git commit -a -m "Updated python badges."
+          CHANGECOUNT=`git status --porcelain | wc -l`
+          if [ $CHANGECOUNT -ne 0 ]; then git add -A && git commit -a -m "Updated python badges."; fi
           git pull --rebase
-          CHANGECOUNT=`git cherry -v | wc -l`
-          if [ $CHANGECOUNT -ne 0 ]; then git push; fi            
+          COMMITS=`git cherry -v | wc -l`
+          if [ $COMMITS -ne 0 ]; then git push; fi
   build-and-test:
     runs-on: ubuntu-latest
     strategy:
@@ -237,15 +237,56 @@ jobs:
           color: red
           output: ./doc/badges/test_${{ matrix.compiler }}.svg
       -
+        name: 'Create Building Badges'
+        run: |
+          CHANGECOUNT=`git status --porcelain | wc -l`
+          if [ $CHANGECOUNT -ne 0 ]; then git add -A && git commit -a -m "Updated building badges."; fi
+          git pull --rebase
+          COMMITS=`git cherry -v | wc -l`
+          if [ $COMMITS -ne 0 ]; then git push; fi
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - 
+        name: Check out the repo
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+      - 
+        name: Setup Git Creds
+        run: |
+          git reset --hard && git clean -fxd
+          git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+          git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+          git checkout main
+      -
+        name: 'Mkdir badges folder'
+        run: mkdir -p ./doc/badges
+      -
         name: Update Readme files
         run: |
           python3 main.py --print-outputs-only --generate-readme-files --no-debug-info
       -
         name: 'Created Building Badges and updated Readme files'
         run: |
-          git status
-          git add ./doc/badges
-          git commit -a -m "Updated building badges and updated readme."
+          CHANGECOUNT=`git status --porcelain | wc -l`
+          if [ $CHANGECOUNT -ne 0 ]; then git add -A && git commit -a -m "Updated readme."; fi
           git pull --rebase
-          CHANGECOUNT=`git cherry -v | wc -l`
-          if [ $CHANGECOUNT -ne 0 ]; then git push; fi            
+          COMMITS=`git cherry -v | wc -l`
+          if [ $COMMITS -ne 0 ]; then git push; fi
