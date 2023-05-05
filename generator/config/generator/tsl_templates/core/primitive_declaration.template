@@ -13,26 +13,26 @@
    {% else %}
       {% set comma = '' %}
    {% endif %}
-   {% if param['is_parameter_pack'] %}
+   {% if 'is_parameter_pack' in param and param['is_parameter_pack'] %}
       {% set ns.contains_parameter_pack = True %}
       {% set ns.parameter_pack_typenames_str = ns.parameter_pack_typenames_str ~ 'typename... ' ~ param['ctype'] ~ comma %}
       {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ param['ctype'] ~ '... ' ~ param['name'] ~ comma %}
       {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ '...' ~ comma %}
    {% else %}
-      {% if param['default_value'] == "" %}
-      {% set dv = '' %}
-      {% else %}
-      {% set dv = '=' ~ param['default_value'] %}
+      {% if 'default_value' in param and param['default_value'] != "" %}
+  		{% set dv = '=' ~ param['default_value'] %}
+	  {% else %}
+        {% set dv = '' %}
       {% endif %}
-      {% if param['declaration_attributes'] == "" %}
-      {% set decl_attribs = ' ' %}
+      {% if 'declaration_attributes' in param and param['declaration_attributes'] != ""%}
+          {% set decl_attribs = ' ' ~ param['declaration_attributes'] ~ ' ' %}
       {% else %}
-      {% set decl_attribs = ' ' ~ param['declaration_attributes'] ~ ' ' %}
+          {% set decl_attribs = ' ' %}
       {% endif %}
-      {% if param['attributes'] == "" %}
-      {% set attribs = ' ' %}
+      {% if 'attributes' in param and param['attributes'] != "" %}
+	     {% set attribs = ' ' ~ param['attributes'] ~ ' ' %}
       {% else %}
-      {% set attribs = ' ' ~ param['attributes'] ~ ' ' %}
+         {% set attribs = ' ' %}
       {% endif %}
       {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ decl_attribs ~ param['ctype'] ~ attribs ~ param['name'] ~ dv ~ comma %}
       {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ comma %}
