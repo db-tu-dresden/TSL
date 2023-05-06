@@ -306,8 +306,13 @@ returns:
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
-    lscpu_flags: ['avx512f']
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return mask;"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
     implementation: "return mask;"
   #INTEL - AVX2
   - target_extension: "avx2"
@@ -388,6 +393,28 @@ definitions:
     lscpu_flags: ["avx2"]
     ctype: ["int64_t", "uint64_t"]
     implementation: "return (~mask)&(0b1111);"
+...
+---
+primitive_name: "mask_binary_not"
+functor_name: "mask_binary_not"
+brief_description: "Binary NOT of a vector mask type."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Mask."
+returns:
+  ctype: "typename Vec::mask_type"
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    lscpu_flags: ["avx512f"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    implementation: "return (~mask);"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    lscpu_flags: ["avx2"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), mask);"
 ...
 ---
 primitive_name: "mask_binary_and"
@@ -861,6 +888,38 @@ definitions:
       } else {
         return ~0;
       }
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: []
+    implementation: return true;
+...
+---
+primitive_name: "integral_all_false"
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Integral value where all values are set to 1."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "avx512f" ]
+    implementation: return 0;
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "avx2" ]
+    implementation: return 0;
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "sse" ]
+    implementation: return 0;
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: []
+    implementation: return false;
 ...
 #---
 #primitive_name: "mask_reduce"

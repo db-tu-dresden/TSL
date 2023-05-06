@@ -17,7 +17,7 @@ returns:
   description: "Vector containing result of the addition."
 testing: #optional
   - test_name: "zero_cornercase"
-    requires: ["set1", "loadu", "hadd"]
+    requires: ["set1", "loadu"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -42,7 +42,7 @@ testing: #optional
       }
       return allOk;
   - test_name: "running_sum_w_epsilon"
-    requires: ["set1", "loadu", "hadd"]
+    requires: ["set1", "loadu"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -53,7 +53,6 @@ testing: #optional
       auto reference_result_ptr = test_helper.result_ref();
       auto test_data_ptr = test_helper.data_target();
       auto test_result_ptr = test_helper.result_target();
-      auto vec = set1<Vec>( 0 );
       for(std::size_t i = 0; i < element_count - 2*Vec::vector_element_count(); i+=2*Vec::vector_element_count()) {
         std::size_t tester_idx = 0;
         for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
@@ -61,7 +60,7 @@ testing: #optional
         }
         auto elements_vec1 = loadu<Vec>(&test_data_ptr[i]);
         auto elements_vec2 = loadu<Vec>(&test_data_ptr[i+Vec::vector_element_count()]);
-        vec = add<Vec>(elements_vec1, elements_vec2);
+        auto vec = add<Vec>(elements_vec1, elements_vec2);
         storeu<Vec>( test_result_ptr, vec );
         test_helper.synchronize();
         allOk &= test_helper.validate();
@@ -133,6 +132,139 @@ definitions:
       #pragma unroll
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] + vec_b[i];
+      }
+      return result;
+...
+---
+primitive_name: "sub"
+brief_description: "Subtracts two vector registers."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the subtraction."
+testing: #optional
+  - test_name: "zero_cornercase"
+    requires: ["set1", "loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+          std::size_t tester_idx = 0;
+          for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+            reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+          }
+          auto vec = set1<Vec>( 0 );
+          auto elements = loadu<Vec>(&test_data_ptr[i]);
+          vec = sub<Vec>(elements, vec);
+          storeu<Vec>( test_result_ptr, vec );
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "running_sum_w_epsilon"
+    requires: ["set1", "loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - 2*Vec::vector_element_count(); i+=2*Vec::vector_element_count()) {
+          std::size_t tester_idx = 0;
+          for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
+            reference_result_ptr[tester_idx++] = reference_data_ptr[j]-reference_data_ptr[j+Vec::vector_element_count()];
+          }
+          auto elements_vec1 = loadu<Vec>(&test_data_ptr[i]);
+          auto elements_vec2 = loadu<Vec>(&test_data_ptr[i+Vec::vector_element_count()]);
+          auto vec = sub<Vec>(elements_vec1, elements_vec2);
+          storeu<Vec>( test_result_ptr, vec );
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
+      }
+      return allOk;
+definitions:
+#CUDA
+  - target_extension: "cuda"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["cuda"]
+    vector_length_agnostic: True
+    implementation: |
+      typename Vec::register_type vec_c;
+      size_t element_count = VectorSize / (sizeof({{ ctype }}) * 8);
+      constexpr auto add = +[]({{ ctype }} a, {{ ctype }} b) { return a - b; };
+      return launch_elemenwise_op<typename Vec::register_type, add>(vec_a, vec_b, VectorSize);
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ['avx512f']
+    specialization_comment: "Signed addition."
+    implementation: "return _mm512_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: "return _mm512_sub_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ['avx2']
+    specialization_comment: "Signed addition."
+    implementation: "return _mm256_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx']
+    implementation: "return _mm256_sub_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ['sse2']
+    specialization_comment: "Signed addition."
+    implementation: "return _mm_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ['sse']
+    implementation: "return _mm_sub_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ['sse2']
+    implementation: "return _mm_sub_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vsubq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: []
+    implementation: "return vec_a - vec_b;"
+#INTEL - FPGA
+  - target_extension: "fpga_generic"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["fpga_generic"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result; //initialize the result
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = vec_a[i] - vec_b[i];
       }
       return result;
 ---
