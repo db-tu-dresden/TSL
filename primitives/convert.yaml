@@ -244,6 +244,67 @@ definitions:
 
 ...
 ---
+# TODO(cmrs): add more implementations here
+primitive_name: "split"
+additional_simd_template_parameter: "ToType"
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+returns:
+  ctype: "std::array<typename ToType::register_type, sizeof(typename ToType::base_type)/sizeof(typename Vec::base_type) * Vec::vector_element_count() / ToType::vector_element_count()>"
+  description: "Array containing the registers with the split up data"
+definitions:
+# INTEL - AVX512  -> AVX2 
+  - target_extension: "avx512"
+    ctype: ["int32_t", "uint32_t"]
+    additional_simd_template_extension: "avx2"
+    additional_simd_template_base_type_mapping_dict: {"int32_t": ["int64_t"], "uint32_t": ["uint64_t"]}
+    lscpu_flags: ["avx2", "avx512dq"]
+    is_native: False
+    implementation: |
+      return { {
+          _mm512_extracti32x8_epi32(data, 0),
+          _mm512_extracti32x8_epi32(data, 1),
+      } };
+# INTEL - AVX512 -> 2 * AVX22
+  - target_extension: "avx512"
+    ctype: ["int32_t", "uint32_t"]
+    additional_simd_template_extension: "avx2"
+    additional_simd_template_base_type_mapping_dict: {"int32_t": ["int32_t"], "uint32_t": ["uint32_t"]}
+    lscpu_flags: ["avx2", "avx512dq"]
+    is_native: False
+    implementation: |
+      return { {
+          _mm512_extracti32x8_epi32(data, 0),
+          _mm512_extracti32x8_epi32(data, 1),
+      } };
+
+...
+---
+# TODO(cmrs): add more implementations here
+primitive_name: "merge"
+additional_simd_template_parameter: "ToType"
+parameters:
+  - ctype: "std::array<typename Vec::register_type, sizeof(typename Vec::base_type)/sizeof(typename ToType::base_type) * ToType::vector_element_count() / Vec::vector_element_count()>"
+    name: "data"
+returns:
+  ctype: "typename ToType::register_type"
+  description: "SIMD register containing the merged register data"
+definitions:
+#INTEL - AVX2 -> AVX512
+  - target_extension: "avx2"
+    additional_simd_template_extension: "avx512"
+    ctype: ["int32_t", "uint32_t"]
+    additional_simd_template_base_type_mapping_dict: {"int32_t": ["int32_t"], "uint32_t": ["uint32_t"]}
+    lscpu_flags: ["avx2", "avx512f"]
+    is_native: False
+    implementation: |
+      __m512i result;
+      result = _mm512_inserti32x8(result, data[0], 0);
+      result = _mm512_inserti32x8(result, data[1], 0);
+      return result;
+...
+---
 primitive_name: "convert_up"
 additional_simd_template_parameter: "ToType"
 parameters:
@@ -510,19 +571,6 @@ definitions:
       return { {
         data
       } };
-#INTEL - AVX512 -> 2 * AVX2
-  - target_extension: "avx512"
-    ctype: ["int32_t", "uint32_t"]
-    additional_simd_template_extension: "avx2"
-    additional_simd_template_base_type_mapping_dict: {"int32_t": ["int32_t"], "uint32_t": ["uint32_t"]}
-    lscpu_flags: ["avx2", "avx512dq"]
-    is_native: False
-    implementation: |
-      return { {
-          _mm512_extracti32x8_epi32(data, 0),
-          _mm512_extracti32x8_epi32(data, 1),
-      } };
-
 #INTEL SSE
   - target_extension: "sse"
     ctype: ["int8_t"]
@@ -875,16 +923,4 @@ definitions:
           ),
           0xd8
         );
-#INTEL - AVX2 -> AVX512
-  - target_extension: "avx2"
-    additional_simd_template_extension: "avx512"
-    ctype: ["int32_t", "uint32_t"]
-    additional_simd_template_base_type_mapping_dict: {"int32_t": ["int32_t"], "uint32_t": ["uint32_t"]}
-    lscpu_flags: ["avx2", "avx512f"]
-    is_native: False
-    implementation: |
-      __m512i result;
-      result = _mm512_inserti32x8(result, data[0], 0);
-      result = _mm512_inserti32x8(result, data[1], 0);
-      return result;
 ...
