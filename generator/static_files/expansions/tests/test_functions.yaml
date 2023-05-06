@@ -94,6 +94,7 @@ implementations:
                      return (std::abs(static_cast<T>(base - to_be_examined)) == std::numeric_limits<T>::epsilon());
                   }
                } else {
+                  if (std::isnan(base)) return std::isnan(to_be_examined); 
                   return (std::fabs(static_cast<T>(base - to_be_examined)) <= std::numeric_limits<T>::epsilon());
                }
             }
