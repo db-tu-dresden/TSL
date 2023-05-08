@@ -420,6 +420,10 @@ def parse_args(**kwargs) -> dict:
     parser.add_argument('--types', default=None, nargs='*',
                         help=types_help,
                         dest='configuration:relevant_types', metavar="TYPES")
+    
+    parser.add_argument('--primitives', default=None, nargs='*',
+                        help=types_help,
+                        dest='configuration:relevant_primitives', metavar="PRIMITIVES")
 
     parser.add_argument('--print-outputs-only', dest='configuration:print_output_only', action="store_true",
                         help="Print only the files which would be generated as list (separator by semicolon)")
