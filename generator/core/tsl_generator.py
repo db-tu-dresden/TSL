@@ -168,12 +168,6 @@ class TSLGenerator:
             if not dummyclass.is_empty():
                 selected_relevant_primitives_class_set.add_primitive_class( dummyclass )
 
-        # Verify
-        for pClass in selected_relevant_primitives_class_set:
-            print( pClass.name )
-            for primitive in pClass:
-                print( f"\t{primitive.declaration.name}" )
-
         lib: TSLLib = TSLLib(relevant_extensions_set, selected_relevant_primitives_class_set)
         file_generator: TSLFileGenerator = TSLFileGenerator(lib)
         if not config.print_output_only:
