@@ -747,6 +747,7 @@ definitions:
 ---
 primitive_name: "gather"
 brief_description: "Transfers data from arbitrary locations into a vector register."
+additional_simd_template_parameter: "IndicesType" # NOTE(cmrs): would really like to have a default value for this (Vec in this case)
 additional_non_specialized_template_parameters:
   - ctype: "int"
     name: "N"
@@ -754,7 +755,7 @@ parameters:
   - ctype: "const void *"
     name: "memory"
     description: "(Start)pointer of the memory (which is used as base for address calculation)."
-  - ctype: "const typename Vec::offset_base_register_type"
+  - ctype: "const typename IndicesType::offset_base_register_type"
     name: "index"
     description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
   - ctype: "std::integral_constant<int, N>"
@@ -767,36 +768,55 @@ returns:
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
+    additional_simd_template_extension: "avx512"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ['avx512f']
     implementation: "return _mm512_i{{ intrin_tp[ctype][1] }}gather_epi{{ intrin_tp[ctype][1] }}(index, memory, scale());"
   - target_extension: "avx512"
+    additional_simd_template_extension: "avx512"
     ctype: ["float"]
     lscpu_flags: ['avx512f']
     implementation: "return _mm512_i32gather_ps(index, memory, scale());"
   - target_extension: "avx512"
+    additional_simd_template_extension: "avx512"
     ctype: ["double"]
     lscpu_flags: ['avx512f']
     implementation: "return _mm512_i64gather_pd(index, memory, scale());"
+  #INTEL - AVX512 / AVX2
+  - target_extension: "avx512"
+    additional_simd_template_extension: "avx2"
+    ctype: ["uint64_t", "int64_t"]
+    additional_simd_template_base_type_mapping_dict: {
+      "uint64_t": ["int32_t"],
+      "int64_t": ["int32_t"],
+      "double": ["int32_t"]
+    }
+    lscpu_flags: ['avx512f']
+    implementation: "return _mm512_i{{ intrin_tp[additional_simd_template_base_type][1] }}gather_epi{{ intrin_tp[ctype][1] }}(index, memory, scale());"
   #INTEL - AVX2
   - target_extension: "avx2"
+    additional_simd_template_extension: "avx2"
     ctype: ["uint64_t", "int64_t"]
     lscpu_flags: ["avx2"]
     implementation: "return _mm256_i64gather_epi64(reinterpret_cast<long long int const *>(memory), index, scale());"
   - target_extension: "avx2"
+    additional_simd_template_extension: "avx2"
     ctype: ["uint32_t", "int32_t"]
     lscpu_flags: ["avx2"]
     implementation: "return _mm256_i32gather_epi32(reinterpret_cast<int const *>(memory), index, scale());"
   - target_extension: "avx2"
+    additional_simd_template_extension: "avx2"
     ctype: ["float"]
     lscpu_flags: ["avx2"]
     implementation: "return _mm256_i32gather_ps(reinterpret_cast<float const *>(memory), index, scale());"
   - target_extension: "avx2"
+    additional_simd_template_extension: "avx2"
     ctype: ["double"]
     lscpu_flags: ["avx2"]
     implementation: "return _mm256_i64gather_pd(reinterpret_cast<double const *>(memory), index, scale());"
   #INTEL - SSE
   - target_extension: "sse"
+    additional_simd_template_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ['sse2']
     is_native: False
@@ -825,6 +845,7 @@ definitions:
       return tsl::load<Vec>(result.data());
   #ARM - NEON
   - target_extension: "neon"
+    additional_simd_template_extension: "neon"
     ctype: "int64_t"
     lscpu_flags: [ 'neon' ]
     is_native: False
@@ -834,6 +855,7 @@ definitions:
       return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : mem[ index[ 0 ][ 1 ] ] ), tmp, 1 );
   #SCALAR
   - target_extension: "scalar"
+    additional_simd_template_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ ]
     implementation: "return reinterpret_cast<typename Vec::base_type const *>(memory)[index];"
@@ -841,6 +863,7 @@ definitions:
 ---
 primitive_name: "gather"
 functor_name: "mask_gather"
+additional_simd_template_parameter: "IndicesType" # NOTE(cmrs): would really like to have a default value for this (Vec in this case)
 brief_description: "Transfers data from arbitrary locations into a vector register."
 additional_non_specialized_template_parameters:
   - ctype: "int"
@@ -855,7 +878,7 @@ parameters:
   - ctype: "const void *"
     name: "memory"
     description: "(Start)pointer of the memory (which is used as base for address calculation)."
-  - ctype: "const typename Vec::offset_base_register_type"
+  - ctype: "const typename IndicesType::offset_base_register_type"
     name: "index"
     description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
   - ctype: "std::integral_constant<int, N>"
@@ -868,36 +891,44 @@ returns:
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
+    additional_simd_template_extension: "avx512"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ['avx512f']
     implementation: "return _mm512_mask_i{{ intrin_tp[ctype][1] }}gather_epi{{ intrin_tp[ctype][1] }}(source, mask, index, memory, scale());"
   - target_extension: "avx512"
+    additional_simd_template_extension: "avx512"
     ctype: ["float"]
     lscpu_flags: ['avx512f']
     implementation: "return _mm512_mask_i32gather_ps(source, mask, index, memory, scale());"
   - target_extension: "avx512"
+    additional_simd_template_extension: "avx512"
     ctype: ["double"]
     lscpu_flags: ['avx512f']
     implementation: "return _mm512_mask_i64gather_pd(source, mask, index, memory, scale());"
   #INTEL - AVX2
   - target_extension: "avx2"
+    additional_simd_template_extension: "avx2"
     ctype: ["uint64_t", "int64_t"]
     lscpu_flags: ["avx2"]
     implementation: "return _mm256_mask_i64gather_epi64(source, reinterpret_cast<long long int const *>(memory), index, mask, scale());"
   - target_extension: "avx2"
+    additional_simd_template_extension: "avx2"
     ctype: ["uint32_t", "int32_t"]
     lscpu_flags: ["avx2"]
     implementation: "return _mm256_mask_i32gather_epi32(source, reinterpret_cast<int const *>(memory), index, mask, scale());"
   - target_extension: "avx2"
+    additional_simd_template_extension: "avx2"
     ctype: ["float"]
     lscpu_flags: ["avx2"]
     implementation: "return _mm256_mask_i32gather_ps(source, reinterpret_cast<float const *>(memory), index, mask, scale());"
   - target_extension: "avx2"
+    additional_simd_template_extension: "avx2"
     ctype: ["double"]
     lscpu_flags: ["avx2"]
     implementation: "return _mm256_mask_i64gather_pd(source, reinterpret_cast<double const *>(memory), index, mask, scale());"
   #INTEL - SSE
   - target_extension: "sse"
+    additional_simd_template_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: [ 'sse2' ]
     is_native: False
@@ -928,6 +959,7 @@ definitions:
       return tsl::load<Vec>(result.data());
   #ARM - NEON
   - target_extension: "neon"
+    additional_simd_template_extension: "neon"
     ctype: "int64_t"
     lscpu_flags: [ 'neon' ]
     is_native: False
@@ -937,6 +969,7 @@ definitions:
       return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : mem[ index[ 0 ][ 1 ] ] ), tmp, 1 );
   #SCALAR
   - target_extension: "scalar"
+    additional_simd_template_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ ]
     implementation: "return (mask&1)==1 ? reinterpret_cast<typename Vec::base_type const *>(memory)[index] : source;"
@@ -1432,4 +1465,279 @@ definitions:
         _mm256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
           _mm_loadu_si128(reinterpret_cast<__m128i const *>(memory))
         );
+...
+---
+primitive_name: "masked_set1"
+brief_description: "Partially override a Vector with a single value."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "src"
+     description: "Base Vector."
+   - ctype: "const typename Vec::imask_type"
+     name: "mask"
+     description: "Mask of elements to change."
+   - ctype: "const typename Vec::base_type"
+     name: "value"
+     description: "Value to set for elements where the mask bit is 1."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Base Vector, with the elements specified by mask changed to value."
+testing:
+   -  requires: ["loadu"]
+      includes: ["<cstddef>"]
+      implementation: |
+        using T = typename Vec::base_type;
+        std::size_t element_count = 1024;
+        bool allOk = true;
+        testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto test_data_ptr = test_helper.data_target();
+        for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            T random_value;
+            testing::rnd_init(&random_value, 1);
+            typename Vec::imask_type random_integral;
+            testing::rnd_init(&random_integral, 1);
+            auto vec_src = loadu<Vec>( &test_data_ptr[i] );
+            auto result = masked_set1<Vec>(vec_src, random_integral, random_value);
+            for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
+                reference_result_ptr[j] = (random_integral >> j) & 1 ? random_value : test_data_ptr[i + j];
+            }
+            allOk &= test_helper.validate_simd_register(result);
+        }
+        return allOk;
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw"]
+     implementation: "return _mm512_mask_set1_epi{{ intrin_tp[ctype][1] }}(src, mask, value);"
+   - target_extension: "avx512"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_mask_set1_epi{{ intrin_tp[ctype][1] }}(src, mask, value);"
+   - target_extension: "avx512"
+     ctype: ["float"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_castsi512_ps(_mm512_mask_set1_epi32(_mm512_castps_si512(src), mask, *reinterpret_cast<const int32_t*>(&value)));"
+   - target_extension: "avx512"
+     ctype: ["double"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_castsi512_pd(_mm512_mask_set1_epi64(_mm512_castpd_si512(src), mask, *reinterpret_cast<const int64_t*>(&value)));"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw", "avx512vl"]
+     implementation: "return _mm256_mask_set1_epi{{ intrin_tp[ctype][1] }}(src, mask, value);"
+   - target_extension: "avx2"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm256_mask_set1_epi{{ intrin_tp[ctype][1] }}(src, mask, value);"
+   - target_extension: "avx2"
+     ctype: ["float"]
+     lscpu_flags: ["avx", "avx512f", "avx512vl"]
+     is_native: False
+     implementation: "return _mm256_castsi256_ps(_mm256_mask_set1_epi32(_mm256_castps_si256(src), mask, *reinterpret_cast<const int32_t*>(&value)));"
+   - target_extension: "avx2"
+     ctype: ["double"]
+     lscpu_flags: ["avx", "avx512f", "avx512vl"]
+     is_native: False
+     implementation: "return _mm256_castsi256_pd(_mm256_mask_set1_epi64(_mm256_castpd_si256(src), mask, *reinterpret_cast<const int64_t*>(&value)));"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw", "avx512vl"]
+     implementation: "return _mm_mask_set1_epi{{ intrin_tp[ctype][1] }}(src, mask, value);"
+   - target_extension: "sse"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm_mask_set1_epi{{ intrin_tp[ctype][1] }}(src, mask, value);"
+   - target_extension: "sse"
+     ctype: ["float"]
+     lscpu_flags: ["sse2", "avx512f", "avx512vl"]
+     is_native: False
+     implementation: "return _mm_castsi128_ps(_mm_mask_set1_epi32(_mm_castps_si128(src), mask, *reinterpret_cast<const int32_t*>(&value)));"
+   - target_extension: "sse"
+     ctype: ["double"]
+     lscpu_flags: ["avx", "avx512f", "avx512vl"]
+     is_native: False
+     implementation: "return _mm_castsi128_pd(_mm_mask_set1_epi64(_mm_castpd_si128(src), mask, *reinterpret_cast<const int64_t*>(&value)));"
+#NEON
+  # TODO
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return (mask & 1) ? value : src;"
+...
+---
+primitive_name: "maskz_mov"
+brief_description: "Copy elements from a vector, where the mask bit it set, otherwise write zero"
+parameters:
+   - ctype: "const typename Vec::imask_type"
+     name: "mask"
+     description: "Mask of elements to change."
+   - ctype: "const typename Vec::register_type"
+     name: "src"
+     description: "Base Vector."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Base Vector, with the elements specified by mask changed to value."
+testing:
+   -  requires: ["loadu"]
+      includes: ["<cstddef>"]
+      implementation: |
+         using T = typename Vec::base_type;
+         std::size_t element_count = 1024;
+         bool allOk = true;
+         testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+         auto reference_result_ptr = test_helper.result_ref();
+         auto test_result_ptr = test_helper.result_target();
+         auto test_data_ptr = test_helper.data_target();
+         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            typename Vec::imask_type random_integral;
+            testing::rnd_init(&random_integral, 1);
+            auto src = &test_data_ptr[i];
+            auto result = maskz_mov<Vec>(random_integral, loadu<Vec>(src));
+            for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
+               reference_result_ptr[j] = (random_integral >> j) & 1 ? src[j] : 0;
+            }
+            allOk &= test_helper.validate_simd_register(result);
+         }
+         return allOk;
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw"]
+     implementation: "return _mm512_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+   - target_extension: "avx512"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+   - target_extension: "avx512"
+     ctype: ["float", double]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_maskz_mov_{{ intrin_tp_full[ctype] }}(mask, src);"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw", "avx512vl"]
+     implementation: "return _mm256_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+   - target_extension: "avx2"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm256_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+   - target_extension: "avx2"
+     ctype: ["float", double]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm256_maskz_mov_{{ intrin_tp_full[ctype] }}(mask, src);"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw", "avx512vl"]
+     implementation: "return _mm_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+   - target_extension: "sse"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+   - target_extension: "sse"
+     ctype: ["float", double]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm_maskz_mov_{{ intrin_tp_full[ctype] }}(mask, src);"
+#NEON
+  # TODO
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return (mask & 1) ? src : 0;"
+...
+---
+primitive_name: "mask_mov"
+brief_description: "Merge two vectors while picking the source of each element based on the corresponding mask bit"
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "src"
+     description: "Vector to pick elements from if mask bit is 0"
+   - ctype: "const typename Vec::imask_type"
+     name: "mask"
+     description: "Mask of elements to change."
+   - ctype: "const typename Vec::register_type"
+     name: "data"
+     description: "Vector to pick elements from if mask bit is 1"
+
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Base Vector, with the elements specified by mask changed to value."
+testing:
+   -  requires: ["loadu"]
+      includes: ["<cstddef>"]
+      implementation: |
+        using T = typename Vec::base_type;
+        std::size_t element_count = 1024;
+        bool allOk = true;
+        testing::test_memory_helper_t<Vec> test_helper{element_count * 2, Vec::vector_element_count(), false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto test_data_ptr = test_helper.data_target();
+        for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            typename Vec::imask_type random_integral;
+            testing::rnd_init(&random_integral, 1);
+            auto src = &test_data_ptr[i];
+            auto data = &test_data_ptr[element_count + i];
+            auto result = mask_mov<Vec>(loadu<Vec>(src), random_integral, loadu<Vec>(data));
+            for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
+                reference_result_ptr[j] = (random_integral >> j) & 1 ? data[j] : src[j];
+            }
+            allOk &= test_helper.validate_simd_register(result);
+        }
+        return allOk;
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw"]
+     implementation: "return _mm512_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "avx512"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "avx512"
+     ctype: ["float", double]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_mask_mov_{{ intrin_tp_full[ctype] }}(src, mask, data);"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw", "avx512vl"]
+     implementation: "return _mm256_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "avx2"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm256_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "avx2"
+     ctype: ["float", double]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm256_mask_mov_{{ intrin_tp_full[ctype] }}(src, mask, data);"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw", "avx512vl"]
+     implementation: "return _mm_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "sse"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "sse"
+     ctype: ["float", double]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm_mask_mov_{{ intrin_tp_full[ctype] }}(src, mask, data);"
+#NEON
+  # TODO
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return (mask & 1) ? data : src;"
 ...
