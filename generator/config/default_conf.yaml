@@ -8,7 +8,6 @@ configuration:
    use_concepts:                  True
    emit_workaround_warnings:      True
    relevant_types:                 ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
-   relevant_primitives:            []
    always_required_primitives:     ["allocate","deallocate","allocate_aligned","memory_cp","set"]
    library:
       root_path:                  "include"

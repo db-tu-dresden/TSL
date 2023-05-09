@@ -421,7 +421,7 @@ def parse_args(**kwargs) -> dict:
                         help=types_help,
                         dest='configuration:relevant_types', metavar="TYPES")
     
-    parser.add_argument('--primitives', default=None, nargs='*',
+    parser.add_argument('--primitives', default=[], nargs='*',
                         help=types_help,
                         dest='configuration:relevant_primitives', metavar="PRIMITIVES")
 

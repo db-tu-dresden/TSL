@@ -113,9 +113,10 @@ class TSLGenerator:
             yaml_store(config.tsl_extensions_yaml_output_path, extensions_dict)
         relevant_primitives_class_set: TSLPrimitiveClassSet = slicer.slice_primitives(self.__tsl_primitiveclass_set)
         
-        """ Only filter if any relevant primitves are set. """
-        if config.get_config_entry("relevant_primitives"):
-            selective_primitive_list = config.get_config_entry("relevant_primitives") + config.get_config_entry("always_required_primitives")
+        """ Only filter if any relevant primitves are set. Also take care that no empty strings are passed """
+        filter_by_primitive = list(filter( lambda x: len(x) > 0, config.get_config_entry("relevant_primitives") ))
+        if filter_by_primitive:
+            selective_primitive_list = filter_by_primitive + config.get_config_entry("always_required_primitives")
             selected_relevant_primitives_class_set = TSLPrimitiveClassSet()
 
             # Filter
