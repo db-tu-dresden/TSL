@@ -79,6 +79,10 @@ jobs:
           git pull --rebase
           COMMITS=`git cherry -v | wc -l`
           if [ $COMMITS -ne 0 ]; then git push; fi
+      -
+        name: 'Push failed?'
+        run:  |
+          if [ ${{ steps.push.outcome }} == 'failure' ]; then exit 1; else exit 0; fi
   generate:
     runs-on: ubuntu-latest
     strategy:
@@ -148,6 +152,10 @@ jobs:
           git pull --rebase
           COMMITS=`git cherry -v | wc -l`
           if [ $COMMITS -ne 0 ]; then git push; fi
+      -
+        name: 'Generation failed?'
+        run:  |
+          if [ ${{ steps.generate.outcome }} == 'failure' ]; then exit 1; else exit 0; fi
   build-and-test:
     runs-on: ubuntu-latest
     strategy:
@@ -247,6 +255,10 @@ jobs:
           git pull --rebase
           COMMITS=`git cherry -v | wc -l`
           if [ $COMMITS -ne 0 ]; then git push; fi
+      -
+        name: 'Test failed?'
+        run:  |
+          if [ ${{ steps.test.outcome }} == 'failure' ]; then exit 1; else exit 0; fi
   update-readme:
     runs-on: ubuntu-latest
     steps:
@@ -286,7 +298,7 @@ jobs:
         run: |
           python3 main.py --print-outputs-only --generate-readme-files --no-debug-info
       -
-        name: 'Created Building Badges and updated Readme files'
+        name: 'Update readme files'
         run: |
           set -x
           CHANGECOUNT=`git status --porcelain | wc -l`
