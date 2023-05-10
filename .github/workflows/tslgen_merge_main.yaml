@@ -199,7 +199,7 @@ jobs:
         name: 'Run Tests'
         id: test
         continue-on-error: true
-        run: ./tsl/tsl/generator_output/src/test/tsl_test
+        run: ./tsl/generator_output/build/src/test/tsl_test
       - 
         name: Setup Git Creds
         run: |

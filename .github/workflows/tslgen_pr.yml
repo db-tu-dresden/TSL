@@ -125,7 +125,7 @@ jobs:
         run: make -C tsl
       -
         name: 'Run Tests'
-        run: ./tsl/tsl/generator_output/src/test/tsl_test
+        run: ./tsl/generator_output/build/src/test/tsl_test
 
   integration:
     runs-on: ubuntu-latest
@@ -176,4 +176,4 @@ jobs:
       -
         name: 'Run Tests'
         if: env.MERGE_FAILED != '1'
-        run: ./tsl/tsl/generator_output/src/test/tsl_test
+        run: ./tsl/generator_output/build/src/test/tsl_test
