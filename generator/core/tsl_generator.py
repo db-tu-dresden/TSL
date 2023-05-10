@@ -1,3 +1,4 @@
+import re
 import logging
 from pathlib import Path
 from typing import List
@@ -111,6 +112,65 @@ class TSLGenerator:
             extensions_dict = {"generated_extensions": extensions_list}
             yaml_store(config.tsl_extensions_yaml_output_path, extensions_dict)
         relevant_primitives_class_set: TSLPrimitiveClassSet = slicer.slice_primitives(self.__tsl_primitiveclass_set)
+        
+        """ Only filter if any relevant primitves are set. Also take care that no empty strings are passed """
+        filter_by_primitive = list(filter( lambda x: len(x) > 0, config.get_config_entry("relevant_primitives") ))
+        if filter_by_primitive:
+            selective_primitive_list = filter_by_primitive + config.get_config_entry("always_required_primitives")
+            selected_relevant_primitives_class_set = TSLPrimitiveClassSet()
+
+            # Filter
+            implregex_list = []
+            for pClass in relevant_primitives_class_set:
+                for primitive in pClass:
+                    implregex_list.append( primitive.declaration.functor_name )
+
+            implregex_string = f'(?<!_)({"|".join(implregex_list)})(?!([a-zA-Z]|_|\[|\.))'
+            implregex = re.compile(implregex_string, re.IGNORECASE)
+
+            primitive_dependency_dict = dict()
+            """ Find all dependencies for primitives """
+            for pClass in relevant_primitives_class_set:
+                for primitive in pClass:
+                    curr_dependencies = []
+                    for definition in primitive.definitions:
+                        matches = implregex.findall(definition.data["implementation"])
+                        for m in matches:
+                            if m[0] != primitive.declaration.functor_name:
+                                if m[0] not in curr_dependencies:
+                                    curr_dependencies.append( m[0] )
+                    
+                    for test in primitive.tests:
+                        matches = implregex.findall(test['implementation'])
+                        for m in matches:
+                            if m[0] != primitive.declaration.functor_name:
+                                if m[0] not in curr_dependencies:
+                                    curr_dependencies.append( m[0] )
+                                    
+
+                    if curr_dependencies:
+                        primitive_dependency_dict[primitive.declaration.functor_name] = curr_dependencies
+
+            """ Explore all currently selected primitves and subsequently their dependencies, recursively """
+            frontier = list(primitive_dependency_dict.keys())
+            while (frontier):
+                key = frontier[0]
+                frontier.remove(key)
+                if key in selective_primitive_list:
+                    for dep in primitive_dependency_dict[key]:
+                        if dep not in selective_primitive_list:
+                            selective_primitive_list.append(dep)
+                            if dep in primitive_dependency_dict:
+                                frontier.append( dep )
+
+            for pClass in relevant_primitives_class_set:
+                dummyclass = TSLPrimitiveClass( pClass.file_name, pClass.data )
+                for primitive in pClass:
+                    if primitive.declaration.functor_name in selective_primitive_list:
+                        dummyclass.add_primitive( primitive )
+                if not dummyclass.is_empty():
+                    selected_relevant_primitives_class_set.add_primitive_class( dummyclass )
+            relevant_primitives_class_set = selected_relevant_primitives_class_set
 
         lib: TSLLib = TSLLib(relevant_extensions_set, relevant_primitives_class_set)
         file_generator: TSLFileGenerator = TSLFileGenerator(lib)

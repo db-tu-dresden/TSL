@@ -169,10 +169,138 @@ definitions:
     is_native: True
     implementation: |
       #if (defined(__GNUC__) && defined(__cplusplus) && (__GNUC__ < 10) && !defined(__clang__))
-        return _mm256_inserti128_si256(_mm256_setzero_si256(), data, 0);
+      return _mm256_inserti128_si256(_mm256_setzero_si256(), data, 0);
       #else
-        return _mm256_zextsi128_si256(data);
+      return _mm256_zextsi128_si256(data);
       #endif
+  - target_extension: "scalar"
+    ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+    additional_simd_template_extension: "sse"
+    lscpu_flags: ["sse2"]
+    is_native: True
+    implementation: |
+      return _mm_cvtsi{{ intrin_tp[ctype][1] }}_si128(data);
+  - target_extension: "scalar"
+    ctype: ["int16_t", "uint16_t"]
+    additional_simd_template_extension: "sse"
+    lscpu_flags: ["avx512_fp16"]
+    is_native: True
+    implementation: |
+      return _mm_cvtsi{{ intrin_tp[ctype][1] }}_si128(data);
+  - target_extension: "avx2"
+    additional_simd_template_extension: "avx512"
+    ctype: ["float", "int8_t", "int16_t", "int32_t", "uint8_t", "uint16_t", "uint32_t"]
+    additional_simd_template_base_type_mapping_dict: {
+      "float": ["double"],
+      "int8_t": ["int16_t"], "int16_t": ["int32_t"], "int32_t": ["int64_t"],
+      "uint8_t": ["int16_t", "uint16_t"], "uint16_t": ["int32_t", "uint32_t"], "uint32_t": ["int64_t", "uint64_t"]
+    }
+    lscpu_flags: ["avx2", "avx512f"]
+    is_native: True
+    implementation: |
+      return _mm512_cvt{{
+        intrin_tp_full[ctype]
+      }}_{{
+        intrin_tp[additional_simd_template_base_type if additional_simd_template_base_type[0] != "u" else additional_simd_template_base_type[1:]][0]
+      }}{{
+        intrin_tp[additional_simd_template_base_type][1]
+      }}(data);
+  - target_extension: "avx512"
+    additional_simd_template_extension: "avx2"
+    ctype: ["double", "int16_t", "int32_t", "int64_t", "uint16_t", "uint32_t", "uint64_t"]
+    additional_simd_template_base_type_mapping_dict: {
+      "double": ["float"],
+      "int16_t": ["int8_t"], "int32_t": ["int16_t"], "int64_t": ["int32_t"],
+      "uint16_t": ["uint8_t"], "uint32_t": ["uint16_t"], "uint64_t": ["uint32_t"],
+    }
+    lscpu_flags: ["avx2", "avx512f"]
+    is_native: True
+    implementation: |
+      return _mm512_cvt{{
+        intrin_tp[ctype if ctype[0] != "u" else ctype[1:]][0]
+      }}{{
+        intrin_tp[ctype][1]
+      }}_{{
+        intrin_tp[additional_simd_template_base_type if additional_simd_template_base_type[0] != "u" else additional_simd_template_base_type[1:]][0]
+      }}{{
+        intrin_tp[additional_simd_template_base_type][1]
+      }}(data);
+  - target_extension: "avx512"
+    additional_simd_template_extension: "sse"
+    ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
+    additional_simd_template_base_type_mapping_dict: {"int32_t": ["int8_t"], "uint32_t": ["uint8_t"], "int64_t": ["int16_t", "int8_t"], "uint64_t": ["uint16_t", "uint8_t"]}
+    lscpu_flags: ["avx512f"]
+    is_native: True
+    implementation: |
+      return _mm512_cvt{{
+        intrin_tp[ctype if ctype[0] != "u" else ctype[1:]][0]
+      }}{{
+        intrin_tp[ctype][1]
+      }}_{{
+        intrin_tp[additional_simd_template_base_type if additional_simd_template_base_type[0] != "u" else additional_simd_template_base_type[1:]][0]
+      }}{{
+        intrin_tp[additional_simd_template_base_type][1]
+      }}(data);
+...
+---
+# TODO(cmrs): add more implementations here
+primitive_name: "split"
+additional_simd_template_parameter: "ToType"
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+returns:
+  ctype: "std::array<typename ToType::register_type, sizeof(typename ToType::base_type)/sizeof(typename Vec::base_type) * Vec::vector_element_count() / ToType::vector_element_count()>"
+  description: "Array containing the registers with the split up data"
+definitions:
+# INTEL - AVX512  -> AVX2
+  - target_extension: "avx512"
+    ctype: ["int32_t", "uint32_t"]
+    additional_simd_template_extension: "avx2"
+    additional_simd_template_base_type_mapping_dict: {"int32_t": ["int64_t"], "uint32_t": ["uint64_t"]}
+    lscpu_flags: ["avx2", "avx512dq"]
+    is_native: False
+    implementation: |
+      return { {
+          _mm512_extracti32x8_epi32(data, 0),
+          _mm512_extracti32x8_epi32(data, 1),
+      } };
+# INTEL - AVX512 -> 2 * AVX22
+  - target_extension: "avx512"
+    ctype: ["int32_t", "uint32_t"]
+    additional_simd_template_extension: "avx2"
+    additional_simd_template_base_type_mapping_dict: {"int32_t": ["int32_t"], "uint32_t": ["uint32_t"]}
+    lscpu_flags: ["avx2", "avx512dq"]
+    is_native: False
+    implementation: |
+      return { {
+          _mm512_extracti32x8_epi32(data, 0),
+          _mm512_extracti32x8_epi32(data, 1),
+      } };
+...
+---
+# TODO(cmrs): add more implementations here
+primitive_name: "merge"
+additional_simd_template_parameter: "ToType"
+parameters:
+  - ctype: "std::array<typename Vec::register_type, sizeof(typename Vec::base_type)/sizeof(typename ToType::base_type) * ToType::vector_element_count() / Vec::vector_element_count()>"
+    name: "data"
+returns:
+  ctype: "typename ToType::register_type"
+  description: "SIMD register containing the merged register data"
+definitions:
+#INTEL - AVX2 -> AVX512
+  - target_extension: "avx2"
+    additional_simd_template_extension: "avx512"
+    ctype: ["int32_t", "uint32_t"]
+    additional_simd_template_base_type_mapping_dict: {"int32_t": ["int32_t"], "uint32_t": ["uint32_t"]}
+    lscpu_flags: ["avx2", "avx512f"]
+    is_native: False
+    implementation: |
+      __m512i result;
+      result = _mm512_inserti32x8(result, data[0], 0);
+      result = _mm512_inserti32x8(result, data[1], 0);
+      return result;
 ...
 ---
 primitive_name: "convert_up"
@@ -243,7 +371,6 @@ testing:
         lower_reg = add<Vec>(lower_reg, lower_inc);
       }
       return allOk;
-
 definitions:
   #INTEL - AVX2
   - target_extension: "avx2"
@@ -589,14 +716,12 @@ testing:
       testing::test_memory_helper_t<ToType> test_helper_lower{ToType::vector_element_count(), 1, false, testing::seq_init_start_low<lower_type>};
       auto lower_value_vec = loadu<ToType>(test_helper_lower.data_target());
       auto const lower_inc_vec = set1<ToType>(ToType::vector_element_count());
-      
       uint64_t max = 0;
       if(sizeof(lower_type)>2) {
         max = 1<<16;
       } else {
         max = std::numeric_limits<lower_type>::max();
-      }      
-
+      }
       for(uint64_t i = 0; i < max; i+= ToType::vector_element_count()) {
         //convert the lower type up to the vec type and convert it back down again -- result should be equal to parameter
         auto result = convert_down<Vec, ToType>(convert_up<ToType, Vec>(lower_value_vec));
@@ -659,7 +784,7 @@ definitions:
       auto const upper_zero = _mm256_set1_epi32(0xffff);
       auto const d0 = _mm256_and_si256(upper_zero, data[0]);
       auto const d1 = _mm256_and_si256(upper_zero, data[1]);
-      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>; 
+      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>;
       return
         _mm256_shuffle_epi8(
           _mm256_permute2x128_si256(
@@ -738,7 +863,7 @@ definitions:
       auto const d1 = _mm256_and_si256(upper_zero, data[1]);
       auto const d2 = _mm256_and_si256(upper_zero, data[2]);
       auto const d3 = _mm256_and_si256(upper_zero, data[3]);
-      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>; 
+      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>;
       return
         _mm256_shuffle_epi8(
           _mm256_permute2x128_si256(
@@ -778,7 +903,7 @@ definitions:
       auto const upper_zero = _mm256_set1_epi64x(0xffffffff);
       auto const d0 = _mm256_and_si256(upper_zero, data[0]);
       auto const d1 = _mm256_and_si256(upper_zero, data[1]);
-      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>; 
+      using zext = functors::cast<simd<Vec::base_type, sse>, simd<Vec::base_type, avx2>, Idof>;
       return
         _mm256_shuffle_epi32(
           _mm256_permute2x128_si256(

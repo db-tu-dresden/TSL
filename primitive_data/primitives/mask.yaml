@@ -6,80 +6,80 @@ description: "Mask related primitives."
 primitive_name: "to_integral"
 brief_description: "Forms an integral value from the most significant bits of every lane in a vector mask register."
 parameters:
-   - ctype: "const typename Vec::mask_type"
-     name: "vec_mask"
-     description: "Vector mask register containing mask style data."
+  - ctype: "const typename Vec::mask_type"
+    name: "vec_mask"
+    description: "Vector mask register containing mask style data."
 returns:
-   ctype: "typename Vec::imask_type"
-   description: "Integral value representing of the vector mask register."
+  ctype: "typename Vec::imask_type"
+  description: "Integral value representing of the vector mask register."
 testing: #optional
-   -  test_name: "mask_match_zero_to_vec_count"
-      requires: ["loadu"]
-      includes: ["<cstddef>", "<array>"]
-      implementation: |
-         using T = typename Vec::base_type;
-         bool allOk = true;
-         // For Vec::mask_type == Vec::register_type testing
-         std::array< T, Vec::vector_element_count() > pseudo_mask;
-         typename Vec::mask_type vec_mask;
-         for(std::size_t i = 0; i < Vec::vector_element_count() + 1; i++) {
-            // To check if we are at AVX512/Scalar or any register type mask
-            if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
-               // e.g. Scalar (bool)
-               vec_mask = false;
-               for ( std::size_t j = 0; j < i; ++j ) {
-                  vec_mask = (vec_mask << 1) | 0b1;
-               }
-            } else if constexpr (std::is_same_v<typename Vec::mask_type, typename Vec::imask_type>) {
-               // // e.g. AVX512
-               vec_mask = 0;
-               typename Vec::mask_type one = 0b1;
-               for ( std::size_t j = 0; j < i; ++j ) {
-                  vec_mask |= one << j;
-               }
-            } else {
-               // e.g. SSE, AVX2
-               pseudo_mask.fill( 0 );
-               T val = -1;
-               for ( std::size_t j = 0; j < i; ++j ) {
-                  pseudo_mask[ j ] = val;
-               }
-               vec_mask = loadu<Vec>( pseudo_mask.data() );
+  - test_name: "mask_match_zero_to_vec_count"
+    requires: ["loadu"]
+    includes: ["<cstddef>", "<array>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      bool allOk = true;
+      // For Vec::mask_type == Vec::register_type testing
+      std::array< T, Vec::vector_element_count() > pseudo_mask;
+      typename Vec::mask_type vec_mask;
+      for(std::size_t i = 0; i < Vec::vector_element_count() + 1; i++) {
+        // To check if we are at AVX512/Scalar or any register type mask
+        if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
+            // e.g. Scalar (bool)
+            vec_mask = false;
+            for ( std::size_t j = 0; j < i; ++j ) {
+              vec_mask = (vec_mask << 1) | 0b1;
             }
-            auto mask_integral = to_integral<Vec>( vec_mask );
-            std::size_t matches = 0;
-            for ( std::size_t k = 0; k < Vec::vector_element_count(); ++k ) {
-              if(((mask_integral >> k) & 0b1) == 1 ) {
-                ++matches;
-              }
+        } else if constexpr (std::is_same_v<typename Vec::mask_type, typename Vec::imask_type>) {
+            // // e.g. AVX512
+            vec_mask = 0;
+            typename Vec::mask_type one = 0b1;
+            for ( std::size_t j = 0; j < i; ++j ) {
+              vec_mask |= one << j;
             }
-            allOk &= (matches == i);
-         }
-         return allOk;
+        } else {
+            // e.g. SSE, AVX2
+            pseudo_mask.fill( 0 );
+            T val = -1;
+            for ( std::size_t j = 0; j < i; ++j ) {
+              pseudo_mask[ j ] = val;
+            }
+            vec_mask = loadu<Vec>( pseudo_mask.data() );
+        }
+        auto mask_integral = to_integral<Vec>( vec_mask );
+        std::size_t matches = 0;
+        for ( std::size_t k = 0; k < Vec::vector_element_count(); ++k ) {
+          if(((mask_integral >> k) & 0b1) == 1 ) {
+            ++matches;
+          }
+        }
+        allOk &= (matches == i);
+      }
+      return allOk;
 definitions:
 #INTEL - AVX512
-   - target_extension: "avx512"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
-     lscpu_flags: ['avx512f']
-     implementation: "return vec_mask; //mask is integral already."
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: "return vec_mask; //mask is integral already."
 #INTEL - AVX2
-   - target_extension: "avx2"
-     ctype: ["int8_t", "uint8_t"]
-     lscpu_flags: ['avx2']
-     implementation: "return _mm256_movemask_epi8(vec_mask);"
-   - target_extension: "avx2"
-     ctype: ["int16_t", "uint16_t"]
-     lscpu_flags: ['avx','avx2', 'bmi2']
-     is_native: False
-     implementation: "return _pext_u32(_mm256_movemask_epi8(vec_mask), 0x55555555);"
-   - target_extension: "avx2"
-     ctype: ["int16_t", "uint16_t"]
-     lscpu_flags: ['avx', 'avx2']
-     is_native: False
-     implementation: |
-        auto const packed = _mm256_packs_epi16(vec_mask, _mm256_setzero_si256());
-        auto const shuffled = _mm256_permute4x64_epi64(packed, 8);
-        return (typename Vec::imask_type) _mm256_movemask_epi8(shuffled);
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t"]
+    lscpu_flags: ['avx2']
+    implementation: "return _mm256_movemask_epi8(vec_mask);"
+  - target_extension: "avx2"
+    ctype: ["int16_t", "uint16_t"]
+    lscpu_flags: ['avx','avx2', 'bmi2']
+    is_native: False
+    implementation: "return _pext_u32(_mm256_movemask_epi8(vec_mask), 0x55555555);"
+  - target_extension: "avx2"
+    ctype: ["int16_t", "uint16_t"]
+    lscpu_flags: ['avx', 'avx2']
+    is_native: False
+    implementation: |
+      auto const packed = _mm256_packs_epi16(vec_mask, _mm256_setzero_si256());
+      auto const shuffled = _mm256_permute4x64_epi64(packed, 8);
+      return (typename Vec::imask_type) _mm256_movemask_epi8(shuffled);
 #   - target_extension: "avx2"
 #     ctype: ["int16_t", "uint16_t"]
 #     lscpu_flags: ['avx', 'avx2']
@@ -132,38 +132,38 @@ definitions:
 #                        )
 #                     );
 #                     return (b << 8) | a;
-   - target_extension: "avx2"
-     ctype: ["float"]
-     lscpu_flags: ['avx']
-     implementation: "return _mm256_movemask_ps(vec_mask);"
-   - target_extension: "avx2"
-     ctype: ["int32_t", "uint32_t"]
-     lscpu_flags: ['avx']
-     implementation: "return _mm256_movemask_ps(_mm256_castsi256_ps(vec_mask));"
-   - target_extension: "avx2"
-     ctype: ["int64_t", "uint64_t"]
-     lscpu_flags: ['avx']
-     implementation: "return _mm256_movemask_pd(_mm256_castsi256_pd(vec_mask));"
-   - target_extension: "avx2"
-     ctype: ["double"]
-     lscpu_flags: ['avx']
-     implementation: "return _mm256_movemask_pd(vec_mask);"
+  - target_extension: "avx2"
+    ctype: ["float"]
+    lscpu_flags: ['avx']
+    implementation: "return _mm256_movemask_ps(vec_mask);"
+  - target_extension: "avx2"
+    ctype: ["int32_t", "uint32_t"]
+    lscpu_flags: ['avx']
+    implementation: "return _mm256_movemask_ps(_mm256_castsi256_ps(vec_mask));"
+  - target_extension: "avx2"
+    ctype: ["int64_t", "uint64_t"]
+    lscpu_flags: ['avx']
+    implementation: "return _mm256_movemask_pd(_mm256_castsi256_pd(vec_mask));"
+  - target_extension: "avx2"
+    ctype: ["double"]
+    lscpu_flags: ['avx']
+    implementation: "return _mm256_movemask_pd(vec_mask);"
 #INTEL - SSE
-   - target_extension: "sse"
-     ctype: ["int8_t", "uint8_t"]
-     lscpu_flags: ['sse2']
-     implementation: "return _mm_movemask_epi8(vec_mask);"
-   - target_extension: "sse"
-     ctype: ["int16_t", "uint16_t"]
-     lscpu_flags: ['sse', 'sse2', 'bmi2']
-     is_native: False
-     implementation: "return _pext_u32(_mm_movemask_epi8(vec_mask), 0x5555);"
-   - target_extension: "sse"
-     ctype: ["int16_t", "uint16_t"]
-     lscpu_flags: ['sse', 'sse2']
-     is_native: False
-     implementation: |
-       return (typename Vec::imask_type)_mm_movemask_epi8(_mm_packs_epi16(vec_mask, _mm_setzero_si128()));
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t"]
+    lscpu_flags: ['sse2']
+    implementation: "return _mm_movemask_epi8(vec_mask);"
+  - target_extension: "sse"
+    ctype: ["int16_t", "uint16_t"]
+    lscpu_flags: ['sse', 'sse2', 'bmi2']
+    is_native: False
+    implementation: "return _pext_u32(_mm_movemask_epi8(vec_mask), 0x5555);"
+  - target_extension: "sse"
+    ctype: ["int16_t", "uint16_t"]
+    lscpu_flags: ['sse', 'sse2']
+    is_native: False
+    implementation: |
+      return (typename Vec::imask_type)_mm_movemask_epi8(_mm_packs_epi16(vec_mask, _mm_setzero_si128()));
 #   - target_extension: "sse"
 #     ctype: ["int16_t", "uint16_t"]
 #     lscpu_flags: ['sse', 'sse2']
@@ -181,34 +181,34 @@ definitions:
 #                        _mm_castsi128_ps(vec_mask)
 #                     );
 #                     return (b<<4) | a;
-   - target_extension: "sse"
-     ctype: ["float"]
-     lscpu_flags: ['sse']
-     implementation: "return _mm_movemask_ps(vec_mask);"
-   - target_extension: "sse"
-     ctype: ["int32_t", "uint32_t"]
-     lscpu_flags: ['sse', 'sse2']
-     implementation: "return _mm_movemask_ps(_mm_castsi128_ps(vec_mask));"
-   - target_extension: "sse"
-     ctype: ["int64_t", "uint64_t"]
-     lscpu_flags: ['sse2']
-     implementation: "return _mm_movemask_pd(_mm_castsi128_pd(vec_mask));"
-   - target_extension: "sse"
-     ctype: ["double"]
-     lscpu_flags: ['sse2']
-     implementation: "return _mm_movemask_pd(vec_mask);"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ['sse']
+    implementation: "return _mm_movemask_ps(vec_mask);"
+  - target_extension: "sse"
+    ctype: ["int32_t", "uint32_t"]
+    lscpu_flags: ['sse', 'sse2']
+    implementation: "return _mm_movemask_ps(_mm_castsi128_ps(vec_mask));"
+  - target_extension: "sse"
+    ctype: ["int64_t", "uint64_t"]
+    lscpu_flags: ['sse2']
+    implementation: "return _mm_movemask_pd(_mm_castsi128_pd(vec_mask));"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ['sse2']
+    implementation: "return _mm_movemask_pd(vec_mask);"
 #ARM - NEON
 #todo: ARM IMPLEMENTATION for other bitwidths
-   - target_extension: "neon"
-     ctype: "int64_t"
-     lscpu_flags: [ 'neon' ]
-     is_native: False
-     implementation: "return ( ( vec_mask[ 1 ] >> 62 ) & 0b10 ) | ( vec_mask[ 0 ] >> 63 );"
+  - target_extension: "neon"
+    ctype: "int64_t"
+    lscpu_flags: [ 'neon' ]
+    is_native: False
+    implementation: "return ( ( vec_mask[ 1 ] >> 62 ) & 0b10 ) | ( vec_mask[ 0 ] >> 63 );"
 #SCALAR
-   - target_extension: "scalar"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
-     lscpu_flags: []
-     implementation: "return (vec_mask)? 1 : 0;"
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (vec_mask)? 1 : 0;"
 ...
 #---
 #primitive_name: "get_msb"
@@ -247,51 +247,51 @@ definitions:
 primitive_name: "to_vector"
 brief_description: "Forms an vector register from an integral where all bits are set in a lane if the corresponding mask bit is set to 1."
 parameters:
-   - ctype: "const typename Vec::mask_type"
-     name: "mask"
-     description: "Vector mask register containing mask style data."
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Vector mask register containing mask style data."
 returns:
-   ctype: "typename Vec::register_type"
-   description: "Integral value representing the vector mask register."
+  ctype: "typename Vec::register_type"
+  description: "Integral value representing the vector mask register."
 definitions:
 #INTEL - AVX512
-   - target_extension: "avx512"
-     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
-     lscpu_flags: ['avx512f']
-     implementation: "return _mm512_maskz_set1_epi{{ intrin_tp[ctype][1] }}( mask, -1 );"
-   - target_extension: "avx512"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
-     lscpu_flags: ["avx512bw"]
-     implementation: "return _mm512_maskz_set1_epi{{ intrin_tp[ctype][1] }}( mask, -1 );"
-   - target_extension: "avx512"
-     ctype: ["float"]
-     lscpu_flags: ['avx512f']
-     implementation: "return _mm512_castsi512_ps(_mm512_maskz_set1_epi32(mask, -1));"
-   - target_extension: "avx512"
-     ctype: ["double"]
-     lscpu_flags: ['avx512f']
-     implementation: "return _mm512_castsi512_pd(_mm512_maskz_set1_epi64(mask, -1));"
+  - target_extension: "avx512"
+    ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ['avx512f']
+    implementation: "return _mm512_maskz_set1_epi{{ intrin_tp[ctype][1] }}( mask, -1 );"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_maskz_set1_epi{{ intrin_tp[ctype][1] }}( mask, -1 );"
+  - target_extension: "avx512"
+    ctype: ["float"]
+    lscpu_flags: ['avx512f']
+    implementation: "return _mm512_castsi512_ps(_mm512_maskz_set1_epi32(mask, -1));"
+  - target_extension: "avx512"
+    ctype: ["double"]
+    lscpu_flags: ['avx512f']
+    implementation: "return _mm512_castsi512_pd(_mm512_maskz_set1_epi64(mask, -1));"
 #INTEL - AVX2
-   - target_extension: "avx2"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
-     lscpu_flags: ['avx']
-     implementation: "return mask; //mask is a vector already."
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx']
+    implementation: "return mask; //mask is a vector already."
 #INTEL - SSE
-   - target_extension: "sse"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
-     lscpu_flags: ['sse2']
-     implementation: "return mask; //mask is a vector already."
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sse2']
+    implementation: "return mask; //mask is a vector already."
 #ARM - NEON
-   - target_extension: "neon"
-     ctype: "int64_t"
-     lscpu_flags: [ 'neon' ]
-     implementation: "return vreinterpretq_s64_u64( mask ); //mask is a vector already."
+  - target_extension: "neon"
+    ctype: "int64_t"
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vreinterpretq_s64_u64( mask ); //mask is a vector already."
 #INTEL - FPGA
-   - target_extension: "fpga_generic"
-     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
-     lscpu_flags: ["fpga_generic"]
-     vector_length_agnostic: True
-     implementation: "return mask;"
+  - target_extension: "fpga_generic"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ["fpga_generic"]
+    vector_length_agnostic: True
+    implementation: "return mask;"
 ...
 ---
 primitive_name: "to_mask"
@@ -306,8 +306,13 @@ returns:
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
-    lscpu_flags: ['avx512f']
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ["avx512f"] #we need avx512f, otherwise this would be generated if no avx512 is supported and an extension avx512 would be needed. This would lead to an error
+    implementation: "return mask;"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
     implementation: "return mask;"
   #INTEL - AVX2
   - target_extension: "avx2"
@@ -388,6 +393,28 @@ definitions:
     lscpu_flags: ["avx2"]
     ctype: ["int64_t", "uint64_t"]
     implementation: "return (~mask)&(0b1111);"
+...
+---
+primitive_name: "mask_binary_not"
+functor_name: "mask_binary_not"
+brief_description: "Binary NOT of a vector mask type."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Mask."
+returns:
+  ctype: "typename Vec::mask_type"
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    lscpu_flags: ["avx512f"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    implementation: "return (~mask);"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    lscpu_flags: ["avx2"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), mask);"
 ...
 ---
 primitive_name: "mask_binary_and"
@@ -838,7 +865,7 @@ definitions:
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ "avx512f" ]
     includes: ["<type_traits>"]
-    implementation: return ~0;
+    implementation: "return ~0;"
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
@@ -846,7 +873,7 @@ definitions:
     includes: ["<type_traits>"]
     implementation: |
       if constexpr(Vec::vector_element_count() < 8) {
-        return (((typename Vec::imask_type)1<<Vec::vector_element_count()) - 1);  
+        return (((typename Vec::imask_type)1<<Vec::vector_element_count()) - 1);
       } else {
         return ~0;
       }
@@ -857,10 +884,42 @@ definitions:
     includes: ["<type_traits>"]
     implementation: |
       if constexpr(Vec::vector_element_count() < 8) {
-        return (((typename Vec::imask_type)1<<Vec::vector_element_count()) - 1);  
+        return (((typename Vec::imask_type)1<<Vec::vector_element_count()) - 1);
       } else {
         return ~0;
       }
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: []
+    implementation: return true;
+...
+---
+primitive_name: "integral_all_false"
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Integral value where all values are set to 1."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "avx512f" ]
+    implementation: return 0;
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "avx2" ]
+    implementation: return 0;
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ "sse" ]
+    implementation: return 0;
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: []
+    implementation: return false;
 ...
 #---
 #primitive_name: "mask_reduce"

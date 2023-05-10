@@ -7,127 +7,127 @@ primitive_name: "to_ostream"
 brief_description: "Loads data from aligned memory into a vector register."
 includes: ['<ostream>', '<iomanip>', '<bitset>']
 parameters:
-   - ctype: "std::ostream &"
-     name: "out"
-     description: ""
-   - ctype: "typename Vec::register_type const"
-     name: "data"
-     description: ""
-   - ctype: "modifier"
-     name: "ostream_modifier"
-     description: ""
-     default_value: "modifier::DEC"
+  - ctype: "std::ostream &"
+    name: "out"
+    description: ""
+  - ctype: "typename Vec::register_type const"
+    name: "data"
+    description: ""
+  - ctype: "modifier"
+    name: "ostream_modifier"
+    description: ""
+    default_value: "modifier::DEC"
 returns:
-   ctype: "std::ostream &"
-   description: ""
+  ctype: "std::ostream &"
+  description: ""
 definitions:
 #INTEL - AVX512
-   - target_extension: "avx512"
-     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
-     lscpu_flags: ['avx512f']
-     implementation: |
-       using cast_type = typename std::conditional_t<
-         (sizeof(typename Vec::base_type) <= 2),
-         std::conditional_t<
-           std::is_signed_v<typename Vec::base_type>,
-           int,
-           unsigned int
-         >,
-         typename Vec::base_type
-       >;
-       std::ios_base::fmtflags f(out.flags());
-       if(ostream_modifier == modifier::HEX) {
-          out << std::hex;
-       } else if(ostream_modifier == modifier::DEC) {
-          out << std::dec;
-       } else if(ostream_modifier == modifier::OCT) {
-          out << std::oct;
-       } else {
-          out << std::dec;
-       }
-       for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
-          if(ostream_modifier == modifier::BIN) {
-             out << std::bitset<sizeof(typename Vec::base_type)*8>{(unsigned long long)data[(Vec::vector_element_count()-1)-idx]} << "|";
-          } else {
-             out << std::setw(sizeof(typename Vec::base_type)*8) << (cast_type) data[(Vec::vector_element_count()-1)-idx] << "|";
-          }
-       }
-       out.flags(f);
-       out << std::endl;
-       return out;
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: |
+      using cast_type = typename std::conditional_t<
+      (sizeof(typename Vec::base_type) <= 2),
+      std::conditional_t<
+        std::is_signed_v<typename Vec::base_type>,
+        int,
+        unsigned int
+      >,
+      typename Vec::base_type
+      >;
+      std::ios_base::fmtflags f(out.flags());
+      if(ostream_modifier == modifier::HEX) {
+        out << std::hex;
+      } else if(ostream_modifier == modifier::DEC) {
+        out << std::dec;
+      } else if(ostream_modifier == modifier::OCT) {
+        out << std::oct;
+      } else {
+        out << std::dec;
+      }
+      for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
+        if(ostream_modifier == modifier::BIN) {
+          out << std::bitset<sizeof(typename Vec::base_type)*8>{(unsigned long long)data[(Vec::vector_element_count()-1)-idx]} << "|";
+        } else {
+          out << std::setw(sizeof(typename Vec::base_type)*8) << (cast_type) data[(Vec::vector_element_count()-1)-idx] << "|";
+        }
+      }
+      out.flags(f);
+      out << std::endl;
+      return out;
 #INTEL - AVX2
-   - target_extension: "avx2"
-     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
-     lscpu_flags: [ 'avx' ]
-     implementation: |
-       using cast_type = typename std::conditional_t<
-         (sizeof(typename Vec::base_type) <= 2),
-         std::conditional_t<
-           std::is_signed_v<typename Vec::base_type>,
-           int,
-           unsigned int
-         >,
-         typename Vec::base_type
-       >;
-       std::ios_base::fmtflags f(out.flags());
-       if(ostream_modifier == modifier::HEX) {
-          out << std::hex;
-       } else if(ostream_modifier == modifier::DEC) {
-          out << std::dec;
-       } else if(ostream_modifier == modifier::OCT) {
-          out << std::oct;
-       } else {
-          out << std::dec;
-       }
-       for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
-          if(ostream_modifier == modifier::BIN) {
-             out << std::bitset<sizeof(typename Vec::base_type)*8>{(unsigned long long)data[(Vec::vector_element_count()-1)-idx]} << "|";
-          } else {
-             out << std::setw(sizeof(typename Vec::base_type)*8) << (cast_type) data[(Vec::vector_element_count()-1)-idx] << "|";
-          }
-       }
-       out.flags(f);
-       out << std::endl;
-       return out;
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: [ 'avx' ]
+    implementation: |
+      using cast_type = typename std::conditional_t<
+        (sizeof(typename Vec::base_type) <= 2),
+        std::conditional_t<
+          std::is_signed_v<typename Vec::base_type>,
+          int,
+          unsigned int
+        >,
+        typename Vec::base_type
+      >;
+      std::ios_base::fmtflags f(out.flags());
+      if(ostream_modifier == modifier::HEX) {
+        out << std::hex;
+      } else if(ostream_modifier == modifier::DEC) {
+        out << std::dec;
+      } else if(ostream_modifier == modifier::OCT) {
+        out << std::oct;
+      } else {
+        out << std::dec;
+      }
+      for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
+        if(ostream_modifier == modifier::BIN) {
+            out << std::bitset<sizeof(typename Vec::base_type)*8>{(unsigned long long)data[(Vec::vector_element_count()-1)-idx]} << "|";
+        } else {
+            out << std::setw(sizeof(typename Vec::base_type)*8) << (cast_type) data[(Vec::vector_element_count()-1)-idx] << "|";
+        }
+      }
+      out.flags(f);
+      out << std::endl;
+      return out;
 #INTEL - SSE
-   - target_extension: "sse"
-     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
-     lscpu_flags: [ 'sse2' ]
-     implementation: |
-       using cast_type = typename std::conditional_t<
-         (sizeof(typename Vec::base_type) <= 2),
-         std::conditional_t<
-           std::is_signed_v<typename Vec::base_type>,
-           int,
-           unsigned int
-         >,
-         typename Vec::base_type
-       >;
-       std::ios_base::fmtflags f(out.flags());
-       if(ostream_modifier == modifier::HEX) {
-          out << std::hex;
-       } else if(ostream_modifier == modifier::DEC) {
-          out << std::dec;
-       } else if(ostream_modifier == modifier::OCT) {
-          out << std::oct;
-       } else {
-          out << std::dec;
-       }
-       for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
-          if(ostream_modifier == modifier::BIN) {
-             out << std::bitset<sizeof(typename Vec::base_type)*8>{(unsigned long long)data[(Vec::vector_element_count()-1)-idx]} << "|";
-          } else {
-             out << std::setw(sizeof(typename Vec::base_type)*8) << (cast_type) data[(Vec::vector_element_count()-1)-idx] << "|";
-          }
-       }
-       out.flags(f);
-       out << std::endl;
-       return out;
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: [ 'sse2' ]
+    implementation: |
+      using cast_type = typename std::conditional_t<
+        (sizeof(typename Vec::base_type) <= 2),
+        std::conditional_t<
+          std::is_signed_v<typename Vec::base_type>,
+          int,
+          unsigned int
+        >,
+        typename Vec::base_type
+      >;
+      std::ios_base::fmtflags f(out.flags());
+      if(ostream_modifier == modifier::HEX) {
+        out << std::hex;
+      } else if(ostream_modifier == modifier::DEC) {
+        out << std::dec;
+      } else if(ostream_modifier == modifier::OCT) {
+        out << std::oct;
+      } else {
+        out << std::dec;
+      }
+      for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
+        if(ostream_modifier == modifier::BIN) {
+            out << std::bitset<sizeof(typename Vec::base_type)*8>{(unsigned long long)data[(Vec::vector_element_count()-1)-idx]} << "|";
+        } else {
+            out << std::setw(sizeof(typename Vec::base_type)*8) << (cast_type) data[(Vec::vector_element_count()-1)-idx] << "|";
+        }
+      }
+      out.flags(f);
+      out << std::endl;
+      return out;
 #ARM - NEON
-   - target_extension: "neon"
-     ctype: "int64_t"
-     lscpu_flags: [ 'neon' ]
-     implementation: |
-         out << data[1]<< "|" << data[0] << "\n";
-         return out;
+  - target_extension: "neon"
+    ctype: "int64_t"
+    lscpu_flags: [ 'neon' ]
+    implementation: |
+        out << data[1]<< "|" << data[0] << "\n";
+        return out;
 ...

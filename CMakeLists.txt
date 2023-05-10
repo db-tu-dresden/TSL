@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.19)
 project(tsl)
 
 find_package(Python3 REQUIRED)
@@ -12,10 +12,27 @@ if(TSL_LSCPU_FLAGS STREQUAL "")
     )
 endif()
 if(TSL_LSCPU_FLAGS STREQUAL "")
-    message(FATAL_ERROR "failed to deduce TSL_LSCPU_FLAGS, please specify manually")
+	execute_process(
+		COMMAND bash -c "LANG=en;lscpu|grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' '"
+		OUTPUT_VARIABLE TSL_LSCPU_FLAGS
+		RESULT_VARIABLE TSLHardwareReturnValue
+	)
+	if(NOT TSLHardwareReturnValue EQUAL 0)
+		message(FATAL_ERROR "Could not determine hardware flags. Please specify them manually.")
+	endif()
 endif()
 message(STATUS "lscpu flags: ${TSL_LSCPU_FLAGS}")
 string(REGEX REPLACE "[ \t]+" ";" LSCPU_FLAGS_LIST "${TSL_LSCPU_FLAGS}")
+
+set(TSL_FILTER_FOR_PRIMITIVES "" CACHE STRING "space separated list of primitives to generate")
+if(TSL_FILTER_FOR_PRIMITIVES STREQUAL "")
+	message(STATUS "No primitive filtering.")
+	set( TSL_PRIMITIVE_SWITCH "" )
+else()
+	message(STATUS "relevant primitives: ${TSL_FILTER_FOR_PRIMITIVES}")
+	string(REGEX MATCHALL "([a-zA-Z\_])+" PRIMITIVE_LIST "${TSL_FILTER_FOR_PRIMITIVES}")
+	set( TSL_PRIMITIVE_SWITCH --primitives ${PRIMITIVE_LIST} )
+endif()
 
 # trigger reconfiguration if the source files of the generator changed
 file(GLOB_RECURSE TSL_GENERATOR_SOURCES CONFIGURE_DEPENDS
@@ -68,7 +85,7 @@ endif()
 
 message(STATUS "Running TSL Generator...")
 execute_process(
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" ${TSL_GENERATOR_OPTS} -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST}
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/main.py" ${TSL_GENERATOR_OPTS} -o "${GENERATOR_OUTPUT_PATH}" --targets ${LSCPU_FLAGS_LIST} ${TSL_PRIMITIVE_SWITCH}
     COMMAND_ERROR_IS_FATAL ANY
 )
 

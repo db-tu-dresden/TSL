@@ -19,5 +19,7 @@ log
 tsl/
 
 generator/config/generator/tsl_templates/core/.twing/
-
 generator/config/generator/tsl_templates/expansions/.twing/
+
+supplementary/*/*.o
+supplementary/*/*.a
