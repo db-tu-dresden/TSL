@@ -165,7 +165,7 @@ definitions:
   - target_extension: "sse"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"]
     additional_simd_template_extension: "avx2"
-    lscpu_flags: ["avx2", "avx512f"]
+    lscpu_flags: ["avx2"]
     is_native: True
     implementation: |
       #if (defined(__GNUC__) && defined(__cplusplus) && (__GNUC__ < 10) && !defined(__clang__))
