@@ -307,7 +307,7 @@ definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
-    lscpu_flags: []
+    lscpu_flags: ["avx512f"] #we need avx512f, otherwise this would be generated if no avx512 is supported and an extension avx512 would be needed. This would lead to an error
     implementation: "return mask;"
   #SCALAR
   - target_extension: "scalar"
