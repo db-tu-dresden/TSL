@@ -73,6 +73,7 @@ jobs:
       -
         name: 'Update Docker Badges'
         run: |
+          set -x
           CHANGECOUNT=`git status --porcelain | wc -l`
           if [ $CHANGECOUNT -ne 0 ]; then git add -A && git commit -a -m "Updated Docker badges."; fi
           git pull --rebase
@@ -141,6 +142,7 @@ jobs:
       -
         name: 'Update Python Badges'
         run: |
+          set -x
           CHANGECOUNT=`git status --porcelain | wc -l`
           if [ $CHANGECOUNT -ne 0 ]; then git add -A && git commit -a -m "Updated python badges."; fi
           git pull --rebase
@@ -239,6 +241,7 @@ jobs:
       -
         name: 'Create Building Badges'
         run: |
+          set -x
           CHANGECOUNT=`git status --porcelain | wc -l`
           if [ $CHANGECOUNT -ne 0 ]; then git add -A && git commit -a -m "Updated building badges."; fi
           git pull --rebase
@@ -285,6 +288,7 @@ jobs:
       -
         name: 'Created Building Badges and updated Readme files'
         run: |
+          set -x
           CHANGECOUNT=`git status --porcelain | wc -l`
           if [ $CHANGECOUNT -ne 0 ]; then git add -A && git commit -a -m "Updated readme."; fi
           git pull --rebase
