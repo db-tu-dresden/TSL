@@ -51,18 +51,19 @@ class TSLCMakeGenerator:
                 }
             )
         )
-        print("To use TSL, apply the following changes:")
-        print(f"   CMakeLists.txt (top-level):                 add_subdirectory({strip_path_prefix(config.generation_out_path)})")
-        print(f"                                               target_link_libraries(<target> tsl)")
-        print(f"   C++ Source/Header file which uses TSL:      #include <{strip_common_path_prefix(config.lib_root_header, config.lib_root_path)}>")
-        print(f"General usage:")
-        print(f"   Using namespace declaration:                /*...*/ ")
-        print(f"   (we generally discourage this               using namespace {config.lib_namespace};")
-        print(f"    kind of usage)                             auto result = add<simd<uint64_t, sse>>(a, b);")
-        print(f"                                               /*...*/")
-        print(f"   Explicit usage:                             /*...*/ ")
-        print(f"                                               auto result = {config.lib_namespace}::add<{config.lib_namespace}::simd<uint64_t, {config.lib_namespace}::sse>>(a, b);")
-        print(f"                                               /*...*/ ")
+        if not config.get_config_entry("silent"):
+            print("To use TSL, apply the following changes:")
+            print(f"   CMakeLists.txt (top-level):                 add_subdirectory({strip_path_prefix(config.generation_out_path)})")
+            print(f"                                               target_link_libraries(<target> tsl)")
+            print(f"   C++ Source/Header file which uses TSL:      #include <{strip_common_path_prefix(config.lib_root_header, config.lib_root_path)}>")
+            print(f"General usage:")
+            print(f"   Using namespace declaration:                /*...*/ ")
+            print(f"   (we generally discourage this               using namespace {config.lib_namespace};")
+            print(f"    kind of usage)                             auto result = add<simd<uint64_t, sse>>(a, b);")
+            print(f"                                               /*...*/")
+            print(f"   Explicit usage:                             /*...*/ ")
+            print(f"                                               auto result = {config.lib_namespace}::add<{config.lib_namespace}::simd<uint64_t, {config.lib_namespace}::sse>>(a, b);")
+            print(f"                                               /*...*/ ")
 
 
     @staticmethod

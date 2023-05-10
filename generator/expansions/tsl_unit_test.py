@@ -509,7 +509,10 @@ class TSLTestGenerator:
             tsltestgenerator.log(logging.DEBUG, f"File (test header) already present, skipping download")
         else:
             try:
-                wget.download(unit_test_config["test_header_url"], out=str(root_path))
+                if config.get_config_entry("silent"):
+                    wget.download(unit_test_config["test_header_url"], out=str(root_path), bar=lambda *args: None)
+                else:
+                    wget.download(unit_test_config["test_header_url"], out=str(root_path))
             except Exception as e:
                 tsltestgenerator.log(logging.WARN,
                                     f"Could not download the necessary test header file. Check your network connection. {e}")

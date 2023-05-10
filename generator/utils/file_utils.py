@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 from typing import Dict, Generator, Tuple, List
 import re
 
@@ -84,3 +85,9 @@ def strip_common_path_prefix(file: Path, prefix: Path) -> Path:
 
 def strip_path_prefix(file: Path) -> Path:
     return Path(*file.parts[-1:])
+
+def remove_path(folder: Path) -> bool:
+    if folder.exists:
+        shutil.rmtree(folder)
+        return True
+    return False
