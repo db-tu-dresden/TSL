@@ -23,9 +23,12 @@ namespace {{ tsl_namespace }} {
 namespace {{ nested_namespace }} {
 {% endfor %}
 {% endif %}
+
 {%    for code in codes %}
-   {{ code }}
+{{ code }}
+
 {%    endfor %}
+
 {% if nested_namespaces %}
 {% for nested_namespace in nested_namespaces %}
 } // end of namespace {{ nested_namespace }}

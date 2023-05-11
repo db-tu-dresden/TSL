@@ -1,19 +1,18 @@
 ---
 file_description: "TODO."
 includes:
-   - '"type_helper.hpp"'
+    - '"type_helper.hpp"'
 implementations:
-   - |
-      
+    - |
       #ifdef TSL_USE_CONCEPTS
-         #include <concepts> //this is ugly, but the generator does not support conditional includes
-         template< typename T >
-         concept TSLArithmetic = std::is_arithmetic_v< T >;
+      #   include <concepts> //this is ugly, but the generator does not support conditional includes
+          template<typename T>
+          concept TSLArithmetic = std::is_arithmetic_v<T>;
 
-         template< typename T >
-         concept TSL_Tuple = is_tuple< T >::value;
+          template<typename T>
+          concept TSL_Tuple = is_tuple<T>::value;
       #else
-      #define TSLArithmetic typename
-      #define TSL_Tuple typename
+      #   define TSLArithmetic typename
+      #   define TSL_Tuple typename
       #endif
 ...
