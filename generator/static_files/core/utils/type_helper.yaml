@@ -87,4 +87,17 @@ implementations:
         using std::assume_aligned;
     #endif
   
+  - |
+    template<bool is_signed, std::size_t bit_width> struct integral_type;
+    
+    template<bool is_signed, std::size_t bit_width>
+    using integral_type_t = typename integral_type<is_signed, bit_width>::type;
+    
+    template<std::size_t bit_width>
+    struct integral_type<true, bit_width> { using type = std::make_signed_t<integral_type_t<false, bit_width>>; };
+    
+    template<> struct integral_type<false, 8> { using type = std::uint8_t; };
+    template<> struct integral_type<false, 16> { using type = std::uint16_t; };
+    template<> struct integral_type<false, 32> { using type = std::uint32_t; };
+    template<> struct integral_type<false, 64> { using type = std::uint64_t; };
 ...
