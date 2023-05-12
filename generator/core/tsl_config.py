@@ -406,6 +406,9 @@ def add_bool_arg(parser, name, dest, help_true_prefix="", help_false_prefix="", 
 
 def parse_args(**kwargs) -> dict:
     parser = argparse.ArgumentParser(description="TSL Generator", epilog="To apply fine-tuned changes to the generator please change the config files (config/default_conf.yaml and config/log_conf.yaml).")
+    parser.add_argument('-d', '--daemon', dest='configuration:daemon', action='store_true', help="Run the generator as daemon.")
+    parser.add_argument('-c', '--clean', dest='configuration:clean', action='store_true', help="Clean the output directory before generation.")
+    parser.add_argument('-s', '--silent', dest='configuration:silent', action='store_true', help="Suppress all generator output.")
     parser.add_argument('-o', '--out', type=pathlib.Path, help="Generation output path.", required=False,
                                   dest='configuration:root_path', metavar="OutPath")
     parser.add_argument('-i', '--in', type=pathlib.Path,

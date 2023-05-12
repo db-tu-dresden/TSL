@@ -2,11 +2,14 @@ import time
 
 from generator.core.tsl_config import config, parse_args
 import os
+import sys
+import json
 from pathlib import Path
 
 from generator.core.tsl_generator import TSLGenerator
 from generator.utils.dict_utils import dict_update
 from generator.utils.yaml_utils import yaml_load
+from generator.utils.file_utils import remove_path
 
 def get_config(config_path: Path) -> dict:
     return yaml_load(config_path)
@@ -26,7 +29,41 @@ if __name__ == '__main__':
     args_dict = parse_args(known_types = file_config["configuration"]["relevant_types"])
     tsl_setup(file_config, args_dict)
     gen = TSLGenerator()
-    gen.generate(args_dict["targets"])
+
+    if config.get_config_entry("clean"):
+        remove_path(config.generation_out_path)
+
+    if config.get_config_entry("daemon"):
+
+        try:
+            buff = ''
+            while True:
+                print("Ready", end='')
+                sys.stdout.flush()
+                for input in sys.stdin:
+                    targetDict = {}
+                    flags = None
+                    primitives = []
+                    try:
+                        targetDict = json.loads(input)
+                    except json.JSONDecodeError as err:
+                        print(f"Wrong parameter: {err.msg}", file=sys.stderr, end='')
+                        sys.stderr.flush()
+                        continue
+                    if "lscpu_flags" in targetDict:
+                        flags = targetDict["lscpu_flags"]
+                    if "primitives" in targetDict:
+                        primitives = targetDict["primitives"]
+                    remove_path(config.generation_out_path)
+                    gen.generate(flags, primitives)
+                    print("Done", end='')
+                    sys.stdout.flush()
+        except KeyboardInterrupt:
+            sys.stdout.flush()
+            exit(0)
+    else:
+        gen.generate(args_dict["targets"])
 
     print("Generation needed %.2f seconds." % (time.time() - st))
+
 
