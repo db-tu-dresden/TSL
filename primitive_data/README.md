@@ -200,6 +200,7 @@ default: [] <br />
 type: `str` <br />
 brief: A description of the SIMD extension which is used for doxygen generation. <br />
 default: todo. <br />
+recommended: True <br />
 
 
 </blockquote>
@@ -527,6 +528,7 @@ brief: Additional template parameter which may be used for conversion operations
 type: `str` <br />
 default: todo. <br />
 brief: Brief description of the primitive. <br />
+recommended: True <br />
 
 
 </blockquote>
@@ -677,6 +679,7 @@ brief: A flag indicating whether the definition is using a 1-to-1 mapping (True)
 type: `str` <br />
 default: "" <br />
 brief: Brief description of the primitive. <br />
+recommended: True <br />
 
 
 </blockquote>
@@ -714,6 +717,7 @@ brief: The size of a vector register for the specific extension in bits. (defaul
 </details>
 
 brief: A list of definitions for a specific primitive. <br />
+recommended: True <br />
 
 
 </blockquote>
@@ -730,6 +734,7 @@ brief: A list of definitions for a specific primitive. <br />
 type: `str` <br />
 default: todo. <br />
 brief: Detailed description of the primitive. <br />
+recommended: True <br />
 
 
 </blockquote>
@@ -887,6 +892,7 @@ default: "" <br />
 type: `str` <br />
 brief: A short description of the parameter. <br />
 default: todo. <br />
+recommended: True <br />
 
 
 </blockquote>
@@ -1076,6 +1082,7 @@ brief: Name of a specific test definition. <br />
 
 default: [] <br />
 brief: Testing code. <br />
+recommended: True <br />
 
 
 </blockquote>
