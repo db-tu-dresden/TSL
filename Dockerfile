@@ -23,7 +23,7 @@ RUN python3 -m pip install --upgrade pip
 RUN pip install ruff yamllint yamlfix
 RUN pip install -r /opt/py/requirements.txt
 
-RUN mkdir /tvlgen
+RUN mkdir /tslgen
 
 LABEL org.opencontainers.image.source=https://github.com/db-tu-dresden/TVLGen
 LABEL org.opencontainers.image.description="TSLGenerator Image"
