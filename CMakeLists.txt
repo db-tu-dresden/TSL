@@ -91,3 +91,5 @@ execute_process(
 
 # run the CMakeLists.txt created by the generator
 add_subdirectory("${GENERATOR_OUTPUT_PATH}" "${GENERATOR_OUTPUT_PATH}/build")
+
+set(TSL_INCLUDE ${GENERATOR_OUTPUT_PATH}/include PARENT_SCOPE)
