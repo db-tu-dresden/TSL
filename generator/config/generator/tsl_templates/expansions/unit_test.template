@@ -7,8 +7,6 @@
       CHECK(test_{{ case['primitive_name'] }}_{{ case['test_name'] }}<simd<{{ ctype }}, {{ extension }}>>());
 {% endif %}
 {%- endmacro -%}
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
 
 namespace {{ tsl_namespace }} {
   {% for primitive_class_test in tests %}

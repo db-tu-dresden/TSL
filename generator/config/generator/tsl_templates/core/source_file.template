@@ -1,5 +1,10 @@
 {{ tsl_license }}
 {{ tsl_file_doxygen }}
+
+{% for preliminary_define in preliminary_defines %}
+{{preliminary_define}}
+{% endfor %}
+
 {% for include in includes %}
 #include {{ include }}
 {% endfor %}

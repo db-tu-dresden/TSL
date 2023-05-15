@@ -6,6 +6,10 @@
 #ifndef {{ tsl_include_guard }}
 #define {{ tsl_include_guard }}
 
+{% for preliminary_define in preliminary_defines %}
+{{preliminary_define}}
+{% endfor %}
+
 {% for include in includes %}
 #include {{ include }}
 {% endfor %}
