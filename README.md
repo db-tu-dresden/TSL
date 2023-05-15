@@ -131,6 +131,7 @@ user@host:~/tslroot  cmake --version
 # install pip
 user@host:~/tslroot  python3 -m pip install --upgrade pip
 ~~~
+> **Note:** If you don't have root access on your machine and you can't install graphviz-dev, please delete "pygraphviz" from the requirements.txt and pass the "--no-draw-test-dependencies" to the generator whenever you use it.
 
 As the next step, install all Python dependencies, for instance, using pip:
 
