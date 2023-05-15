@@ -182,7 +182,6 @@ primitive_specialization_optionals: &primitive_specialization_optionals
       type: "str"
       default: ""
       brief: "Brief description of the primitive."
-      recommended: true
    additional_simd_template_base_type:
       type: "list"
       entry_type: "str"
