@@ -517,20 +517,23 @@ class TSLTestGenerator:
                 tsltestgenerator.log(logging.WARN,
                                     f"Could not download the necessary test header file. Check your network connection. {e}")
 
-        tests: List[TSLPrimitiveClassTests] = []
+        tests: Dict[str,List[TSLPrimitiveClassTests]] = dict()
         primitive_class: TSLPrimitiveClassTests = None
         primitive_test: TSLPrimitiveTest = None
         declaration_dict: Dict[Dict[str, TSLPrimitive.Declaration]] = lib.primitive_class_set.get_declaration_dict()
 
-        test_source_file: TSLSourceFile = TSLSourceFile.create_from_dict(
-            root_path.joinpath("unit_test.cpp"),
-            {
-                "description": "Unit test file for TSL Primitives using Catch2",
-                "nested_namespaces": [unit_test_config["namespace"]]
-            }
-        )
-        test_source_file.add_include(f"<{strip_common_path_prefix(config.lib_root_header, config.lib_root_path)}>")
-
+        test_by_primitive_dict: Dict[str, TSLSourceFile] = dict()
+        for pClass in lib.primitive_class_set:
+            tests[pClass.name] = []
+            test_by_primitive_dict[pClass.name] = TSLSourceFile.create_from_dict(
+                root_path.joinpath(f"{pClass.name}_unit_test.cpp"),
+                {
+                    "description": "Unit test file for TSL Primitives using Catch2",
+                    "nested_namespaces": [unit_test_config["namespace"]]
+                }
+            )
+            test_by_primitive_dict[pClass.name].add_include(f"<{strip_common_path_prefix(config.lib_root_header, config.lib_root_path)}>")
+        
         for static_yaml_file_path in config.static_expansion_files("unit_tests"):
             # print(static_yaml_file_path)
             # print(unit_test_config["static_files"]["root_path"])
@@ -547,8 +550,15 @@ class TSLTestGenerator:
                     tsl_file.add_code(implementation)
 
             tsl_file.render_to_file()
-            test_source_file.add_file_include(tsl_file)
 
+            catch_includer_path = root_path.joinpath("catch_manager.cpp")
+            catch2_includer: TSLSourceFile = TSLSourceFile.create_from_dict(catch_includer_path, {"preliminary_defines": [
+                "#ifndef CATCH_CONFIG_MAIN\n#define CATCH_CONFIG_MAIN\n#endif"], "includes": ['"catch.hpp"']})
+            catch2_includer.render_to_file()
+            tsltu.add_header(catch2_includer)
+
+            for prim, tsf in test_by_primitive_dict.items():
+                tsf.add_file_include(tsl_file)
 
         for test_data in dependency_graph.get_case_data_topological_order():
             case: TSLPrimitiveTestCase = TSLPrimitiveTestCase(test_data)
@@ -560,7 +570,7 @@ class TSLTestGenerator:
             else:
                 if primitive_class.primitive_class_name != case.associated_primitive_class_name:
                     primitive_class.add_primitive_test(primitive_test)
-                    tests.append(primitive_class)
+                    tests[primitive_class.primitive_class_name].append(primitive_class)
                     primitive_class = TSLPrimitiveClassTests(case.associated_primitive_class_name)
                     primitive_test = TSLPrimitiveTest(case.associated_primitive_name,
                                                       declaration_dict[case.associated_primitive_class_name][
@@ -571,24 +581,25 @@ class TSLTestGenerator:
                                                       declaration_dict[case.associated_primitive_class_name][
                                                           case.associated_primitive_name])
             primitive_test.add_case(case)
-            test_source_file.import_includes(case.data_dict)
+            test_by_primitive_dict[primitive_class.primitive_class_name].import_includes(case.data_dict)
         if primitive_class is not None:
             primitive_class.add_primitive_test(primitive_test)
-            tests.append(primitive_class)
+            tests[primitive_class.primitive_class_name].append(primitive_class)
 
-        test_source_file.add_code(
-            config.get_template("expansions::unit_test").render(
-                {
-                    "tsl_namespace": config.lib_namespace,
-                    "known_extensions": lib.extension_set.known_extensions,
-                    "known_ctypes": lib.primitive_class_set.known_ctypes,
-                    "tests": [test.as_dict() for test in tests],
-                    "nested_namespaces": [unit_test_config["namespace"]]
-                }
-            )
-        )
-        test_source_file.render_to_file()
-        tsltu.add_source(test_source_file)
+        for prim, tsf in test_by_primitive_dict.items():
+            if tests[prim]:
+                tsf.add_code(
+                    config.get_template("expansions::unit_test").render(
+                        {
+                            "tsl_namespace": config.lib_namespace,
+                            "known_extensions": lib.extension_set.known_extensions,
+                            "known_ctypes": lib.primitive_class_set.known_ctypes,
+                            "tests": [test.as_dict() for test in tests[prim]],
+                            "nested_namespaces": [unit_test_config["namespace"]]
+                        }
+                    )
+                )
+                tsf.render_to_file()
+                tsltu.add_source(tsf)
 
         yield root_path, tsltu
-

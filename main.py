@@ -34,9 +34,7 @@ if __name__ == '__main__':
         remove_path(config.generation_out_path)
 
     if config.get_config_entry("daemon"):
-
         try:
-            buff = ''
             while True:
                 print("Ready", end='')
                 sys.stdout.flush()

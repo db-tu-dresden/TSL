@@ -11,6 +11,7 @@ includes:
    - "<utility>"
    - "<type_traits>"
    - "<limits>"
+   - '"catch.hpp"'
 implementations:
    - |
       template<typename T>
