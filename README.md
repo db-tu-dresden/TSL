@@ -188,6 +188,7 @@ project
       |
       +--+primitive_data
 ```
+
 In the given scenario, `./libs` contains third-party library code, and `./tools` contains third-party tools and scripts. 
 The TSL generator was added as git _submodule_, _subtree_ or simply as a _sub repository_ to `./tools/tsl`.
 As you may have noticed, in the top-level directory of the TSL Generator, there is a _tsl.cmake_ file. 
@@ -223,6 +224,20 @@ create_tsl(
   [<GENERATOR_OPTIONS>      <item STRING>...] # = UNDEFINED
 )
 ~~~
+<details>
+<summary><b>Parameters</b></summary>
+
+> _Options:_<br>
+> `WORKAROUND_WARNINGS`: Control, whether warnings should be emitted, if a primitive is used, that is not directly backed up by the hardware.<br>
+> `USE_CONCEPTS`: By default, the TSL generator will determine whether C++20-concepts are supported by your compiler. However, if you want to disable them, you can use this flag.<br>
+> `CREATE_TESTS`: The TSL contains test-cases for many of the provided primitives. If you want the tests to be generated and build, set the value to TRUE.<br>
+> _Single-Value Parameters:_<br>
+> `TSLGENERATOR_DIRECTORY`: By default, the TSL generator is searched from the current source dir. However, to avoid any confusion we highly recommend to set this parameter to point to the actual TSL-Generator root folder (which contains the TSL-Generator _main.py_).<br>
+> `DESTINATION`: By default, the TSL generator will emit the TSL into the cmake build directory in a sub-folder called _generator_output_. If you want to "persist" the generated TSL, you should set the value to a directory outside of the build directory.<br>
+> _List Parameters:_<br>
+
+</details>
+
 
 When you call cmake in your project root, the `./tools/tsl/CMakeLists.txt` will be invoked. 
 This identifies your hardware's capabilities and generates a tailored TSL that will be accessible from your files. 
