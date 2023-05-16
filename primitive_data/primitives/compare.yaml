@@ -824,3 +824,93 @@ definitions:
     lscpu_flags: []
     implementation: "return (vec_a >= vec_b);"
 ...
+---
+primitive_name: "unequal_zero" 
+brief_description: "Checks if the vector register contains at least one value unequal zero."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec"
+     description: "Operating Vector"
+returns:
+   ctype: "bool"
+   description: "Result indicating if the vector register contains at least one value unequal to zero."
+testing:
+   - test_name: "with_only_zero"
+     requires: ["set1", "loadu", "storeu"]
+     includes: ["<cstddef>"]
+     implementation: |
+        using T = typename Vec::base_type;
+        testing::test_memory_helper_t<Vec> test_helper{1, false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto vec = set1<Vec>(0);
+        *reference_result_ptr = 0;
+        *test_result_ptr = unequal_zero<Vec>(vec);
+        test_helper.synchronize();
+        return test_helper.validate();
+   - test_name: "with_only_one"
+     requires: ["set1", "loadu", "storeu"]
+     includes: ["<cstddef>"]
+     implementation: |
+        using T = typename Vec::base_type;
+        testing::test_memory_helper_t<Vec> test_helper{1, false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto vec = set1<Vec>(1);
+        *reference_result_ptr = 1;
+        *test_result_ptr = unequal_zero<Vec>(vec);
+        test_helper.synchronize();
+        return test_helper.validate();
+   - test_name: "with_sequence"
+     requires: ["sequence", "loadu", "storeu"]
+     includes: ["<cstddef>"]
+     implementation: |
+        using T = typename Vec::base_type;
+        testing::test_memory_helper_t<Vec> test_helper{1, false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto vec = sequence<Vec>();
+        *reference_result_ptr = (bool) (Vec::vector_element_count() - 1);
+        *test_result_ptr = unequal_zero<Vec>(vec);
+        test_helper.synchronize();
+        return test_helper.validate();
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+     lscpu_flags: ['avx512bw']
+     implementation: return ~(_mm512_cmpeq_epi{{intrin_tp[ctype][1]}}_mask(vec, _mm512_setzero_si512()));
+   - target_extension: "avx512"
+     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
+     lscpu_flags: ['avx512f']
+     implementation: return ~(_mm512_cmpeq_epi{{intrin_tp[ctype][1]}}_mask(vec, _mm512_setzero_si512())) & 0x1;
+   - target_extension: "avx512"
+     ctype: ["float", "double"]
+     lscpu_flags: ['avx512f', 'avx512bw']
+     implementation: return (_mm512_cmp_{{intrin_tp_full[ctype]}}_mask(vec, _mm512_setzero_{{intrin_tp_full[ctype]}}(), _CMP_NEQ_OQ) != 0);
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+     lscpu_flags: ['avx2']
+     implementation: return (_mm256_testz_si256(vec,vec) == 0);
+   - target_extension: "avx2"
+     ctype: ["float", "double"]
+     lscpu_flags: ['avx2']
+     implementation: return (_mm256_movemask_{{intrin_tp_full[ctype]}}(_mm256_cmp_{{intrin_tp_full[ctype]}}(vec, _mm256_setzero_{{intrin_tp_full[ctype]}}(), _CMP_NEQ_UQ)) != 0);
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: [ "float", "double" ]
+     lscpu_flags: [ 'sse2' ]
+     implementation: return (_mm_movemask_{{intrin_tp_full[ctype]}}(_mm_cmpneq_{{intrin_tp_full[ctype]}}(vec, _mm_setzero_{{intrin_tp_full[ctype]}}())) != 0);
+   - target_extension: "sse"
+     ctype: ["uint16_t", "int16_t", "uint32_t", "int32_t", "uint8_t", "int8_t", "uint64_t", "int64_t"]
+     lscpu_flags: ['sse4_1']
+     implementation: return (_mm_testz_si128(vec, vec) == 0);
+#SCALAR
+   - target_extension: "scalar"
+     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+     lscpu_flags: [ ]
+     implementation: "return (bool)vec;"
+#ARM - NEON
+#INTEL - FPGA
+...

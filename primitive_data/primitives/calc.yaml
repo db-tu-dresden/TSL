@@ -710,17 +710,1472 @@ definitions:
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ ]
     implementation: "return value;"
+...
 ---
-primitive_name: "lzc"
-brief_description: "Leading zeros counter."
+primitive_name: "min"
+brief_description: "compares the values of 2 vectors and returns a vector with the minimum of each corrisponding values"
 parameters:
-  - ctype: "const typename Vec::register_type"
-    name: "vec_a"
-    description: "First vector."
+    - ctype: "const typename Vec::register_type"
+      name: "vec_a"
+      description: "First vector"
+    - ctype: "const typename Vec::register_type"
+      name: "vec_b"
+      description: "Second vector"
+returns:
+    ctype: "typename Vec::register_type"
+    description: "Vector containing result of the comparison"
+testing: 
+  - test_name: "min_general_case"
+    requires: ["set1", "loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+        using T = typename Vec::base_type;
+        const std::size_t element_count = 2048;
+        testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+        bool allOk = true;
+        auto reference_data_ptr = test_helper.data_ref();
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_data_ptr = test_helper.data_target();
+        auto test_result_ptr = test_helper.result_target();
+        auto vec = set1<Vec>(0);
+        for(std::size_t i = 0; i < element_count / 2; i += Vec::vector_element_count()){
+          std::size_t tester_idx = 0;
+          for(size_t j = i; j < i + Vec::vector_element_count(); j++){  
+            if(reference_data_ptr[j] < reference_data_ptr[j + (element_count/2)]){
+              reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+            } else {
+              reference_result_ptr[tester_idx++] = reference_data_ptr[j + (element_count/2)];
+            } 
+          }
+          auto elements_vec1 = loadu<Vec>(&test_data_ptr[i]);
+          auto elements_vec2 = loadu<Vec>(&test_data_ptr[i + (element_count/2)]);
+          vec = min<Vec>(elements_vec1, elements_vec2);
+          storeu<Vec>(test_result_ptr, vec);
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
+        }
+        return allOk;
+  - test_name: "min_zero_case"
+    requires: ["set1", "loadu", "storeu"]
+    includes: ["<cstddef>"]
+    implementation: |
+        using T = typename Vec::base_type;
+        std::size_t element_count = 1024;
+        testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+        bool allOk = true;
+        auto reference_data_ptr = test_helper.data_ref();
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_data_ptr = test_helper.data_target();
+        auto test_result_ptr = test_helper.result_target();
+        for(std::size_t i = 0; i < element_count; i += Vec::vector_element_count()){
+          auto vec = set1<Vec>(0);
+          storeu<Vec>(reference_result_ptr, vec);
+          auto elements_vec = loadu<Vec>(&test_data_ptr[i]);
+          vec = min<Vec>(vec, elements_vec);
+          storeu<Vec>(test_result_ptr, vec);
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
+        }
+        return allOk;
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    specialization_comment: "Signed Min"
+    implementation: "return _mm512_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t"]
+    lscpu_flags: ['avx2']
+    specialization_comment: "Signed & unsigned Min"
+    implementation: "return _mm256_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx']
+    implementation: "return _mm256_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["int64_t", "uint64_t"]
+    lscpu_flags: ['avx2']
+    specialization_comment: "Takes a mask to check the smaller value of each Vector and takes that mask to get the smaller value of either vec_a or vec_b"
+    is_native: False
+    implementation: |
+      typename Vec::register_type mask = _mm256_cmpgt_epi64(vec_a, vec_b);
+      return _mm256_blendv_epi8(vec_a, vec_b, mask);
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ['sse']
+    implementation: "return _mm_min_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int16_t", "double"]
+    lscpu_flags: ['sse2']
+    implementation: "return _mm_min_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint16_t", "uint32_t", "int32_t"]
+    lscpu_flags: ['sse4_1']
+    implementation: "return _mm_min_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+#ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t" , "int8_t", "int32_t", "double", "float"]
+    lscpu_flags: ['neon']
+    implementation: "return vminq_{{intrin_tp_full[ctype]}}(vec_a, vec_b);" #What about 64-Bit
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    includes: []
+    implementation: |
+        if (vec_a > vec_b) return vec_b;
+        return vec_a;
+#INTEL - FPGA
+...
+---
+primitive_name: "div" #TODO: TestCase without divide by zero case
+brief_description: "Divides two vector registers."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec_a"
+     description: "First vector."
+   - ctype: "const typename Vec::register_type"
+     name: "vec_b"
+     description: "Second vector."
 returns:
    ctype: "typename Vec::register_type"
-   description: "Vector containing leading zeros number."
+   description: "Vector containing result of the division."
+testing:
+  - test_name: "div_divide_vec_with_itself"
+    requires: ["loadu", "storeu", "set1"]
+    includes: ["<cstddef>", "<iostream>", "<algorithm>", "<limits>"]
+    implementation: |
+      using T = typename Vec::base_type;      
+      std::size_t element_count = 0;
+      if constexpr(std::is_integral_v<T>) {
+        element_count = std::clamp<size_t>(std::numeric_limits<T>::max()-1, 1, 1024);
+      } else {
+        element_count = 1024;
+      }
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::seq_init<T>, 1};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        auto vec = set1<Vec>(1);
+        storeu<Vec>(reference_result_ptr, vec);
+        std::cout << "TestData: " << (size_t)test_data_ptr[i] << "("<< type_name < Vec > () << ")" << "\n";
+        auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+        vec = div<Vec>(vec_a, vec_a);
+        storeu<Vec>(test_result_ptr, vec);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "div_divide_vec_with_one"
+    requires: ["loadu", "storeu", "set1"]
+    includes: ["<cstddef>", "<algorithm>", "<limits>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 0;
+      if constexpr(std::is_integral_v<T>) {
+        element_count = std::clamp<size_t>(std::numeric_limits<T>::max()-1, 1, 1024);
+      } else {
+        element_count = 1024;
+      }
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::seq_init<T>, 1};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        std::size_t tester_idx = 0;
+        for(size_t j=i; j < i + Vec::vector_element_count(); j++){
+          reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+        }
+        auto vec = set1<Vec>(1);
+        auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+        auto vec_result = div<Vec>(vec_a, vec);
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_div_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    includes: ["<array>", "<cstddef>"]
+    implementation: |
+          alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+          alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+          _mm512_store_si512(reinterpret_cast<void*>(buffer_a.data()), vec_a);
+          _mm512_store_si512(reinterpret_cast<void*>(buffer_b.data()), vec_b);
+          for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+            buffer_a[i] /= buffer_b[i];
+          }
+          return _mm512_load_si512(reinterpret_cast<void const *>(buffer_a.data()));
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx']
+    implementation: "return _mm256_div_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ['avx']
+    is_native: False
+    includes: ["<array>", "<cstddef>"]
+    implementation: |
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+        _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_a.data()), vec_a);
+        _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_b.data()), vec_b);
+        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+           buffer_a[i] /= buffer_b[i];
+        }
+        return _mm256_load_si256(reinterpret_cast<__m256i const *>(buffer_a.data()));
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ['sse']
+    implementation: "return _mm_div_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ['sse2']
+    is_native: False
+    includes: ["<array>", "<cstddef>"]
+    implementation: |
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+        _mm_store_si128(reinterpret_cast<__m128i*>(buffer_a.data()), vec_a);
+        _mm_store_si128(reinterpret_cast<__m128i*>(buffer_b.data()), vec_b);
+        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+           buffer_a[i] /= buffer_b[i];
+        }
+        return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
+#ARM - NEON - TODO: other bits
+  - target_extension: "neon"
+    ctype: ["float", "double"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vdivq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );"
+  - target_extension: "neon"
+    ctype: ["uint64_t"]
+    lscpu_flags: ['neon']
+    implementation: |
+      typename Vec::register_type recipocal_estimate = vshrq_n_u64(vdupq_n_u64(0xFFFFFFFFFFFFFFFF), vclzq_u64(vec_b));
+      recipocal_estimate = vmulq_u64(recipocal_estimate, vsubq_u64(vdupq_n_u64(2), vmulq_u64(vec_b, recipocal_estimate)));
+      typename Vec::register_type temp = vmulq_u64(vec_a, recipocal_estimate);
+      temp = vqrdmulhq_u64(temp, vec_b);
+      return temp;
+  - target_extension: "neon"
+    ctype: ["uint32_t"]
+    lscpu_flags: ['neon']
+    is_native: False
+    implementation: |      
+      typename Vec::register_type temp = vrecpe_{{intrin_tp_full[ctype]}}(vec_b);
+      temp = vmulq_{{intrin_tp_full[ctype]}}(temp, vrecpsq_{{intrin_tp_full[ctype]}}(vec_b, temp));
+      return vmulq_{{intrin_tp_full[ctype]}}(vec_a, temp);
+  - target_extension: "neon"
+    ctype: ["uint16_t"]
+    lscpu_flags: ['neon']
+    is_native: False
+    implementation: return vdivq_u16(vec_a, vdupq_n_u16(vec_b));
+  - target_extension: "neon"
+    ctype: ["uint8_t"]
+    lscpu_flags: ['neon']
+    is_native: False
+    implementation: |
+      typename Vec::register_type temp = vmol_u8(vec_a);
+      temp = vmulq_n_u16(temp, 0x100);
+      typename Vec::register_type result = vqrdmulhq_u8(temp, vec_b);
+      result = vshrn_n_u16(result, 8);
+      return result;
+#SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ ]
+    implementation: return vec_a / vec_b;
+#INTEL - FPGA
+...
+---
+primitive_name: "hor"
+brief_description: "Operates horizontal OR on vector register"
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec"
+     description: "Operating Vector"
+returns:
+   ctype: "typename Vec::base_type"
+   description: "Result of the horizontal OR"
+testing:
+  - test_name: "with_only_zero"
+    requires: ["set1", "loadu", "storeu"]
+    includes: ["<cstddef>"]
+    implementation: |
+        using T = typename Vec::base_type;
+        testing::test_memory_helper_t<Vec> test_helper{1, false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto vec = set1<Vec>(0);
+        *reference_result_ptr = 0;
+        *test_result_ptr = hor<Vec>(vec);
+        test_helper.synchronize();
+        return test_helper.validate();
+  - test_name: "with_only_one"
+    requires: ["set1", "loadu", "storeu"]
+    includes: ["<cstddef>"]
+    implementation: |
+        using T = typename Vec::base_type;
+        testing::test_memory_helper_t<Vec> test_helper{1, false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto vec = set1<Vec>(1);
+        *reference_result_ptr = 1;
+        *test_result_ptr = hor<Vec>(vec);
+        test_helper.synchronize();
+        return test_helper.validate();
+  - test_name: "with_rand_values"
+    requires: ["loadu", "storeu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count; i += Vec::vector_element_count()){
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
+          typename std::conditional<std::is_same_v<T, float>, int32_t, 
+          typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type result = 0;
+          union {
+              T val;
+              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
+            } u;
+          for(size_t j=i; j < i + Vec::vector_element_count(); j++){
+            u.val = reference_data_ptr[j];
+            result |= u.i_val;
+          }
+          u.val = hor<Vec>(vec);
+          allOk &= (result == u.i_val);
+        }
+        else{
+          std::size_t result = 0;
+          for(size_t j=i; j < i + Vec::vector_element_count(); j++){
+          result |= reference_data_ptr[j];
+          }
+          auto vec_result = hor<Vec>(vec);
+          * reference_result_ptr = result;
+          * test_result_ptr = vec_result;
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
+        }
+      }
+      return allOk;
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t"]
+    lscpu_flags: ['avx512dq']
+    implementation: |
+      uint32_t temp = _mm512_reduce_or_epi32(vec);
+      return (temp & 0xFF) | ((temp >> 8) & 0xFF) | ((temp >> 16) & 0xFF) | (temp >> 24);
+
+      /* Generated by ChatGPT
+      Vec::register_type temp = vec;
+      Vec::register_type permuted = _mm512_permutexvar_epi64(_mm512_set_epi64(7, 3, 6, 2, 5, 1, 4, 0), temp);
+      temp = _mm512_or_si512(temp, permuted);
+      Vec::register_type shuffled = _mm512_shuffle_i32x4(temp, temp, _MM_SHUFFLE(1, 0, 3, 2));
+      temp = _mm512_or_si512(temp, shuffled);
+      Vec::register_type shuf = _mm512_set_epi{{intrin_tp[ctype][1]}}(
+              56, 48, 40, 32, 24, 16, 8, 0,
+              56, 48, 40, 32, 24, 16, 8, 0,
+              56, 48, 40, 32, 24, 16, 8, 0,
+              56, 48, 40, 32, 24, 16, 8, 0,
+              56, 48, 40, 32, 24, 16, 8, 0,
+              56, 48, 40, 32, 24, 16, 8, 0,
+              56, 48, 40, 32, 24, 16, 8, 0,
+              56, 48, 40, 32, 24, 16, 8, 0
+      );
+      Vec::register_type shuf_result = _mm512_shuffle_epi8(temp, shuf);
+      Vec::register_type or_result = _mm512_or_si512(temp, shuf_result);
+      __m128i low = _mm512_castsi512_si128(or_result);
+      return _mm_extract_epi{{intrin_tp[ctype][1]}}(low, 0);*/
+  - target_extension: "avx512"
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: [ 'avx512dq' ]
+    implementation: |
+      uint32_t temp = _mm512_reduce_or_epi32(vec);
+      return (temp & 0xFFFF) | (temp >> 16);
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "int64_t", "uint64_t"]
+    lscpu_flags: [ 'avx512dq' ]
+    implementation: return _mm512_reduce_or_epi{{intrin_tp[ctype][1]}}(vec);
+  - target_extension: "avx512"
+    ctype: ["float"]
+    lscpu_flags: [ 'avx512dq' ]
+    implementation: |
+      union{
+        float val;
+        int32_t i_val;
+      }u;
+      u.i_val = _mm512_reduce_or_epi32(_mm512_castps_si512(vec));
+      return u.val;
+  - target_extension: "avx512"
+    ctype: ["double"]
+    lscpu_flags: [ 'avx512dq' ]
+    implementation: |
+      union{
+        double val;
+        int64_t i_val;
+      }u;
+      u.i_val = _mm512_reduce_or_epi64(_mm512_castpd_si512(vec));
+      return u.val;
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "int64_t", "uint64_t"]
+    lscpu_flags: [ 'avx2', 'sse2' ]
+    implementation: |
+      //to have all value types in one func, but doesnt work this way for some reason
+      __m128i temp = _mm_or_si128(_mm256_extracti128_si256(vec, 0), _mm256_extracti128_si256(vec, 1));
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 8));
+      {% if ctype != "int64_t" and ctype != "uint64_t" %}
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 4));
+      {% endif %}
+      {% if ctype == "int16_t" or ctype == "uint16_t" %}
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 2));
+      {% endif %}
+      {% if ctype == "int8_t" or ctype == "uint8_t" %}
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 2));
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 1));
+      {% endif %}
+      return _mm_extract_epi{{intrin_tp[ctype][1]}}(temp, 0);
+  - target_extension: "avx2"
+    ctype: ["float"]
+    lscpu_flags: [ 'avx2', 'sse2' ]
+    implementation: |
+      __m256i as_int = _mm256_castps_si256(vec);  //convert to int
+      __m128i temp = _mm_or_si128(_mm256_extracti128_si256(as_int, 0), _mm256_extracti128_si256(as_int, 1));
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 8));
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 4));
+      __m128 as_float = _mm_castsi128_ps(temp);
+      return _mm_cvtss_f32(as_float);
+  - target_extension: "avx2"
+    ctype: ["double"]
+    lscpu_flags: [ 'avx2', 'sse2' ]
+    implementation: |
+      __m256i as_int = _mm256_castpd_si256(vec);  //convert to int
+      __m128i temp = _mm_or_si128(_mm256_extracti128_si256(as_int, 0), _mm256_extracti128_si256(as_int, 1));
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 8));
+      __m128d as_double = _mm_castsi128_pd(temp);
+      return _mm_cvtsd_f64(as_double);
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "uint8_t", "int8_t"]
+    lscpu_flags: [ 'sse2' ]
+    implementation: |
+        // Reduce Lanes dependend on datatype 
+        Vec::register_type temp = _mm_or_si128(vec, _mm_srli_si128(vec, 8));
+        {% if ctype != "int64_t" and ctype != "uint64_t" %}
+        temp = _mm_or_si128(temp, _mm_srli_si128(temp, 4));
+        {% endif %}
+        {% if ctype == "int16_t" or ctype == "uint16_t" %}
+        temp = _mm_or_si128(temp, _mm_srli_si128(temp, 2));
+        {% endif %}
+        {% if ctype == "int8_t" or ctype == "uint8_t" %}
+        temp = _mm_or_si128(temp, _mm_srli_si128(temp, 2));
+        temp = _mm_or_si128(temp, _mm_srli_si128(temp, 1));
+        {% endif %}
+        return _mm_extract_epi{{intrin_tp[ctype][1]}}(temp, 0);
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ['sse2']
+    implementation: |
+      __m128i temp = _mm_castps_si128(vec);  //convert to int
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 8));
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 4));
+      __m128 as_float = _mm_castsi128_ps(temp);
+      return _mm_cvtss_f32(as_float);      
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: [ 'sse2' ]
+    implementation: |
+      __m128i temp = _mm_castpd_si128(vec);  //convert to int
+      temp = _mm_or_si128(temp, _mm_srli_si128(temp, 8));
+      __m128d as_double = _mm_castsi128_pd(temp);
+      return _mm_cvtsd_f64(as_double);
+#SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: [ ]
+    implementation: "return vec;"
+#ARM - NEON
+#INTEL - FPGA
+...
+---
+primitive_name: "inv"
+brief_description: "Bitwise invertion values in vector Register."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec"
+     description: "Operating Vector"
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Result of the invertion."
+testing:
+  - test_name: "with_only_zero"
+    requires: ["set1", "loadu", "storeu"]
+    includes: ["<cstddef>","<algorithm>", "<limits>"]
+    implementation: |
+        using T = typename Vec::base_type;
+        testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto vec = set1<Vec>(0);
+        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
+          T data[Vec::vector_element_count()];
+          storeu<Vec>(data, vec);
+          storeu<Vec>(test_result_ptr, inv<Vec>(vec));
+          for(int i = 0; i < Vec::vector_element_count(); i ++){
+            union {
+              T f_val;
+              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
+            } u;
+            u.f_val = test_result_ptr[i];
+            union {
+              T f_val;
+              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
+            } v;
+            v.f_val = data[i];
+            v.i_val = ~v.i_val;
+            return (u.i_val == v.i_val);
+          }
+        }
+        else{
+          storeu<Vec>(reference_result_ptr, ~vec);
+          storeu<Vec>(test_result_ptr, inv<Vec>(vec));
+          test_helper.synchronize();
+          return test_helper.validate();
+        }
+  - test_name: "with_only_ones"
+    requires: ["set1", "loadu", "storeu"]
+    includes: ["<cstddef>", "<algorithm>", "<limits>"]
+    implementation: |
+        using T = typename Vec::base_type;
+        testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto vec = set1<Vec>(~0);
+        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
+          T data[Vec::vector_element_count()];
+          storeu<Vec>(data, vec);
+          storeu<Vec>(test_result_ptr, inv<Vec>(vec));
+          for(int i = 0; i < Vec::vector_element_count(); i ++){
+            union {
+              T f_val;
+              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
+            } u;
+            u.f_val = test_result_ptr[i];
+            union {
+              T f_val;
+              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
+            } v;
+            v.f_val = data[i];
+            v.i_val = ~v.i_val;
+            return (u.i_val == v.i_val);
+          }
+        }
+        else{
+          storeu<Vec>(reference_result_ptr, ~vec);
+          storeu<Vec>(test_result_ptr, inv<Vec>(vec));
+          test_helper.synchronize();
+          return test_helper.validate();
+        }
+  - test_name: "with_rand_values"
+    requires: ["loadu", "storeu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count; i += Vec::vector_element_count()){
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
+          T data[Vec::vector_element_count()];
+          storeu<Vec>(data, vec);
+          storeu<Vec>(test_result_ptr, inv<Vec>(vec));
+          for(int i = 0; i < Vec::vector_element_count(); i ++){
+            typename std::conditional<std::is_same_v<T, float>, int32_t, 
+            typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type test_i_val = 0;
+            union {
+              T val;
+              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
+            } u;
+            u.val = test_result_ptr[i];
+            test_i_val = u.i_val;
+
+            u.val = data[i];
+            allOk &= (~u.i_val == test_i_val);
+          }
+        }
+        else{
+          storeu<Vec>(reference_result_ptr, ~vec);
+          storeu<Vec>(test_result_ptr, inv<Vec>(vec));
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
+        }
+      }
+      return allOk;
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "uint8_t", "int8_t"]
+    lscpu_flags: [ 'avx512f' ]
+    implementation: |
+      Vec::register_type all_ones = _mm512_set1_epi32(-1);
+      return _mm512_xor_epi32(vec, all_ones);
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: [ 'avx512f' ]
+    implementation: |
+      __m512i all_ones = _mm512_set1_epi32(-1);
+      __m512i as_int = _mm512_cast{{intrin_tp_full[ctype]}}_si512(vec);
+      return _mm512_castsi512_{{intrin_tp_full[ctype]}}(_mm512_xor_epi32(as_int, all_ones));
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "uint8_t", "int8_t"]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      Vec::register_type all_ones = _mm256_set1_epi32(-1);
+      return _mm256_xor_si256(vec, all_ones);
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      __m256i all_ones = _mm256_set1_epi32(-1);
+      __m256i as_int = _mm256_cast{{intrin_tp_full[ctype]}}_si256(vec);
+      return _mm256_castsi256_{{intrin_tp_full[ctype]}}(_mm256_xor_si256(as_int, all_ones));
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "uint8_t", "int8_t"]
+    lscpu_flags: [ 'sse2' ]
+    implementation: |
+      Vec::register_type all_ones = _mm_set1_epi32(-1);
+      return _mm_xor_si128(vec, all_ones);
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: [ 'sse2' ]
+    implementation: |
+      __m128i all_ones = _mm_set1_epi32(-1);
+      __m128i as_int = _mm_cast{{intrin_tp_full[ctype]}}_si128(vec);
+      return _mm_castsi128_{{intrin_tp_full[ctype]}}(_mm_xor_si128(as_int, all_ones));
+#SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ ]
+    implementation: "return ~vec;"
+  - target_extension: "scalar"
+    ctype: [ "float", "double" ]
+    lscpu_flags: [ ]
+    implementation: |
+      {% if ctype == "float" %}
+      union {
+        float val;
+        int32_t i_val;
+      } u;
+      {% else %}
+      union {
+        double val;
+        int64_t i_val;
+      } u;
+      {% endif %}
+      u.val = vec;
+      u.i_val = ~u.i_val;
+      return u.val;
+...
+---
+primitive_name: "lzc"  #TODO: 2er Komplement zu einem neuen Primitiv machen
+brief_description: "Counts leading zeroes of the vector register values"
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec"
+     description: "Operating Vector"
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Result of the count"
+testing:
+  - test_name: "with_only_zero"
+    requires: ["set1", "loadu", "storeu"]
+    includes: ["<cstddef>","<algorithm>", "<limits>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using IntType = std::conditional_t<std::is_same_v<T, float>, int32_t, std::conditional_t<std::is_same_v<T, double>, int64_t, T>>;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(0);
+      IntType data[Vec::vector_element_count()];
+      if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
+        T data_fl [Vec::vector_element_count()];
+        storeu<Vec>(data_fl, vec);
+        union {
+          T val;
+          IntType i_val;
+        }u;
+        for(int i = 0; i < Vec::vector_element_count(); i++){
+          u.val = data_fl[i];
+          data[i] = u.i_val;
+        }
+      }else{
+        storeu<Vec>(data, vec);
+      }
+      for(int val = 0; val < Vec::vector_element_count(); val++){
+        int leading_zeroes = 0;
+        const int num_bits = std::numeric_limits<IntType>::digits + std::is_signed<IntType>::value;
+        IntType mask = IntType(1) << (num_bits - 1);
+
+        // If the input value is negative, find the absolute value
+        IntType abs = (data[val] < 0) ? -data[val] : data[val];
+
+        for(int i = 0; i < num_bits; i++){
+          if(abs & mask){
+            break;
+          }
+          leading_zeroes ++;
+          mask >>= 1;
+        }
+        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
+          union {
+          T val;
+          IntType i_val;
+          }u;
+          u.i_val = leading_zeroes;
+          reference_result_ptr[val] = u.val;
+        }else{
+          reference_result_ptr[val] = leading_zeroes;
+        }
+      }
+      storeu<Vec>(test_result_ptr, lzc<Vec>(vec));
+      test_helper.synchronize();
+      return test_helper.validate();
+  - test_name: "with_only_one"
+    requires: ["set1", "loadu", "storeu"]
+    includes: ["<cstddef>","<algorithm>", "<limits>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using IntType = std::conditional_t<std::is_same_v<T, float>, int32_t, std::conditional_t<std::is_same_v<T, double>, int64_t, T>>;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(-1);
+      IntType data[Vec::vector_element_count()];
+      if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
+        T data_fl [Vec::vector_element_count()];
+        storeu<Vec>(data_fl, vec);
+        union {
+          T val;
+          IntType i_val;
+        }u;
+        for(int i = 0; i < Vec::vector_element_count(); i++){
+          u.val = data_fl[i];
+          data[i] = u.i_val;
+        }
+      }else{
+        storeu<Vec>(data, vec);
+      }
+      for(int val = 0; val < Vec::vector_element_count(); val++){
+        int leading_zeroes = 0;
+        const int num_bits = std::numeric_limits<IntType>::digits + std::is_signed<IntType>::value;
+        IntType mask = IntType(1) << (num_bits - 1);
+
+        // If the input value is negative, find the absolute value
+        IntType abs = (data[val] < 0) ? -data[val] : data[val];
+
+        for(int i = 0; i < num_bits; i++){
+          if(abs & mask){
+            break;
+          }
+          leading_zeroes ++;
+          mask >>= 1;
+        }
+        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
+          union {
+          T val;
+          IntType i_val;
+          }u;
+          u.i_val = leading_zeroes;
+          reference_result_ptr[val] = u.val;
+        }else{
+          reference_result_ptr[val] = leading_zeroes;
+        }
+      }
+      storeu<Vec>(test_result_ptr, lzc<Vec>(vec));
+      test_helper.synchronize();
+      return test_helper.validate();
+  - test_name: "with_rand_values"
+    requires: ["loadu", "storeu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using IntType = std::conditional_t<std::is_same_v<T, float>, int32_t, std::conditional_t<std::is_same_v<T, double>, int64_t, T>>;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < (element_count - Vec::vector_element_count()); i += Vec::vector_element_count()){  
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        IntType data[Vec::vector_element_count()];
+        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
+          T data_fl [Vec::vector_element_count()];
+          storeu<Vec>(data_fl, vec);
+          union {
+            T val;
+            IntType i_val;
+          }u;
+          for(int i = 0; i < Vec::vector_element_count(); i++){
+            u.val = data_fl[i];
+            data[i] = u.i_val;
+          }
+        }else{
+          storeu<Vec>(data, vec);
+        }
+        for(int val = 0; val < Vec::vector_element_count(); val++){
+          int leading_zeroes = 0;
+          const int num_bits = std::numeric_limits<IntType>::digits + std::is_signed<IntType>::value;
+          IntType mask = IntType(1) << (num_bits - 1);
+
+          // If the input value is negative, find the absolute value
+          IntType abs = (data[val] < 0) ? -data[val] : data[val];
+
+          for(int i = 0; i < num_bits; i++){
+            if(abs & mask){
+              break;
+            }
+            leading_zeroes ++;
+            mask >>= 1;
+          }
+          if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
+            union {
+            T val;
+            IntType i_val;
+            }u;
+            u.i_val = leading_zeroes;
+            reference_result_ptr[val] = u.val;
+          }else{
+            reference_result_ptr[val] = leading_zeroes;
+          }
+        }
+        storeu<Vec>(test_result_ptr, lzc<Vec>(vec));
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+definitions:
+# INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: [ "uint8_t", "int8_t" ]
+    lscpu_flags: [ 'avx512f']
+    implementation: |
+      Vec::register_type temp = vec;
+      {% if ctype == "int8_t" %}
+      __m512i sign_bit = _mm512_set1_epi{{intrin_tp[ctype][1]}}(0x80);
+      __mmask64 is_negative = _mm512_cmpgt_epi{{intrin_tp[ctype][1]}}_mask(_mm512_setzero_si512(), temp);
+      temp = _mm512_xor_si512(temp, _mm512_maskz_set1_epi{{intrin_tp[ctype][1]}}(is_negative, -1));
+      temp = _mm512_add_epi{{intrin_tp[ctype][1]}}(temp, _mm512_maskz_set1_epi{{intrin_tp[ctype][1]}}(is_negative, 1));
+      {% endif %}
+
+      // Zero-extend the 8-bit values to 32-bit values
+      __m128i quarter0 = _mm512_extracti32x4_epi32(temp, 0);
+      __m128i quarter1 = _mm512_extracti32x4_epi32(temp, 1);
+      __m128i quarter2 = _mm512_extracti32x4_epi32(temp, 2);
+      __m128i quarter3 = _mm512_extracti32x4_epi32(temp, 3);
+
+      __m512i extended_quarter0 = _mm512_cvtepu8_epi32(quarter0);
+      __m512i extended_quarter1 = _mm512_cvtepu8_epi32(quarter1);
+      __m512i extended_quarter2 = _mm512_cvtepu8_epi32(quarter2);
+      __m512i extended_quarter3 = _mm512_cvtepu8_epi32(quarter3);
+
+      // Count the leading zeroes for each 32-bit value
+      __m512i lzcnt_quarter0 = _mm512_lzcnt_epi32(extended_quarter0);
+      __m512i lzcnt_quarter1 = _mm512_lzcnt_epi32(extended_quarter1);
+      __m512i lzcnt_quarter2 = _mm512_lzcnt_epi32(extended_quarter2);
+      __m512i lzcnt_quarter3 = _mm512_lzcnt_epi32(extended_quarter3);
+
+      // Subtract 24 from each count to account for the zero-extended bits
+      __m512i correction = _mm512_set1_epi32(24);
+      __m512i corrected_quarter0 = _mm512_sub_epi32(lzcnt_quarter0, correction);
+      __m512i corrected_quarter1 = _mm512_sub_epi32(lzcnt_quarter1, correction);
+      __m512i corrected_quarter2 = _mm512_sub_epi32(lzcnt_quarter2, correction);
+      __m512i corrected_quarter3 = _mm512_sub_epi32(lzcnt_quarter3, correction);
+
+      // Pack 32-bit values into 8-bit values
+      quarter0 = _mm512_cvtepi32_epi8(corrected_quarter0);
+      quarter1 = _mm512_cvtepi32_epi8(corrected_quarter1);
+      quarter2 = _mm512_cvtepi32_epi8(corrected_quarter2);
+      quarter3 = _mm512_cvtepi32_epi8(corrected_quarter3);
+
+      // Combine the four 128-bit registers into a single 512-bit register.
+      __m512i result = _mm512_inserti32x4(_mm512_castsi128_si512(quarter0), quarter1, 1);
+      result = _mm512_inserti32x4(result, quarter2, 2);
+      result = _mm512_inserti32x4(result, quarter3, 3);
+
+      return result;
+  - target_extension: "avx512"
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: [ 'avx512f']
+    implementation: |
+      Vec::register_type temp = vec;
+      {% if ctype == "int16_t" %}
+      __m512i sign_bit = _mm512_set1_epi{{intrin_tp[ctype][1]}}(0x8000);
+      __mmask32 is_negative = _mm512_cmpgt_epi{{intrin_tp[ctype][1]}}_mask(_mm512_setzero_si512(), temp);
+      temp = _mm512_xor_si512(temp, _mm512_maskz_set1_epi{{intrin_tp[ctype][1]}}(is_negative, -1));
+      temp = _mm512_add_epi{{intrin_tp[ctype][1]}}(temp, _mm512_maskz_set1_epi{{intrin_tp[ctype][1]}}(is_negative, 1));
+      {% endif %}
+
+      // Zero-extend the 16-bit values to 32-bit values
+      __m256i lower = _mm512_castsi512_si256(temp);
+      __m256i upper = _mm512_extracti64x4_epi64(temp, 1);
+
+      __m512i extended_lower = _mm512_cvtepu16_epi32(lower);
+      __m512i extended_upper = _mm512_cvtepu16_epi32(upper);
+
+      // Count the leading zeroes for each 32-bit value
+      __m512i lzcnt_lower = _mm512_lzcnt_epi32(extended_lower);
+      __m512i lzcnt_upper = _mm512_lzcnt_epi32(extended_upper);
+
+      // Subtract 16 from each count to account for the zero-extended bits
+      __m512i correction = _mm512_set1_epi32(16);
+      __m512i corrected_lower = _mm512_sub_epi32(lzcnt_lower, correction);
+      __m512i corrected_upper = _mm512_sub_epi32(lzcnt_upper, correction);
+
+      // Convert 32-bit values to 16-bit values 
+      lower = _mm512_cvtepi32_epi16(corrected_lower);
+      upper = _mm512_cvtepi32_epi16(corrected_upper);
+
+      // Combine the two 256-bit registers into a single 512-bit register.
+      __m512i result = _mm512_inserti64x4(_mm512_castsi256_si512(lower), upper, 1);
+
+      return result;
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t"]
+    lscpu_flags: [ 'avx512f' ]
+    implementation: return _mm512_lzcnt_epi{{intrin_tp[ctype][1]}}(vec);
+  - target_extension: "avx512"
+    ctype: ["int32_t", "int64_t"]
+    lscpu_flags: [ 'avx512f' ]
+    implementation: |
+      Vec::register_type temp = vec;
+
+      {% if ctype == "int32_t" %}
+      __m512i sign_bit = _mm512_set1_epi{{intrin_tp[ctype][1]}}(0x80000000);
+      {% else %}
+      __m512i sign_bit = _mm512_set1_epi{{intrin_tp[ctype][1]}}(0x8000000000000000);
+      {% endif %}
+
+      // If the input value is negative, we need to invert the bits
+      __mmask{{intrin_tp[ctype][1]}} is_negative = _mm512_cmpgt_epi{{intrin_tp[ctype][1]}}_mask(_mm512_setzero_si512(), temp);
+      temp = _mm512_xor_si512(temp, _mm512_maskz_set1_epi{{intrin_tp[ctype][1]}}(is_negative, -1));
+      temp = _mm512_add_epi{{intrin_tp[ctype][1]}}(temp, _mm512_maskz_set1_epi{{intrin_tp[ctype][1]}}(is_negative, 1));
+
+      return _mm512_lzcnt_epi{{intrin_tp[ctype][1]}}(temp);
+  - target_extension: "avx512"
+    ctype: [ "float"]
+    lscpu_flags: [ 'avx512f' ]
+    implementation: |
+      __m512i temp = _mm512_cast{{intrin_tp_full[ctype]}}_si512(vec);
+
+      __m512i sign_bit = _mm512_set1_epi32(0x80000000);
+      // If the input value is negative, we need to invert the bits
+      __mmask32 is_negative = _mm512_cmpgt_epi32_mask(_mm512_setzero_si512(), temp);
+      temp = _mm512_xor_si512(temp, _mm512_maskz_set1_epi32(is_negative, -1));
+      temp = _mm512_add_epi32(temp, _mm512_maskz_set1_epi32(is_negative, 1));
+
+      return _mm512_castsi512_{{intrin_tp_full[ctype]}}(_mm512_lzcnt_epi32(temp));
+  - target_extension: "avx512"
+    ctype: [ "double" ]
+    lscpu_flags: [ 'avx512f' ]
+    implementation: |
+      __m512i temp = _mm512_cast{{intrin_tp_full[ctype]}}_si512(vec);
+
+      __m512i sign_bit = _mm512_set1_epi64(0x8000000000000000);
+      // If the input value is negative, we need to invert the bits
+      __mmask64 is_negative = _mm512_cmpgt_epi64_mask(_mm512_setzero_si512(), temp);
+      temp = _mm512_xor_si512(temp, _mm512_maskz_set1_epi64(is_negative, -1));
+      temp = _mm512_add_epi64(temp, _mm512_maskz_set1_epi64(is_negative, 1));
+
+      return _mm512_castsi512_{{intrin_tp_full[ctype]}}(_mm512_lzcnt_epi64(temp));
+# INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "int16_t", "int32_t"]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      Vec::register_type temp = vec;
+      int msb = {{intrin_tp[ctype][1]}};
+      __m256i result = _mm256_set1_epi{{intrin_tp[ctype][1]}}(msb); 
+      
+      
+      {% if ctype == "int16_t" %}
+      __m256i current_bit = _mm256_set1_epi{{intrin_tp[ctype][1]}}(0x8000); // Also sign_bit
+      {% elif ctype == "int32_t" %}
+      __m256i current_bit = _mm256_set1_epi{{intrin_tp[ctype][1]}}(0x80000000); // Also sign_bit
+      {% else %}
+      __m256i current_bit = _mm256_set1_epi{{intrin_tp[ctype][1]}}(0x80); // Also sign_bit
+      {% endif %}
+
+      // If the input value is negative, we need to invert the bits
+      __m256i is_negative = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(_mm256_setzero_si256(), temp);
+      temp = _mm256_xor_si256(temp, is_negative);
+      temp = _mm256_add_epi{{intrin_tp[ctype][1]}}(temp, _mm256_and_si256(is_negative, _mm256_set1_epi{{intrin_tp[ctype][1]}}(1)));
+
+      for (int i = msb-1; i >= 0; --i) {
+        // Test the current bit of each value
+        __m256i bit_set = _mm256_and_si256(temp, current_bit);
+
+        // Create a mask with the number of leading zeros (msb-1 - i) where the current bit is set
+        __m256i leading_zeros_update = _mm256_set1_epi{{intrin_tp[ctype][1]}}(msb-1 - i);
+        __m256i index_mask = _mm256_cmpeq_epi{{intrin_tp[ctype][1]}}(bit_set, current_bit);
+
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than msb-1 - i)
+        __m256i not_set_yet = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(result, leading_zeros_update);
+        index_mask = _mm256_and_si256(index_mask, not_set_yet);
+        result = _mm256_blendv_epi8(result, leading_zeros_update, index_mask);
+
+        // Update the current_bit for the next iteration
+        {% if ctype != "int8_t" %}
+        current_bit = _mm256_srli_epi{{intrin_tp[ctype][1]}}(current_bit, 1);
+        {% else %}
+        current_bit = _mm256_srli_epi16(current_bit, 1);
+        {% endif %}
+      }
+      return result;
+  - target_extension: "avx2"
+    ctype: ["int64_t"]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      Vec::register_type temp = vec;
+      __m256i result = _mm256_set1_epi64x(64); // Set initial result to 63, indicating all bits are zero
+      __m256i current_bit = _mm256_set1_epi64x(0x8000000000000000); // Also sign_bit
+
+      // If the input value is negative, we need to invert the bits
+      __m256i is_negative = _mm256_cmpgt_epi64(_mm256_setzero_si256(), temp);
+      temp = _mm256_xor_si256(temp, is_negative);
+      temp = _mm256_add_epi{{intrin_tp[ctype][1]}}(temp, _mm256_and_si256(is_negative, _mm256_set1_epi{{intrin_tp[ctype][1]}}x(1)));
+
+
+      for (int i = 63; i >= 0; --i) {
+          // Test the current bit of each int64_t
+          __m256i bit_set = _mm256_and_si256(temp, current_bit);
+
+          // Create a mask with the number of leading zeros (63 - i) where the current bit is set
+          __m256i leading_zeros_update = _mm256_set1_epi64x(63 - i);
+          __m256i index_mask = _mm256_cmpeq_epi64(bit_set, current_bit);
+
+          // Update result with the masked leading zeros values only if they haven't been set before (greater than 63 - i)
+          __m256i not_set_yet = _mm256_cmpgt_epi64(result, leading_zeros_update);
+          index_mask = _mm256_and_si256(index_mask, not_set_yet);
+          result = _mm256_blendv_epi8(result, leading_zeros_update, index_mask);
+
+          // Update the current_bit for the next iteration
+          current_bit = _mm256_srli_epi64(current_bit, 1);
+      }
+      return result;
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t"]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      __m256i result = _mm256_set1_epi{{intrin_tp[ctype][1]}}({{intrin_tp[ctype][1]}}); // Set initial result to be, indicating all bits are zero
+      //ICH WÜRDE GERNE EINFACH SOWAS WIE 2^({{intrin_tp[ctype][1]}}-1) nehmen aber das geht nicht!! DASRF ICH INCLUDEN??
+      int msb = 0;
+      {% if ctype == "uint16_t"%}
+      msb = 0x8000;
+      {% elif ctype == "uint32_t" %}
+      msb = 0x80000000;
+      {% else %}
+      msb = 0x80;
+      {% endif %}
+      __m256i current_bit = _mm256_set1_epi{{intrin_tp[ctype][1]}}(msb); // Start with the highest bit
+
+      for (int i = ({{intrin_tp[ctype][1]}}-1); i >= 0; --i) {
+        // Test the current bit of each value
+        __m256i bit_set = _mm256_and_si256(vec, current_bit);
+
+        // Create a mask with the number of leading zeros (({{intrin_tp[ctype][1]}}-1) - i) where the current bit is set
+        __m256i leading_zeros_update = _mm256_set1_epi{{intrin_tp[ctype][1]}}(({{intrin_tp[ctype][1]}}-1) - i);
+        __m256i index_mask = _mm256_cmpeq_epi{{intrin_tp[ctype][1]}}(bit_set, current_bit);
+
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than ({{intrin_tp[ctype][1]}}-1) - i)
+        __m256i not_set_yet = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(result, leading_zeros_update);
+        index_mask = _mm256_and_si256(index_mask, not_set_yet);
+        result = _mm256_blendv_epi8(result, leading_zeros_update, index_mask);
+
+        // Update the current_bit for the next iteration
+        {% if ctype != "uint8_t" %}
+        current_bit = _mm256_srli_epi{{intrin_tp[ctype][1]}}(current_bit, 1);
+        {% else %}
+        current_bit = _mm256_srli_epi16(current_bit, 1);
+        {% endif %}
+      }
+      return result;
+  - target_extension: "avx2"
+    ctype: ["uint64_t"]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      __m256i result = _mm256_set1_epi64x(64); // Set initial result to 64, indicating all bits are zero
+      __m256i current_bit = _mm256_set1_epi64x(0x8000000000000000);
+
+      for (int i = 63; i >= 0; --i) {
+        // Test the current bit of each uint64_t
+        __m256i bit_set = _mm256_and_si256(vec, current_bit);
+
+        // Create a mask with the number of leading zeros (63 - i) where the current bit is set, 0 elsewhere
+        __m256i leading_zeros_update = _mm256_set1_epi64x(63 - i);
+        __m256i index_mask = _mm256_cmpeq_epi64(bit_set, current_bit);
+
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than 63 - i)
+        __m256i not_set_yet = _mm256_cmpgt_epi64(result, leading_zeros_update);
+        index_mask = _mm256_and_si256(index_mask, not_set_yet);
+        result = _mm256_blendv_epi8(result, leading_zeros_update, index_mask);
+
+        // Update the current_bit for the next iteration
+        current_bit = _mm256_srli_epi64(current_bit, 1);
+      }
+      return result;
+  - target_extension: "avx2"
+    ctype: ["float"]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      //Cast as int
+      __m256i temp = _mm256_cast{{intrin_tp_full[ctype]}}_si256(vec);
+
+      __m256i result = _mm256_set1_epi32(32); 
+      __m256i current_bit = _mm256_set1_epi32(0x80000000); // Also sign_bit
+
+      // If the input value is negative, we need to invert the bits
+      __m256i is_negative = _mm256_cmpgt_epi32(_mm256_setzero_si256(), temp);
+      temp = _mm256_xor_si256(temp, is_negative);
+      temp = _mm256_add_epi32(temp, _mm256_and_si256(is_negative, _mm256_set1_epi32(1)));
+
+      for (int i = 31; i >= 0; --i) {
+        // Test the current bit of each value
+        __m256i bit_set = _mm256_and_si256(temp, current_bit);
+
+        // Create a mask with the number of leading zeros (31 - i) where the current bit is set
+        __m256i leading_zeros_update = _mm256_set1_epi32(31 - i);
+        __m256i index_mask = _mm256_cmpeq_epi32(bit_set, current_bit);
+
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than msb-1 - i)
+        __m256i not_set_yet = _mm256_cmpgt_epi32(result, leading_zeros_update);
+        index_mask = _mm256_and_si256(index_mask, not_set_yet);
+        result = _mm256_blendv_epi8(result, leading_zeros_update, index_mask);
+
+        // Update the current_bit for the next iteration
+        current_bit = _mm256_srli_epi32(current_bit, 1);
+      }
+      return _mm256_castsi256_{{intrin_tp_full[ctype]}}(result);
+  - target_extension: "avx2"
+    ctype: ["double"]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      __m256i temp = _mm256_cast{{intrin_tp_full[ctype]}}_si256(vec); //Cast as int
+      
+      __m256i result = _mm256_set1_epi64x(64); // Set initial result to 63, indicating all bits are zero
+      __m256i current_bit = _mm256_set1_epi64x(0x8000000000000000); // Also sign_bit
+
+      // If the input value is negative, we need to invert the bits
+      __m256i is_negative = _mm256_cmpgt_epi64(_mm256_setzero_si256(), temp);
+      temp = _mm256_xor_si256(temp, is_negative);
+      temp = _mm256_add_epi64(temp, _mm256_and_si256(is_negative, _mm256_set1_epi64x(1)));
+
+      for (int i = 63; i >= 0; --i) {
+          // Test the current bit of each int64_t
+          __m256i bit_set = _mm256_and_si256(temp, current_bit);
+
+          // Create a mask with the number of leading zeros (63 - i) where the current bit is set
+          __m256i leading_zeros_update = _mm256_set1_epi64x(63 - i);
+          __m256i index_mask = _mm256_cmpeq_epi64(bit_set, current_bit);
+
+          // Update result with the masked leading zeros values only if they haven't been set before (greater than 63 - i)
+          __m256i not_set_yet = _mm256_cmpgt_epi64(result, leading_zeros_update);
+          index_mask = _mm256_and_si256(index_mask, not_set_yet);
+          result = _mm256_blendv_epi8(result, leading_zeros_update, index_mask);
+
+          // Update the current_bit for the next iteration
+          current_bit = _mm256_srli_epi64(current_bit, 1);
+      }
+      return _mm256_castsi256_{{intrin_tp_full[ctype]}}(result);
+# INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "int16_t", "int32_t"]
+    lscpu_flags: [ 'sse2', 'sse4_1']
+    implementation: |
+      Vec::register_type temp = vec;
+      __m128i result = _mm_set1_epi{{intrin_tp[ctype][1]}}({{intrin_tp[ctype][1]}}); // Indicating all bits are zero
+      {% if ctype == "int16_t" %}
+      __m128i current_bit = _mm_set1_epi{{intrin_tp[ctype][1]}}(0x8000); // Also sign_bit
+      {% elif ctype == "int32_t" %}
+      __m128i current_bit = _mm_set1_epi{{intrin_tp[ctype][1]}}(0x80000000); // Also sign_bit
+      {% else  %}
+      __m128i current_bit = _mm_set1_epi{{intrin_tp[ctype][1]}}(0x80); // Also sign_bit
+      {% endif %}
+
+      // If the input value is negative, we need to invert the bits
+      __m128i is_negative = _mm_cmpgt_epi{{intrin_tp[ctype][1]}}(_mm_setzero_si128(), temp);
+      temp = _mm_xor_si128(temp, is_negative);
+      temp = _mm_add_epi{{intrin_tp[ctype][1]}}(temp, _mm_and_si128(is_negative, _mm_set1_epi{{intrin_tp[ctype][1]}}(1)));
+
+      for (int i = {{intrin_tp[ctype][1]}}-1; i >= 0; --i) {
+        // Test the current bit of each value (minus sign bit)
+        __m128i bit_set = _mm_and_si128(temp, current_bit);
+
+        // Create a mask with the number of leading zeros (msb-1-i) where the current bit is set
+        __m128i leading_zeros_update = _mm_set1_epi{{intrin_tp[ctype][1]}}({{intrin_tp[ctype][1]}} - 1 - i);
+        __m128i index_mask = _mm_cmpeq_epi{{intrin_tp[ctype][1]}}(bit_set, current_bit);
+
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than msb-1-i)
+        __m128i not_set_yet = _mm_cmpgt_epi{{intrin_tp[ctype][1]}}(result, leading_zeros_update);
+        index_mask = _mm_and_si128(index_mask, not_set_yet);
+        result = _mm_blendv_epi8(result, leading_zeros_update, index_mask);
+
+        // Update the current_bit for the next iteration
+        {% if ctype != "int8_t" %}
+        current_bit = _mm_srli_epi{{intrin_tp[ctype][1]}}(current_bit, 1);
+        {% else %}
+        current_bit = _mm_srli_epi16(current_bit, 1);
+        {% endif %}
+      }
+      return result;
+  - target_extension: "sse"
+    ctype: ["int64_t"]
+    lscpu_flags: [ 'sse2', 'sse4_1']
+    implementation: |
+      Vec::register_type temp = vec;
+      __m128i result = _mm_set1_epi64x(64); // Set initial result to 64, indicating all bits are zero
+      __m128i current_bit = _mm_set1_epi64x(0x8000000000000000); //Also sign_bit
+
+      // If the input value is negative, we need to invert the bits
+      __m128i is_negative = _mm_cmpgt_epi64(_mm_setzero_si128(), temp);
+      temp = _mm_xor_si128(temp, is_negative);
+      temp = _mm_add_epi64(temp, _mm_and_si128(is_negative, _mm_set1_epi64x(1)));
+
+
+      for (int i = 63; i >= 0; --i) {
+        // Test the current bit of each int64_t
+        __m128i bit_set = _mm_and_si128(temp, current_bit);
+
+        // Create a mask with the number of leading zeros (63 - i) where the current bit is set
+        __m128i leading_zeros_update = _mm_set1_epi64x(63 - i);
+        __m128i index_mask = _mm_cmpeq_epi64(bit_set, current_bit);
+
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than 63 - i)
+        __m128i not_set_yet = _mm_cmpgt_epi64(result, leading_zeros_update);
+        index_mask = _mm_and_si128(index_mask, not_set_yet);
+        result = _mm_blendv_epi8(result, leading_zeros_update, index_mask);
+
+        // Update the current_bit for the next iteration
+        current_bit = _mm_srli_epi64(current_bit, 1);
+      }
+      return result;
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t"]
+    lscpu_flags: [ 'sse2', 'sse4_1']
+    implementation: |
+      __m128i result = _mm_set1_epi{{intrin_tp[ctype][1]}}({{intrin_tp[ctype][1]}}); // Set initial result to {{intrin_tp[ctype][1]}}, indicating all bits are zero
+      
+      //ICH WÜRDE GERNE EINFACH SOWAS WIE 2^({{intrin_tp[ctype][1]}}-1) nehmen aber das geht nicht!! DASRF ICH INCLUDEN??
+      int msb = 0;
+      {% if ctype == "uint16_t"%}
+      msb = 0x8000;
+      {% elif ctype == "uint32_t" %}
+      msb = 0x80000000;
+      {% else %}
+      msb = 0x80;
+      {% endif %}
+      __m128i current_bit = _mm_set1_epi{{intrin_tp[ctype][1]}}(msb);
+
+      for (int i = ({{intrin_tp[ctype][1]}}-1); i >= 0; --i) {
+        // Test the current bit of each value
+        __m128i bit_set = _mm_and_si128(vec, current_bit);
+
+        // Create a mask with the number of leading zeros (({{intrin_tp[ctype][1]}}-1) - i) where the current bit is set, 0 elsewhere
+        __m128i leading_zeros_update = _mm_set1_epi{{intrin_tp[ctype][1]}}(({{intrin_tp[ctype][1]}}-1) - i);
+        __m128i index_mask = _mm_cmpeq_epi{{intrin_tp[ctype][1]}}(bit_set, current_bit);
+
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than ({{intrin_tp[ctype][1]}}-1) - i)
+        __m128i not_set_yet = _mm_cmpgt_epi{{intrin_tp[ctype][1]}}(result, leading_zeros_update);
+        index_mask = _mm_and_si128(index_mask, not_set_yet);
+        result = _mm_blendv_epi8(result, leading_zeros_update, index_mask);
+
+        // Update the current_bit for the next iteration
+        {% if ctype != "uint8_t" %}
+        current_bit = _mm_srli_epi{{intrin_tp[ctype][1]}}(current_bit, 1);
+        {% else %}
+        current_bit = _mm_srli_epi16(current_bit, 1);
+        {% endif %}
+      }
+      return result;
+  - target_extension: "sse"
+    ctype: ["uint64_t"]
+    lscpu_flags: [ 'sse2', 'sse4_1']
+    implementation: |
+      __m128i result = _mm_set1_epi64x(64); // Set initial result to 64, indicating all bits are zero
+      __m128i current_bit = _mm_set1_epi64x(0x8000000000000000);
+
+      for (int i = 63; i >= 0; --i) {
+        // Test the current bit of each uint64_t
+        __m128i bit_set = _mm_and_si128(vec, current_bit);
+
+        // Create a mask with the number of leading zeros (63 - i) where the current bit is set, 0 elsewhere
+        __m128i leading_zeros_update = _mm_set1_epi64x(63 - i);
+        __m128i index_mask = _mm_cmpeq_epi64(bit_set, current_bit);
+
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than 63 - i)
+        __m128i not_set_yet = _mm_cmpgt_epi64(result, leading_zeros_update);
+        index_mask = _mm_and_si128(index_mask, not_set_yet);
+        result = _mm_blendv_epi8(result, leading_zeros_update, index_mask);
+
+        // Update the current_bit for the next iteration
+        current_bit = _mm_srli_epi64(current_bit, 1);
+      }
+      return result;
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: [ 'sse2', 'sse4_1']
+    implementation: |
+      __m128i temp = _mm_cast{{intrin_tp_full[ctype]}}_si128(vec);
+
+      __m128i result = _mm_set1_epi32(32); // Indicating all bits are zero
+      __m128i current_bit = _mm_set1_epi32(0x80000000); // Also sign_bit
+
+      // If the input value is negative, we need to invert the bits
+      __m128i is_negative = _mm_cmpgt_epi32(_mm_setzero_si128(), temp);
+      temp = _mm_xor_si128(temp, is_negative);
+      temp = _mm_add_epi32(temp, _mm_and_si128(is_negative, _mm_set1_epi32(1)));
+
+      for (int i =31; i >= 0; --i) {
+        // Test the current bit of each value (minus sign bit)
+        __m128i bit_set = _mm_and_si128(temp, current_bit);
+
+        // Create a mask with the number of leading zeros (msb-1-i) where the current bit is set
+        __m128i leading_zeros_update = _mm_set1_epi32(31 - i);
+        __m128i index_mask = _mm_cmpeq_epi32(bit_set, current_bit);
+
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than msb-1-i)
+        __m128i not_set_yet = _mm_cmpgt_epi32(result, leading_zeros_update);
+        index_mask = _mm_and_si128(index_mask, not_set_yet);
+        result = _mm_blendv_epi8(result, leading_zeros_update, index_mask);
+
+        // Update the current_bit for the next iteration
+        current_bit = _mm_srli_epi32(current_bit, 1);
+      }
+      return _mm_castsi128_{{intrin_tp_full[ctype]}}(result);
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: [ 'sse2', 'sse4_1']
+    implementation: |
+      __m128i temp = _mm_cast{{intrin_tp_full[ctype]}}_si128(vec);
+      __m128i result = _mm_set1_epi64x(64); // Set initial result to 64, indicating all bits are zero
+      __m128i current_bit = _mm_set1_epi64x(0x8000000000000000); //Also sign_bit
+
+      // If the input value is negative, we need to invert the bits
+      __m128i is_negative = _mm_cmpgt_epi64(_mm_setzero_si128(), temp);
+      temp = _mm_xor_si128(temp, is_negative);
+      temp = _mm_add_epi64(temp, _mm_and_si128(is_negative, _mm_set1_epi64x(1)));
+
+      for (int i = 63; i >= 0; --i) {
+        // Test the current bit of each int64_t
+        __m128i bit_set = _mm_and_si128(temp, current_bit);
+
+        // Create a mask with the number of leading zeros (63 - i) where the current bit is set
+        __m128i leading_zeros_update = _mm_set1_epi64x(63 - i);
+        __m128i index_mask = _mm_cmpeq_epi64(bit_set, current_bit);
+
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than 63 - i)
+        __m128i not_set_yet = _mm_cmpgt_epi64(result, leading_zeros_update);
+        index_mask = _mm_and_si128(index_mask, not_set_yet);
+        result = _mm_blendv_epi8(result, leading_zeros_update, index_mask);
+
+        // Update the current_bit for the next iteration
+        current_bit = _mm_srli_epi64(current_bit, 1);
+      }
+      return _mm_castsi128_{{intrin_tp_full[ctype]}}(result);
+# SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ ]
+    implementation: |
+      using T = Vec::base_type;
+      int leading_zeroes = 0;
+      const int num_bits = std::numeric_limits<T>::digits + std::is_signed<T>::value;
+      T mask = T(1) << (num_bits - 1);
+      // If the input value is negative, find the absolute value
+      T abs = (vec < 0) ? -vec : vec;
+      for(int i = 0; i < num_bits; i++){
+        if(abs & mask){
+          break;
+        }
+        leading_zeroes ++;
+        mask >>= 1;
+      }
+      return leading_zeroes;
+  - target_extension: "scalar"
+    ctype: [ "float", "double" ]
+    lscpu_flags: [ ]
+    implementation: |
+      //Convert to int
+      {% if ctype == "float" %}
+      using T = int32_t;
+      union {
+        float val;
+        int32_t i_val;
+      } u;
+      {% else %}
+      using T = int64_t;
+      union {
+        double val;
+        int64_t i_val;
+      } u;
+      {% endif %}
+      u.val = vec;
+
+      int leading_zeroes = 0;
+      const int num_bits = std::numeric_limits<T>::digits + std::is_signed<T>::value;
+      T mask = T(1) << (num_bits - 1);
+      // If the input value is negative, find the absolute value
+      T abs = (u.i_val < 0) ? -u.i_val : u.i_val;
+      for(int i = 0; i < num_bits; i++){
+        if(abs & mask){
+          break;
+        }
+        leading_zeroes ++;
+        mask >>= 1;
+      }
+      u.i_val = leading_zeroes;
+      return u.val;
+# FPGA      
   - target_extension: "fpga_native"
     ctype: ["uint32_t", "int32_t", "float"]
     lscpu_flags: ["fpga_native"]
@@ -731,7 +2186,7 @@ definitions:
       T lzc_data;
       #pragma unroll
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
-        lzc_data[i] = Lzc32Uint(vec_a[i]);
+        lzc_data[i] = Lzc32Uint(vec[i]);
       }
       #pragma unroll
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
@@ -741,4 +2196,241 @@ definitions:
           result[i] = lzc_data[i];
       }
       return result;
+...
+---
+primitive_name: "count_matches"
+brief_description: "Counts number of matches of a chosen value within a vector register."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec"
+     description: "Operating Vector"
+   - ctype: "const typename Vec::base_type"
+     name: "val"
+     description: "Compared value"
+returns:
+   ctype: "typename Vec::base_type"
+   description: "Result of the count"
+testing:
+  - test_name: "with_only_zero_searching_zero"
+    requires: ["loadu", "storeu", "set1"]
+    includes: [ ]
+    implementation: |
+      using T = typename Vec::base_type;
+      testing::test_memory_helper_t<Vec> test_helper{1, false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(0);
+      auto val = 0;
+      *reference_result_ptr = Vec::vector_element_count();
+      *test_result_ptr = count_matches<Vec>(vec, val);
+      test_helper.synchronize();
+      return test_helper.validate();
+  - test_name: "with_only_zero_searching_one"
+    requires: ["loadu", "storeu", "set1"]
+    includes: [ ]
+    implementation: |
+      using T = typename Vec::base_type;
+      testing::test_memory_helper_t<Vec> test_helper{1, false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(0);
+      auto val = 1;
+      *reference_result_ptr = 0;
+      *test_result_ptr = count_matches<Vec>(vec, val);
+      test_helper.synchronize();
+      return test_helper.validate();
+  - test_name: "with_one_match"
+    requires: ["loadu", "storeu", "set1"]
+    includes: [ ]
+    implementation: |
+      using T = typename Vec::base_type;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), 1, false, testing::seq_init<T>, 1};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = loadu<Vec>(test_data_ptr);
+      auto val = Vec::vector_element_count();
+      *reference_result_ptr = 1;
+      *test_result_ptr = count_matches<Vec>(vec, val);
+      test_helper.synchronize();
+      return test_helper.validate();
+definitions:
+# INTEL - AVX512
+  - target_extension: 'avx512'
+    ctype: [ 'uint8_t', 'int8_t']
+    lscpu_flags: [ 'avx512f' ]
+    implementation: |
+      Vec::base_type result = 0;
+      __m512i target_value = _mm512_set1_epi8(val);
+      __mmask64 cmp_result = _mm512_cmpeq_epi8_mask(vec, target_value);
+      
+      uint64_t mask_bits = static_cast<uint64_t>(cmp_result);
+      while (mask_bits != 0) {
+        result += mask_bits & 1;
+        mask_bits >>= 1;
+      }
+      return result;
+  - target_extension: 'avx512'
+    ctype: [ 'uint16_t', 'int16_t']
+    lscpu_flags: [ 'avx512f' ]
+    implementation: |
+      Vec::base_type result = 0;
+      __m512i target_value = _mm512_set1_epi16(val);
+      __mmask32 cmp_result = _mm512_cmpeq_epi16_mask(vec, target_value);
+      
+      uint32_t mask_bits = static_cast<uint32_t>(cmp_result);
+      while (mask_bits != 0) {
+        result += mask_bits & 1;
+        mask_bits >>= 1;
+      }
+      return result;
+  - target_extension: 'avx512'
+    ctype: [ 'uint32_t', 'int32_t', 'uint64_t',  'int64_t']
+    lscpu_flags: [ 'avx512f' ]
+    implementation: |
+      __m512i value = _mm512_set1_epi{{intrin_tp[ctype][1]}}(val);
+      __mmask{{intrin_tp[ctype][1]}} cmp_result = _mm512_cmpeq_epi{{intrin_tp[ctype][1]}}_mask(vec, value);
+      return _mm_popcnt_u{{intrin_tp[ctype][1]}}(cmp_result);
+  - target_extension: 'avx512'
+    ctype: [ 'float' ]
+    lscpu_flags: [ 'avx512f' ]
+    implementation: |
+      Vec::base_type result = 0;
+      __m512 value = _mm512_set1_ps(val);
+      __mmask16 cmp_result = _mm512_cmp_ps_mask(vec, value, _CMP_EQ_OQ);
+
+      uint16_t mask_bits = static_cast<uint16_t>(cmp_result);
+
+      while (mask_bits != 0) {
+        result += mask_bits & 1;
+        mask_bits >>= 1;
+      }
+      return result;
+  - target_extension: 'avx512'
+    ctype: [ 'double' ]
+    lscpu_flags: [ 'avx512f' ]
+    implementation: |
+      Vec::base_type result = 0;
+      __m512d value = _mm512_set1_pd(val);
+      __mmask8 cmp_result = _mm512_cmp_pd_mask(vec, value, _CMP_EQ_OQ);
+
+      uint8_t mask_bits = static_cast<uint8_t>(cmp_result);
+
+      while (mask_bits != 0) {
+        result += mask_bits & 1;
+        mask_bits >>= 1;
+      }
+      return result;
+# INTEL - AVX2
+  - target_extension: 'avx2'
+    ctype: [ 'uint16_t', 'int16_t', 'uint32_t', 'int32_t', 'uint64_t', 'int64_t', 'uint8_t', 'int8_t']
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      using T =  Vec::base_type;
+      T result = 0;
+
+      {% if ctype != "uint64_t" and ctype != "int64_t" %}
+      __m256i value = _mm256_set1_epi{{intrin_tp[ctype][1]}}(val);
+      {% else %}
+      __m256i value = _mm256_set1_epi{{intrin_tp[ctype][1]}}x(val);
+      {% endif %}
+      __m256i is_equal = _mm256_cmpeq_epi{{intrin_tp[ctype][1]}}(vec, value);
+      
+      T mask[Vec::vector_element_count()];
+      _mm256_storeu_si256(reinterpret_cast<__m256i*>(mask), is_equal);
+
+      for (int i = 0; i < Vec::vector_element_count(); i++){
+        if(mask[i] == ((T)-1)){
+          result ++;
+        }
+      }
+      return result;
+  - target_extension: 'avx2'
+    ctype: [ 'float', 'double' ]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      Vec::base_type result = 0;
+
+      {% if ctype == "float" %}
+      __m256 value, is_equal;
+      {% else %}
+      __m256d value, is_equal;
+      {% endif %}
+
+      value = _mm256_set1_{{intrin_tp_full[ctype]}}(val);
+      is_equal = _mm256_cmp_{{intrin_tp_full[ctype]}}(vec, value, _CMP_EQ_OQ);
+      int mask = _mm256_movemask_{{intrin_tp_full[ctype]}}(is_equal);
+
+      for (int i = 0; i < Vec::vector_element_count(); i++){
+        if(mask & (1 << i)){
+          result ++;
+        }
+      }
+      return result;
+# INTEL - SSE
+  - target_extension: 'sse'
+    ctype: [ 'uint16_t', 'int16_t', 'uint32_t', 'int32_t', 'uint64_t', 'int64_t']
+    lscpu_flags: [ 'sse2' ]
+    implementation: |
+      using T =  Vec::base_type;
+      T result = 0;
+
+      {% if ctype != "uint64_t" and ctype != "int64_t" %}
+      __m128i value = _mm_set1_epi{{intrin_tp[ctype][1]}}(val);
+      {% else %}
+      __m128i value = _mm_set1_epi{{intrin_tp[ctype][1]}}x(val);
+      {% endif %}
+      __m128i is_equal = _mm_cmpeq_epi{{intrin_tp[ctype][1]}}(vec, value);
+      
+      T mask[Vec::vector_element_count()];
+      _mm_storeu_si128(reinterpret_cast<__m128i*>(mask), is_equal);
+
+      for (int i = 0; i < Vec::vector_element_count(); i++){
+        if(mask[i] == ((T)-1)){
+          result ++;
+        }
+      }
+      return result;
+  - target_extension: 'sse'
+    ctype: [ 'float', 'double' ]
+    lscpu_flags: [ 'sse2' ]
+    implementation: |
+      Vec::base_type result = 0;
+
+      {% if ctype == "float" %}
+      __m128 value, is_equal;
+      {% else %}
+      __m128d value, is_equal;
+      {% endif %}
+
+      value = _mm_set1_{{intrin_tp_full[ctype]}}(val);
+      is_equal = _mm_cmpeq_{{intrin_tp_full[ctype]}}(vec, value);
+      int mask = _mm_movemask_{{intrin_tp_full[ctype]}}(is_equal);
+
+      for (int i = 0; i < Vec::vector_element_count(); i++){
+        if(mask & (1 << i)){
+          result ++;
+        }
+      }
+      return result;
+  - target_extension: 'sse'
+    ctype: [ 'uint8_t', 'int8_t']
+    lscpu_flags: [ 'sse2']
+    implementation: |
+      Vec::base_type result = 0;
+      __m128i value = _mm_set1_epi8(val);
+      __m128i is_equal = _mm_cmpeq_epi8(vec, value);
+      int mask = _mm_movemask_epi8(is_equal);
+
+      for (int i = 0; i < Vec::vector_element_count(); i++){
+        if(mask & (1 << i)){
+          result ++;
+        }
+      }
+      return result;
+# SCALAR
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double' ]
+    lscpu_flags: [ ]
+    implementation: return (vec == val);
 ...
