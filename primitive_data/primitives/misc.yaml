@@ -7,7 +7,7 @@ primitive_name: 'pack_bits_linear'
 brief_description: 'Packs elements from a vector together using a fixed bitwidth.'
 detailed_description: |
   Packs elements from a vector together using a fixed bitwidth. The bitwidth
-  must be less than the number of bits in the vector's base type. 
+  must be less than the number of bits in the vector's base type.
   The elements are packed together in little-endian order, i.e. the least
   significant bits of the first element are used first.
 parameters:
@@ -17,7 +17,7 @@ parameters:
   - ctype: "const unsigned"
     name: "bitwidth"
     description: "Bitwidth of each element."
-returns: 
+returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing packed elements."
 definitions:
@@ -55,7 +55,7 @@ definitions:
 # brief_description: "Packs elements from a vector together using a fixed bitwidth."
 # detailed_description: |
 #   Packs elements from a vector together using a fixed bitwidth. The bitwidth
-#   must be less than the number of bits in the vector's base type. 
+#   must be less than the number of bits in the vector's base type.
 #   The elements are packed together in little-endian order, i.e. the least
 #   significant bits of the first element are used first.
 # parameters:
@@ -65,7 +65,7 @@ definitions:
 #   - ctype: "const unsigned"
 #     name: "bitwidth"
 #     description: "Bitwidth of each element."
-# returns: 
+# returns:
 #   ctype: "typename Vec::register_type"
 #   description: "Vector containing packed elements."
 # definitions:
@@ -75,7 +75,6 @@ definitions:
 #     vector_length_agnostic: True
 #     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
 #     implementation: |
-      
 #       using T = typename Vec::base_type;
 #       typename Vec::register_type result{};
 #       #pragma unroll
