@@ -1,30 +1,14 @@
+cmake_minimum_required(VERSION 3.16)
+
 find_package(Python3 REQUIRED)
+
 
 function(create_tsl)
   set(options WORKAROUND_WARNINGS USE_CONCEPTS CREATE_TESTS)
   set(oneValueArgs TSLGENERATOR_DIRECTORY DESTINATION)
-  set(multiValueArgs TARGETS_FLAGS PRIMITIVES_FILTER DATATYPES_FILTER LINK_OPTIONS GENERATOR_OPTIONS)
-  # cmake_parse_arguments(PARSE_ARGV 0 CREATE_TSL_ARGS "${options}" "${oneValueArgs}" "{multiValueArgs}")
-  cmake_parse_arguments(CREATE_TSL_ARGS "${options}" "${oneValueArgs}" "{multiValueArgs}" ${ARGN})
+  set(multiValueArgs TARGETS_FLAGS APPEND_TARGETS_FLAGS PRIMITIVES_FILTER DATATYPES_FILTER LINK_OPTIONS GENERATOR_OPTIONS)
+  cmake_parse_arguments(CREATE_TSL_ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
   
-  message(STATUS ${ARGN})
-  message(STATUS ${CREATE_TSL_ARGS_WORKAROUND_WARNINGS})
-  message(STATUS ${CREATE_TSL_ARGS_USE_CONCEPTS})
-  message(STATUS ${CREATE_TSL_ARGS_CREATE_TESTS})
-  message(STATUS ${CREATE_TSL_ARGS_TSLGENERATOR_DIRECTORY})
-  message(STATUS ${CREATE_TSL_ARGS_DESTINATION})
-  message(STATUS ${CREATE_TSL_ARGS_TARGETS_FLAGS})
-  message(STATUS ${CREATE_TSL_ARGS_PRIMITIVES_FILTER})
-  message(STATUS ${CREATE_TSL_ARGS_DATATYPES_FILTER})
-  message(STATUS ${CREATE_TSL_ARGS_LINK_OPTIONS})
-  message(STATUS ${CREATE_TSL_ARGS_GENERATOR_OPTIONS})
-  message(STATUS ${CREATE_TSL_ARGS_UNPARSED_ARGUMENTS})
-
-
-  message(STATUS "TSL Generator Directory: ${CREATE_TSL_ARGS_TSLGENERATOR_DIRECTORY}")
-  message(STATUS "Link Options: " ${CREATE_TSL_ARGS_LINK_OPTIONS})
-  message(STATUS "Primitive Filters: ${CREATE_TSL_ARGS_PRIMITIVES_FILTER}")
-
   if(NOT DEFINED CREATE_TSL_ARGS_TSLGENERATOR_DIRECTORY)
     set(TSLGENERATOR_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
   else()
@@ -32,7 +16,7 @@ function(create_tsl)
   endif()
 
   if (CREATE_TSL_ARGS_TARGETS_FLAGS STREQUAL "" OR NOT DEFINED CREATE_TSL_ARGS_TARGETS_FLAGS)
-    set(TARGETS_FLAGS "" CACHE STRING "space separated lscpu flags for --targets, will attempt to call lscpu if empty")
+    set(TARGETS_FLAGS "" STRING "space separated lscpu flags for --targets, will attempt to call lscpu if empty")
     if(LSCPU_FLAGS STREQUAL "")
         execute_process(
             COMMAND "${Python3_EXECUTABLE}" -c "import cpuinfo; print(*cpuinfo.get_cpu_info()['flags'])"
@@ -56,10 +40,11 @@ function(create_tsl)
 
 
   string(REGEX REPLACE "[ \t]+" ";" TARGETS_FLAGS_LIST "${TARGETS_FLAGS}")
+  list(APPEND TARGETS_FLAGS_LIST ${CREATE_TSL_ARGS_APPEND_TARGETS_FLAGS})
   set(TSL_TARGETS_SWITCH "--targets" ${TARGETS_FLAGS_LIST})
 
-  if(CREATE_TSL_ARGS_PRIMITIVES_FILTER STREQUAL "" OR NOT DEFINED CREATE_TSL_ARGS_PRIMITIVES_FILTER)
-    message(STATUS "No primitive filtering.")
+  if(NOT DEFINED CREATE_TSL_ARGS_PRIMITIVES_FILTER)
+    # message(STATUS "No primitive filtering.")
     set(TSL_PRIMITIVE_SWITCH "")
   else()
     message(STATUS "relevant primitives: ${CREATE_TSL_ARGS_PRIMITIVES_FILTER}")
@@ -67,8 +52,8 @@ function(create_tsl)
     set(TSL_PRIMITIVE_SWITCH "--primitives" ${PRIMITIVE_LIST})
   endif()
 
-  if(CREATE_TSL_ARGS_DATATYPES_FILTER STREQUAL "" OR NOT DEFINED CREATE_TSL_ARGS_DATATYPES_FILTER)
-    message(STATUS "No primitive filtering.")
+  if(NOT DEFINED CREATE_TSL_ARGS_DATATYPES_FILTER)
+    # message(STATUS "No primitive filtering.")
     set(TSL_TYPES_SWITCH "")
   else()
     message(STATUS "relevant data types: ${CREATE_TSL_ARGS_DATATYPES_FILTER}")
@@ -76,12 +61,12 @@ function(create_tsl)
     set(TSL_TYPES_SWITCH "--types" ${TYPE_LIST})
   endif()
 
-  if(CREATE_TSL_ARGS_LINK_OPTIONS STREQUAL "" OR NOT DEFINED CREATE_TSL_ARGS_LINK_OPTIONS)
-    message(STATUS "No additional link options.")
+  if(NOT DEFINED CREATE_TSL_ARGS_LINK_OPTIONS)
+    # message(STATUS "No additional link options.")
     unset(TSL_LINK_OPTIONS)
   else()
-    string(REPLACE ";" " " link_options_list "${CREATE_TSL_ARGS_LINK_OPTIONS}")
-    set(TSL_LINK_OPTIONS ${link_options_list} CACHE LIST "linker options")
+    # string(REPLACE ";" " " link_options_list "${CREATE_TSL_ARGS_LINK_OPTIONS}")
+    set(TSL_LINK_OPTIONS ${CREATE_TSL_ARGS_LINK_OPTIONS} CACHE STRING "linker options")
   endif()
 
   if(CREATE_TSL_ARGS_DESTINATION STREQUAL "" OR NOT DEFINED CREATE_TSL_ARGS_DESTINATION)
@@ -107,7 +92,6 @@ function(create_tsl)
   else()
     set(CURRENT_GENERATOR_OPTIONS "${CREATE_TSL_ARGS_GENERATOR_OPTIONS}")
   endif()
-
   if(CREATE_TSL_ARGS_WORKAROUND_WARNINGS)
     set(CURRENT_GENERATOR_OPTIONS "${CURRENT_GENERATOR_OPTIONS}" "--workaround-warnings")
   else()
@@ -149,18 +133,37 @@ function(create_tsl)
   else()
     set(CURRENT_GENERATOR_OPTIONS ${CURRENT_GENERATOR_OPTIONS} "--no-concepts")
   endif()
-
-
-  set(TSL_GENERATOR_OPTIONS ${CURRENT_GENERATOR_OPTIONS} CACHE STRING "additonal cli options for the generator, semicolon separated")
-  message(STATUS "Running TSL Generator...")
-  # execute_process(
-  #     COMMAND "${Python3_EXECUTABLE}" "${TSLGENERATOR_DIRECTORY}/main.py" 
-  #     ${TSL_GENERATOR_OPTIONS} -o "${TSL_GENERATOR_DESTINATION}"
-  #     ${TSL_TARGETS_SWITCH} ${TSL_PRIMITIVE_SWITCH} ${TSL_TYPES_SWITCH}
-  #     ANY
-  # )
-
-  # set(TSL_INCLUDE_DIRECTORY "${TSL_GENERATOR_DESTINATION}/include" CACHE STRING "include path of TSL")
+  set(TSL_GENERATOR_OPTIONS ${CURRENT_GENERATOR_OPTIONS} STRING "additonal cli options for the generator, semicolon separated")
   
-  # add_subdirectory("${TSL_GENERATOR_DESTINATION}" "${TSL_GENERATOR_DESTINATION}/build")
+  message(STATUS "=== SUMMARY: TSL Generation ===")
+  message(STATUS "Script path      : ${TSLGENERATOR_DIRECTORY}/main.py")
+  message(STATUS "Generation path  : ${TSL_GENERATOR_DESTINATION}")
+  message(STATUS "Switches         : ")
+  if(TSL_TARGETS_SWITCH STREQUAL "")
+    message(STATUS "   all targets")
+  else()
+    message(STATUS "   ${TSL_TARGETS_SWITCH}")
+  endif()
+  if(TSL_PRIMITIVE_SWITCH STREQUAL "")
+    message(STATUS "   all primitives")
+  else()
+    message(STATUS "   ${TSL_PRIMITIVE_SWITCH}")
+  endif()
+  if(TSL_TYPES_SWITCH STREQUAL "")
+    message(STATUS "   all types")
+  else()
+    message(STATUS "   ${TSL_TYPES_SWITCH}")
+  endif()
+  message(STATUS "Generator Options: ${TSL_GENERATOR_OPTIONS}")
+  message(STATUS "Target Options   : ${TSL_LINK_OPTIONS}")
+  message(STATUS "===============================")
+  message(STATUS "Running TSL Generator...")
+  execute_process(
+      COMMAND "${Python3_EXECUTABLE}" "${TSLGENERATOR_DIRECTORY}/main.py" 
+      ${TSL_GENERATOR_OPTIONS} -o "${TSL_GENERATOR_DESTINATION}"
+      ${TSL_TARGETS_SWITCH} ${TSL_PRIMITIVE_SWITCH} ${TSL_TYPES_SWITCH}
+      ANY
+  )
+  set(TSL_INCLUDE_DIRECTORY "${TSL_GENERATOR_DESTINATION}/include" CACHE STRING "include path of TSL")
+  add_subdirectory("${TSL_GENERATOR_DESTINATION}" "${TSL_GENERATOR_DESTINATION}/build")
 endfunction()
