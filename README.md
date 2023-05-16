@@ -40,20 +40,22 @@
 
 TSL is a C++ _template header-only library_ that abstracts elemental operations on hardware-specific instruction sets, primarily focusing on SIMD operations. 
 Consequently, you can use SIMD functionality in a hardware-agnostic way, and the library will handle the according mapping. 
-The provided functionality (aka. "primitives") is directly mapped to the underlying hardware or uses scalar workarounds. 
+The provided functionality (a.k.a. "primitives") is directly mapped to the underlying hardware or uses scalar workarounds. 
 Thus, you can be sure that your code is compilable on every supported platform and does what you expect. However, the performance may differ depending on the available hardware features. 
 
 As you may notice, this repository mainly consists of _Python_ instead of C++ code. 
 We wrote a library generator rather than a "one-size-fits-all" library. 
 
-### _Why the indirection through a generator? Why is there no plain header-only library?_
+### _Why the detour via a generator? Why is there no plain header-only library?_
 
 First, it is an arduous, laborious, and maybe even impossible task to design a hardware abstraction library that suits all currently available and upcoming hardware. 
 So we didn't even try but decided to make it considerably simple to change nearly every detail of the library-provided interface and implementation. 
 We wrote a generator that relies on Jinja2 - a powerful and mature template engine to enable such flexibility. 
 It is possible to "cherry-pick" the generated library through our generator. 
 Consequently, the generated TSL will be tailored to your specific underlying hardware. 
-While this seems to be unnecessary at first glance, through (i) modern compilers also support hardware detection for auto-vectorization and (ii) non-compliant code parts can be disabled using preprocessor macros, we want to support (i) explicit vectorization and reduce the code size and compile time and increase the readability of the to be shipped library (ii).
+You may think that this seems to be unncessary at first glance as (i) modern compilers also support hardware detection for auto-vectorization and (ii) non-compliant code parts can be disabled using preprocessor macros.
+Nevertheless, we argue that explicit simdification ensures traceability and provides a high degree of freedom compared to auto-vectorization. 
+Furthermore, the overall code size can be significantly decreased by hardware-tailoring and this will reduce not only the compile time but increase the readability of the to be shipped library code.
 
 Second, as the TSL is a template library, there is a lot of redundant code (when looking into the generated files, this should be clear!). 
 A generator is a perfect fit to reduce manual effort, making extending the library and adopting disruptive change requests easier.
@@ -76,9 +78,9 @@ We tested the generator and the TSL on different Linux distributions (Centos7, U
 ---
 ## <a id="tsl-motivation"></a>**Motivation**
 
-Implementing high-performance algorithms entail - among other things - hardware near optimizations. 
+Implementing high-performance algorithms entails - among other things - hardware near optimizations. 
 That is why most of the performance-crucial algorithms are written using C/C++. 
-This language family provides the ability to facilitate hardware-specific capabilities like special Instruction Set Extensions like **S**ingle **I**nstruction **M**ultiple **D**ata. 
+This language family provides the ability to facilitate hardware-specific capabilities like special Instruction Set Extensions, e.g., **S**ingle **I**nstruction **M**ultiple **D**ata. 
 SIMD is a standard technique to speed up compute-heavy tasks by applying the same instruction on multiple data elements in parallel (data parallelism). 
 
 SIMD can be used indirectly by taking advantage of the "auto-vectorization" capabilities of modern compilers. 
@@ -112,7 +114,7 @@ user@host:~ cd tslroot
 
 ### **2. Initialize required environment**
 
-To generate the TSL, you need Python and some additional Python packages. You can either [manually](#custom-install) set up the environment or use a prebuild [docker image](#docker-install).
+To generate the TSL, you need Python and some additional Python packages. You can either [manually](#custom-install) set up the environment or use a prebuilt [docker image](#docker-install).
 
  #### <a id="custom-install"></a>**Install dependencies manually (Option 1)**
 
@@ -340,7 +342,7 @@ All tests passed (20 assertions in 1 test case)
 ## <a id="tsl-contribute"></a>**Contribute**
 
 As a small group mainly focused on In-Memory-Database, we certainly miss crucial functionality needed by algorithms from other domains or even from our own. 
-We would highly appreciate your bringing your expertise and use cases and contributing to the existing library. 
+We would highly appreciate your contribution of your expertise and use cases through adding to the existing library. 
 To help you with this, we developed a [Visual Studio Code Extension](https://marketplace.visualstudio.com/items?itemName=DBTUD.tslgen-edit) that provides helpful features like TSL-specific auto-completion, code-preview generation, ad-hoc build and testing and much more. 
 We recommend using this since writing YAML files can be pretty nerve-racking sometimes ;).
 
