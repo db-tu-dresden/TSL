@@ -679,7 +679,6 @@ brief: A flag indicating whether the definition is using a 1-to-1 mapping (True)
 type: `str` <br />
 default: "" <br />
 brief: Brief description of the primitive. <br />
-recommended: True <br />
 
 
 </blockquote>
