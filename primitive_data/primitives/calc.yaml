@@ -563,10 +563,10 @@ definitions:
       T result = 0; //initialize the result
       #pragma unroll
       for(int i = 0; i < Vec::vector_element_count(); i+=16) {
-        T add_1_1 = value[ 0] + value[ 1];
-        T add_1_2 = value[ 2] + value[ 3];
-        T add_1_3 = value[ 4] + value[ 5];
-        T add_1_4 = value[ 6] + value[ 7];
+        T add_1_1 = value[i  ] + value[i+1];
+        T add_1_2 = value[i+2] + value[i+3];
+        T add_1_3 = value[i+4] + value[i+5];
+        T add_1_4 = value[i+6] + value[i+7];
 
         T add_2_1 = add_1_1 + add_1_2;
         T add_2_2 = add_1_3 + add_1_4;
