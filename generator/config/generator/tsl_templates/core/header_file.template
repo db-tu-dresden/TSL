@@ -6,9 +6,11 @@
 #ifndef {{ tsl_include_guard }}
 #define {{ tsl_include_guard }}
 
+{% if preliminary_defines is defined %}
 {% for preliminary_define in preliminary_defines %}
 {{preliminary_define}}
 {% endfor %}
+{% endif %}
 
 {% for include in includes %}
 #include {{ include }}
