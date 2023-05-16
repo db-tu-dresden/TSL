@@ -194,7 +194,7 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         continue-on-error: true
         id: build
-        run: cmake -S . -B tsl && make -C tsl
+        run: cmake -S . -B tsl && make -j -C tsl
       -
         name: 'Run Tests'
         id: test
