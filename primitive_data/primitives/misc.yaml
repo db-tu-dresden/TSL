@@ -3,6 +3,54 @@ name: "misc"
 description: "Miscellaneous primitives."
 ...
 ---
+primitive_name: 'pack_bits_linear'
+brief_description: 'Packs elements from a vector together using a fixed bitwidth.'
+detailed_description: |
+  Packs elements from a vector together using a fixed bitwidth. The bitwidth
+  must be less than the number of bits in the vector's base type. 
+  The elements are packed together in little-endian order, i.e. the least
+  significant bits of the first element are used first.
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Data vector."
+  - ctype: "const unsigned"
+    name: "bitwidth"
+    description: "Bitwidth of each element."
+returns: 
+  ctype: "typename Vec::register_type"
+  description: "Vector containing packed elements."
+definitions:
+  - target_extension: 'fpga_generic'
+    ctype: ['uint64_t']
+    lscpu_flags: ['fpga_generic']
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using BigIntT = ac_int<Vec::vector_size_b(), std::is_signed_v<T>>;
+      BigIntT intermediate_results[Vec::vector_element_count()];
+      BigIntT const all_zero_but_effective_bits{ (bitwidth << 1) - 1 };
+      #pragma unroll
+      for (int i = 0; i < Vec::vector_element_count(); ++i) {
+        intermediate_results[i] = (all_zero_but_effective_bits & BigIntT{data[i]}) << (bitwidth*i);
+        //BigIntT data;
+        //bit_fill<BigIntT>((T [1]){data[i]});
+        ////data.set_val<AC_VAL_0>();
+      }
+      BigIntT tmp_result{0};
+      #pragma unroll
+      for (int i = 0; i < Vec::vector_element_count(); ++i) {
+        tmp_result |=  intermediate_results[i];
+      }
+      typename Vec::register_type result{};
+      #pragma unroll
+      for (int i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = tmp_result.slc<(sizeof(T)*CHAR_BIT)>(i*(sizeof(T)*CHAR_BIT));
+      }
+      return result;
+...
+---
 primitive_name: "pack_bits_treelike"
 brief_description: "Packs elements from a vector together using a fixed bitwidth."
 detailed_description: |
@@ -27,6 +75,7 @@ definitions:
     vector_length_agnostic: True
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
     implementation: |
+      
       using T = typename Vec::base_type;
       typename Vec::register_type result{};
       #pragma unroll

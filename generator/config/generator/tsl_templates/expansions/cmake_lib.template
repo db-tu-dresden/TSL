@@ -22,6 +22,9 @@ target_compile_options({{ tsl_lib_name }} INTERFACE {{ tsl_target_compile_option
 {% if use_concepts %}
 target_compile_definitions({{ tsl_lib_name }} INTERFACE TSL_USE_CONCEPTS)
 {% endif %}
+if (DEFINED TSL_LINK_OPTIONS)
+   target_link_options({{ tsl_lib_name}} INTERFACE ${TSL_LINK_OPTIONS})
+endif()
 {% for dir in subdirectories %}
 add_subdirectory({{ dir }})
 {% endfor %}
