@@ -130,7 +130,7 @@ jobs:
         if: steps.generate.outcome == 'success'
         uses: jaywcjlove/generated-badges@main
         with:
-          label: py${{ matrix.python-version }}
+          label: ${{ matrix.python-version }}
           status: passed
           color: green
           output: ./doc/badges/generate_py${{ matrix.python-version }}.svg
@@ -139,7 +139,7 @@ jobs:
         if: steps.generate.outcome == 'failure'
         uses: jaywcjlove/generated-badges@main
         with:
-          label: py${{ matrix.python-version }}
+          label: ${{ matrix.python-version }}
           status: failed
           color: red
           output: ./doc/badges/generate_py${{ matrix.python-version }}.svg
@@ -211,11 +211,18 @@ jobs:
         name: 'Mkdir badges folder'
         run: mkdir -p ./doc/badges
       -
+        name: 'Determine compiler version'
+        run: |
+          VERSION=$({{ matrix.compiler }} --version sed -E 's/[^0-9]*//' | grep -oP '[0-9]+\.[0-9]+\.[0-9]+'})
+          echo "COMPILER_VERSION=$VERSION" >> $GITHUB_ENV
+          #if [ "${{ matrix.compiler }}" == "clang++" ]; then COMPILER_VERSION=`clang++ --version | head -n 1 | cut -d ' ' -f 3`; fi
+          #if [ "${{ matrix.compiler }}" == "g++" ]; then COMPILER_VERSION=`g++ --version | head -n 1 | cut -d ' ' -f 3`; fi
+      -
         name: Update status badge building with ${{ matrix.compiler }} for success
         if: steps.build.outcome == 'success'
         uses: jaywcjlove/generated-badges@main
         with:
-          label: Build ${{ matrix.compiler }}
+          label: ${{ matrix.compiler }}-${{ env.COMPILER_VERSION}}
           status: passed
           color: green
           output: ./doc/badges/build_${{ matrix.compiler }}.svg
@@ -224,7 +231,7 @@ jobs:
         if: steps.build.outcome == 'failure'
         uses: jaywcjlove/generated-badges@main
         with:
-          label: Build ${{ matrix.compiler }}
+          label: ${{ matrix.compiler }}-${{ env.COMPILER_VERSION}}
           status: failed
           color: red
           output: ./doc/badges/build_${{ matrix.compiler }}.svg
@@ -233,7 +240,7 @@ jobs:
         if: steps.test.outcome == 'success'
         uses: jaywcjlove/generated-badges@main
         with:
-          label: Test ${{ matrix.compiler }}
+          label: ${{ matrix.compiler }}-${{ env.COMPILER_VERSION}}
           status: passed
           color: green
           output: ./doc/badges/test_${{ matrix.compiler }}.svg
@@ -242,7 +249,7 @@ jobs:
         if: steps.test.outcome == 'failure'
         uses: jaywcjlove/generated-badges@main
         with:
-          label: Test ${{ matrix.compiler }}
+          label: ${{ matrix.compiler }}-${{ env.COMPILER_VERSION}}
           status: failed
           color: red
           output: ./doc/badges/test_${{ matrix.compiler }}.svg
