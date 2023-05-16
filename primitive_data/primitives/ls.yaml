@@ -344,7 +344,6 @@ definitions:
     lscpu_flags: ["fpga_generic"]
     vector_length_agnostic: True
     implementation: |
-      using T = typename Vec::register_type;
       #pragma unroll
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         memory[idx] = data[idx];
@@ -354,7 +353,6 @@ definitions:
     lscpu_flags: ["fpga_native"]
     vector_length_agnostic: True
     implementation: |
-      using T = typename Vec::register_type;
       #pragma unroll
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         memory[idx] = data[idx];

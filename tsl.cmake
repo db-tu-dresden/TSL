@@ -16,7 +16,7 @@ function(create_tsl)
   endif()
 
   if (CREATE_TSL_ARGS_TARGETS_FLAGS STREQUAL "" OR NOT DEFINED CREATE_TSL_ARGS_TARGETS_FLAGS)
-    set(TARGETS_FLAGS "" STRING "space separated lscpu flags for --targets, will attempt to call lscpu if empty")
+    set(TARGETS_FLAGS "") # STRING "space separated lscpu flags for --targets, will attempt to call lscpu if empty"
     if(LSCPU_FLAGS STREQUAL "")
         execute_process(
             COMMAND "${Python3_EXECUTABLE}" -c "import cpuinfo; print(*cpuinfo.get_cpu_info()['flags'])"
@@ -133,7 +133,7 @@ function(create_tsl)
   else()
     set(CURRENT_GENERATOR_OPTIONS ${CURRENT_GENERATOR_OPTIONS} "--no-concepts")
   endif()
-  set(TSL_GENERATOR_OPTIONS ${CURRENT_GENERATOR_OPTIONS} STRING "additonal cli options for the generator, semicolon separated")
+  set(TSL_GENERATOR_OPTIONS ${CURRENT_GENERATOR_OPTIONS}) #STRING "additonal cli options for the generator, semicolon separated"
   
   message(STATUS "=== SUMMARY: TSL Generation ===")
   message(STATUS "Script path      : ${TSLGENERATOR_DIRECTORY}/main.py")
@@ -158,6 +158,7 @@ function(create_tsl)
   message(STATUS "Target Options   : ${TSL_LINK_OPTIONS}")
   message(STATUS "===============================")
   message(STATUS "Running TSL Generator...")
+  message(STATUS "Executing command: ${Python3_EXECUTABLE} ${TSLGENERATOR_DIRECTORY}/main.py ${TSL_GENERATOR_OPTIONS} -o ${TSL_GENERATOR_DESTINATION} ${TSL_TARGETS_SWITCH} ${TSL_PRIMITIVE_SWITCH} ${TSL_TYPES_SWITCH}")
   execute_process(
       COMMAND "${Python3_EXECUTABLE}" "${TSLGENERATOR_DIRECTORY}/main.py" 
       ${TSL_GENERATOR_OPTIONS} -o "${TSL_GENERATOR_DESTINATION}"
