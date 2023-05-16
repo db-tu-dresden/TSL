@@ -1,5 +1,4 @@
-# Template SIMD Library (TSL)
-
+![](./doc/media/tsl_repo_logo_wide.png)
 ## **Current Status**
 
 ### Library Generation using Python
@@ -191,17 +190,40 @@ project
 ```
 In the given scenario, `./libs` contains third-party library code, and `./tools` contains third-party tools and scripts. 
 The TSL generator was added as git _submodule_, _subtree_ or simply as a _sub repository_ to `./tools/tsl`.
-As you may have noticed, in the top-level directory of the TSL Generator, there is a CMakeLists.txt. 
+As you may have noticed, in the top-level directory of the TSL Generator, there is a _tsl.cmake_ file. 
 This can be directly used within your project top-level CMakeLists:
 ~~~cmake
-# ...
+cmake_minimum_required(VERSION 3.16)
 project(<PROJECTNAME>)
 # ...
-add_subdirectory(${PROJECT_SOURCE_DIR}/tools/tsl)
-add_executable(<target> [source1] [source2...])
-target_include_directories(<target> INTERFACE ${PROJECT_SOURCE_DIR}/libs/tsl)
-target_link_libraries(<target> INTERFACE ${PROJECT_SOURCE_DIR}/libs/tsl)
+#Include the TSL cmake file.
+include(tools/tsl/tsl.cmake)
+#tsl.cmake exports a function which can should be used to generate the TSL
+create_tsl(
+  TSLGENERATOR_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tools/tslgen"
+  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/tools/tslgen"
+)
+
+target_include_directories(<target> PUBLIC ${TSL_INCLUDE_DIRECTORY} <target_includes>...)
+target_link_libraries(<target> INTERFACE tsl)
 ~~~
+The `create_tsl` function has the following signature:
+~~~cmake
+create_tsl(
+  [<WORKAROUND_WARNINGS>    BOOL            ] # = FALSE
+  [<USE_CONCEPTS>           BOOL            ] # = FALSE
+  [<CREATE_TESTS>           BOOL            ] # = FALSE
+  [<TSLGENERATOR_DIRECTORY> STRING          ] # = "${CMAKE_CURRENT_SOURCE_DIR}"
+  [<DESTINATION>            STRING          ] # = "${CMAKE_CURRENT_BINARY_DIR}/generator_output"
+  [<TARGET_FLAGS>           <item STRING>...] # = UNDEFINED
+  [<APPEND_TARGETS_FLAGS>   <item STRING>...] # = UNDEFINED
+  [<PRIMITIVES_FILTER>      <item STRING>...] # = UNDEFINED
+  [<DATATYPES_FILTER>       <item STRING>...] # = UNDEFINED
+  [<LINK_OPTIONS>           <item STRING>...] # = UNDEFINED
+  [<GENERATOR_OPTIONS>      <item STRING>...] # = UNDEFINED
+)
+~~~
+
 When you call cmake in your project root, the `./tools/tsl/CMakeLists.txt` will be invoked. 
 This identifies your hardware's capabilities and generates a tailored TSL that will be accessible from your files. 
 Thus, the only thing you have to do is to include the top-level TSL header file. 
