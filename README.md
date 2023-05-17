@@ -1,4 +1,7 @@
-![](./doc/media/tsl_repo_logo_wide.png)
+![](./doc/media/tsl_repo_logo_wide3.png)
+
+---
+
 ## **Current Status**
 
 ### Library Generation using Python
@@ -121,7 +124,7 @@ In the following section, we will explain how to install the requirements for Li
 You may have to adopt the package manager and the package names for other Linux distributions. 
 
 ~~~console
-# udpate apt
+# update apt
 user@host:~/tslroot  sudo apt update
 # install TSL-generator-specific dependencies
 user@host:~/tslroot  sudo apt -y install python3.10 graphviz-dev
@@ -161,9 +164,16 @@ The provided image defines a console as an entry point and exposes a path `/tslg
 
 ## <a id="tsl-usage"></a>**Usage**
 
-In the following section, we distinguish between two use cases: (i) using the TSL within an existing project (or starting from scratch) and (ii) contributing primitives and extensions. 
+In the following section, we distinguish between two use cases: (i) using the TSL within an existing project and (ii) contributing primitives and extensions (or starting from scratch). 
 
 ### <a id="tsl-include"></a>__Using the TSL in your project__ (recommended for users)
+
+There exist several ways to incorporate the TSL into your existing project. 
+If you have a CMake project and want to integrate the TSL generation into your cmake process, find the instructions in subsection [CMake Integration](#usage-cmake-integration). <br>
+If your project uses a PRE-BUILD script to set up the environment, please be referred to subsection [Explicit Include](#usage-explicit-include).<br>
+For a detailed explanation about how to use the TSL in your project code, see subsection [Code Example](#usage-code-example).
+
+### <a id="usage-cmake-integration"></a>_CMake Integration_
 
 Assuming you have the following existing project structure:
 ```
@@ -205,8 +215,8 @@ create_tsl(
   DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/tools/tslgen"
 )
 
-target_include_directories(<target> PUBLIC ${TSL_INCLUDE_DIRECTORY} <target_includes>...)
-target_link_libraries(<target> INTERFACE tsl)
+target_include_directories(<target> PUBLIC ${TSL_INCLUDE_DIRECTORY} <target_includes>...) #[1] see explanation below
+target_link_libraries(<target> INTERFACE tsl)                                             #[2] ======== "" =========
 ~~~
 The `create_tsl` function has the following signature:
 ~~~cmake
@@ -214,6 +224,7 @@ create_tsl(
   [<WORKAROUND_WARNINGS>    BOOL            ] # = FALSE
   [<USE_CONCEPTS>           BOOL            ] # = FALSE
   [<CREATE_TESTS>           BOOL            ] # = FALSE
+  [<DRAW_TEST_DEPENDENCIES> BOOL            ] # = FALSE
   [<TSLGENERATOR_DIRECTORY> STRING          ] # = "${CMAKE_CURRENT_SOURCE_DIR}"
   [<DESTINATION>            STRING          ] # = "${CMAKE_CURRENT_BINARY_DIR}/generator_output"
   [<TARGET_FLAGS>           <item STRING>...] # = UNDEFINED
@@ -224,21 +235,37 @@ create_tsl(
   [<GENERATOR_OPTIONS>      <item STRING>...] # = UNDEFINED
 )
 ~~~
-<details>
+<details open>
 <summary><b>Parameters</b></summary>
 
-> _Options:_<br>
+> **_Options:_**<br>
 > `WORKAROUND_WARNINGS`: Control, whether warnings should be emitted, if a primitive is used, that is not directly backed up by the hardware.<br>
 > `USE_CONCEPTS`: By default, the TSL generator will determine whether C++20-concepts are supported by your compiler. However, if you want to disable them, you can use this flag.<br>
 > `CREATE_TESTS`: The TSL contains test-cases for many of the provided primitives. If you want the tests to be generated and build, set the value to TRUE.<br>
-> _Single-Value Parameters:_<br>
+> `DRAW_TEST_DEPENDENCIES`: You can let the TSL generator draw a dependency graph of the implemented primitive-tests. <br>
+> **_Single-Value Parameters:_**<br>
 > `TSLGENERATOR_DIRECTORY`: By default, the TSL generator is searched from the current source dir. However, to avoid any confusion we highly recommend to set this parameter to point to the actual TSL-Generator root folder (which contains the TSL-Generator _main.py_).<br>
 > `DESTINATION`: By default, the TSL generator will emit the TSL into the cmake build directory in a sub-folder called _generator_output_. If you want to "persist" the generated TSL, you should set the value to a directory outside of the build directory.<br>
-> _List Parameters:_<br>
-
+> **_List Parameters:_**<br>
+> `TARGET_FLAGS`: A CMake list containing the hardware target specificiers (e.g., avx avx2 avx512f). If the parameter is not set, the function will determine the available hardware capabilities by using `py-cpuinfo` or - if it fails - with `lscpu`. <br>
+> `APPEND_TARGETS_FLAGS`: If you want to generate specific targets even if they are not supported by your hardware you cann pass a list of that target specifiers here.<br>
+> `PRIMITIVES_FILTER`: A list of TSL-primitive names which should be considered for generation. Specifying a subset of the available primitives may be helpful for debugging purposes or just to reduce generation and build time.<br>
+> `DATATYPES_FILTER`: A list of C++ data types which should be considered for generation. As for `PRIMITIVES_FILTER` slicing the TSL to only support a subset of supported datatypes will decrease the TSL complexity and thus reduce compile time. Available values are: `uint8_t, int8_t, uint16_t, int16_t, uint32_t, int32_t, uint64_t, int64_t, float, double`.<br>
+> `LINK_OPTIONS`: This list can contain additional options which should be passed to the library. The values will be used for `target_link_options`.<br>
+> `GENERATOR_OPTIONS`: A list of additional options that should be passed to the TSL generator. Find a comprehensive list using `python3 main.py -h`.
 </details>
 
+Under the hood, `create_tsl` will generate the TSL and create a CMakeLists.txt in the root path of the library. 
+The root path of the TSL is exported as a variable called `TSL_INCLUDE_DIRECTORY` and thus can be used from your CMakelists.txt (see listing above [1]).
+This path will than be added to your cmake project using `add_subdirectory`. 
+The generated CMakeLists.txt defines an INTERFACE library called `tsl` that can be used for linking your target against (see listing above [2]). <br>
+For an example of how to use the TVL inside your code, see subsection [Code Example](#usage-code-example).
 
+### <a id="usage-explicit-include"></a>_Explicit Include_
+
+> TODO
+
+### <a id="usage-code-example"></a>_Code Example_
 When you call cmake in your project root, the `./tools/tsl/CMakeLists.txt` will be invoked. 
 This identifies your hardware's capabilities and generates a tailored TSL that will be accessible from your files. 
 Thus, the only thing you have to do is to include the top-level TSL header file. 

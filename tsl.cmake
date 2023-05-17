@@ -4,7 +4,7 @@ find_package(Python3 REQUIRED)
 
 
 function(create_tsl)
-  set(options WORKAROUND_WARNINGS USE_CONCEPTS CREATE_TESTS)
+  set(options WORKAROUND_WARNINGS USE_CONCEPTS CREATE_TESTS DRAW_TEST_DEPENDENCIES)
   set(oneValueArgs TSLGENERATOR_DIRECTORY DESTINATION)
   set(multiValueArgs TARGETS_FLAGS APPEND_TARGETS_FLAGS PRIMITIVES_FILTER DATATYPES_FILTER LINK_OPTIONS GENERATOR_OPTIONS)
   cmake_parse_arguments(CREATE_TSL_ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -102,6 +102,12 @@ function(create_tsl)
     set(CURRENT_GENERATOR_OPTIONS "${CURRENT_GENERATOR_OPTIONS}" "--testing")
   else() 
     set(CURRENT_GENERATOR_OPTIONS "${CURRENT_GENERATOR_OPTIONS}" "--no-testing")
+  endif()
+
+  if(CREATE_TSL_ARGS_DRAW_TEST_DEPENDENCIES)
+    set(CURRENT_GENERATOR_OPTIONS "${CURRENT_GENERATOR_OPTIONS}" "--draw-test-dependencies")
+  else()
+    set(CURRENT_GENERATOR_OPTIONS "${CURRENT_GENERATOR_OPTIONS}" "--no-draw-test-dependencies")
   endif()
 
   if(CREATE_TSL_ARGS_USE_CONCEPTS)
