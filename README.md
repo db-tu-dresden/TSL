@@ -24,16 +24,6 @@
 ### Docker image containing all requirements
 [![dockerio](./doc/badges/docker.io.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml)
 
-|Table of contents|
-|:--|
-[1. About the TSL](#tsl-intro)|
-[2. Motivation](#tsl-motivation)|
-[3. Prerequisites](#tsl-prerequisites)|
-[4. Usage](#tsl-usage)|
-[4.1 Integration into your project](#tsl-include)|
-[4.2 Starting from scratch](#tsl-scratch)|
-[5. Contribute](#tsl-contribute)|
-
 ---
 
 |Table of contents|
@@ -244,10 +234,11 @@ create_tsl(
   [<GENERATOR_OPTIONS>      <item STRING>...] # = UNDEFINED
 )
 ~~~
-<details open>
+
+<a id="cmake-parameters"></a><details open>
 <summary><b>Parameters</b></summary>
 
-> **_Options:_**<br>
+> **_Options:_** (be aware, that these are not variables but options; so if they are specified, the value will be TRUE implicitly) <br>
 > `WORKAROUND_WARNINGS`: Control, whether warnings should be emitted, if a primitive is used, that is not directly backed up by the hardware.<br>
 > `USE_CONCEPTS`: By default, the TSL generator will determine whether C++20-concepts are supported by your compiler. However, if you want to disable them, you can use this flag.<br>
 > `CREATE_TESTS`: The TSL contains test-cases for many of the provided primitives. If you want the tests to be generated and build, set the value to TRUE.<br>
@@ -272,29 +263,54 @@ For an example of how to use the TVL inside your code, see subsection [Code Exam
 
 ### <a id="usage-explicit-include"></a>_Explicit Include_
 
-> TODO
+As the TSL is tailored to the underlying hardware, we must provide the system specification to the generator.
+The code below can be used to check what FLAGS your hardware exposes (an i7-8550U produces the result).
+~~~console
+user@host:~/tsl LSCPU_FLAGS=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -E -v '^Flags:|^$' | sort -d | tr '\n' ' ')
+user@host:~/tsl echo $LSCPU_FLAGS
+3dnowprefetch abm acpi adx aes aperfmperf apic arat arch_capabilities arch_perfmon art avx avx2 bmi1 bmi2 bts clflush clflushopt cmov constant_tsc cpuid cpuid_fault cx16 cx8 de ds_cpl dtes64 dtherm dts epb ept ept_ad erms est f16c flexpriority flush_l1d fma fpu fsgsbase fxsr ht hwp hwp_act_window hwp_epp hwp_notify ibpb ibrs ida intel_pt invpcid invpcid_single lahf_lm lm mca mce md_clear mmx monitor movbe mpx msr mtrr nonstop_tsc nopl nx pae pat pbe pcid pclmulqdq pdcm pdpe1gb pebs pge pln pni popcnt pse pse36 pti pts rdrand rdseed rdtscp rep_good sdbg sep sgx smap smep ss ssbd sse sse2 sse4_1 sse4_2 ssse3 stibp syscall tm tm2 tpr_shadow tsc tsc_adjust tsc_deadline_timer vme vmx vnmi vpid x2apic xgetbv1 xsave xsavec xsaveopt xsaves xtopology xtpr
+~~~
+This list can then be passed to the generator:
+~~~console
+user@host:~/tsl python3 ./main.py --targets ${LSCPU_FLAGS} -o ./lib
+# Of course, you can also do this in one go
+user@host:~/tsl python3 ./main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -E -v '^Flags:|^$' | sort -d | tr '\n' ' ') -o ./lib
+# You can fillter for types, which may come in handy for fast prototyping
+user@host:~/tsl python3 ./main.py --targets ${LSCPU_FLAGS} -o ./libUI64 --types "uint64_t"
+# You can filter for primitives (mainly for development reasons)
+user@host:~/tsl python3 ./main.py --targets ${LSCPU_FLAGS} -o ./libRNDMem --primitives "gather scatter"
+# Get a list of all available arguments:
+user@host:~/tsl python3 ./main.py -h
+~~~
+> **Note:** If your compiler does not support C++-20 concepts, you should use the `--no-concepts` argument to avoid the generator using concepts.
+
+After generating the TSL to `./lib` you can include the library either using the generated `./lib/CMakeLists.txt` (see subsection [CMake Integration](#usage-cmake-integration)) or by passing the include directory to your compiler:
+~~~console
+user@host:~/tsl $CXX_COMPILER -Ilib/include my_main.cpp 
+~~~
 
 ### <a id="usage-code-example"></a>_Code Example_
-When you call cmake in your project root, the `./tools/tsl/CMakeLists.txt` will be invoked. 
-This identifies your hardware's capabilities and generates a tailored TSL that will be accessible from your files. 
-Thus, the only thing you have to do is to include the top-level TSL header file. 
-This will include all necessary files properly.
+After generating and including the TSL as described above, you can use the TVL within your code.
+All you have to do is to include one header file (`tslintrin.hpp`). 
+The primitives and extensions reside in the namespace `tsl`. An minimal example (find more [here](doc/Examples.md)) for creating an AVX-SIMD register filled with the value 42 and writing the register to stdout is shown below.
 ~~~cpp
-#include <tslintrin.h>
+#include <tslintrin.hpp>
 //Now we can access the TSL functionality through their namespace:
 int main() {
-  //Now we can access the TSL functionality through their namespace:
+  //Now we can access the TSL functionality through their namespace.
   auto _vec = tsl::set1<tsl::avx2, uint32_t>(42);
-  // Of course, you can also use the namespace
-  using namespace tsl;
-  to_ostream<avx2, uint32_t>(std::cout, _vec) << std::endl;
-  // result: [42,42,42,42,42,42,42,42]
+  
+  { // Of course, you can also use the namespace  
+    using namespace tsl;
+    to_ostream<avx2, uint32_t>(std::cout, _vec) << std::endl;
+    // This should print the following to stdout: [42,42,42,42,42,42,42,42]
+  }
   return 0;
 }
 ~~~
 > **Note:** Don't include other files from the TSL directory, as they depend on the order of includes specified by tslintrin.h.
 
-Since everything is running, please refer to the [Getting Started](doc/GettingStarted.md) page for more examples. 
+
 
 [Go back to toc](#toc)
 
@@ -332,30 +348,14 @@ tsl
       |   ...
 ```
 
-As the TSL is tailored to the underlying hardware, we must provide the system specification to the generator.
-The code below can be used to check what FLAGS your hardware exposes (an i7-8550U produces the result).
+As the TSL (+generator) is a cmake project we highly recommend using cmake to set up everything (however, if you feel like generating it directly, please see subsection [Explicit Include](#usage-explicit-include) above).
 ~~~console
-user@host:~/tsl  LSCPU_FLAGS=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -E -v '^Flags:|^$' | sort -d | tr '\n' ' ')
-user@host:~/tsl  echo $LSCPU_FLAGS
-3dnowprefetch abm acpi adx aes aperfmperf apic arat arch_capabilities arch_perfmon art avx avx2 bmi1 bmi2 bts clflush clflushopt cmov constant_tsc cpuid cpuid_fault cx16 cx8 de ds_cpl dtes64 dtherm dts epb ept ept_ad erms est f16c flexpriority flush_l1d fma fpu fsgsbase fxsr ht hwp hwp_act_window hwp_epp hwp_notify ibpb ibrs ida intel_pt invpcid invpcid_single lahf_lm lm mca mce md_clear mmx monitor movbe mpx msr mtrr nonstop_tsc nopl nx pae pat pbe pcid pclmulqdq pdcm pdpe1gb pebs pge pln pni popcnt pse pse36 pti pts rdrand rdseed rdtscp rep_good sdbg sep sgx smap smep ss ssbd sse sse2 sse4_1 sse4_2 ssse3 stibp syscall tm tm2 tpr_shadow tsc tsc_adjust tsc_deadline_timer vme vmx vnmi vpid x2apic xgetbv1 xsave xsavec xsaveopt xsaves xtopology xtpr
+#user@host:~/tsl cmake -S . -D GENERATOR_OUTPUT_PATH=<path to output directory> -B lib
+# This will create the TSL into `./lib`
+user@host:~/tsl cmake -S . -B lib
 ~~~
-This list can then be passed to the generator:
-~~~console
-user@host:~/tsl  python3 ./main.py --targets ${LSCPU_FLAGS} -o ./lib
-# You can fillter for types, which may come in handy for fast prototyping
-user@host:~/tsl  python3 ./main.py --targets ${LSCPU_FLAGS} -o ./libUI64 --types "uint64_t"
-# You can filter for primitives (mainly for development reasons)
-user@host:~/tsl  python3 ./main.py --targets ${LSCPU_FLAGS} -o ./libRNDMem --primitives "gather scatter"
-# get a list of all available arguments:
-user@host:~/tsl  python3 ./main.py -h
-~~~
-> **Note:** If your compiler does not support C++-20 concepts, you should use the `--no-concepts` argument to avoid the generator using concepts.
 
-A more convenient way is to use the provided top-level CMakeLists.txt to do all of this in one go:
-~~~console
-user@host:~/tsl  cmake -S . -D GENERATOR_OUTPUT_PATH=<path to output directory> -B lib
-~~~
-> **Note:** You can pass other flags the generator consumes using the `-D` notation.
+> **Note:** You can pass other flags the generator consumes using the `-D` notation. A list of available flags are listed [above](#cmake-parameters).
 
 Under the hood, cmake utilizes py-cpuinfo to detect system-specific hardware properties (i.e., which cpu flags are available) and hand them over to the generator.
 This way, the generated TSL library is tailored to your system.
@@ -366,9 +366,9 @@ For more information on how to do that, look at the [Generator Usage](GeneratorU
 
 ### <a id="tsl-tests"></a>__Build and run primitive tests__ (recommended for contributors)
 
-If you want to build the generated TSL together with the specified tests, utilizing [Catch2](https://github.com/catchorg/Catch2), run the following commands after CMake:
+If you want to build the generated TSL together with the specified tests (which are created by default), utilizing [Catch2](https://github.com/catchorg/Catch2), run the following commands after CMake:
 ~~~console
-user@host:~/tsl make -C lib
+user@host:~/tsl make -j -C lib
 user@host:~/tsl ./lib/generator_output/build/src/test/tsl_test
 # <output truncated>
 ===============================================================================

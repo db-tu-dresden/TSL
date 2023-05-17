@@ -25,7 +25,7 @@ function(create_tsl)
     endif()
     if(TARGETS_FLAGS STREQUAL "")
       execute_process(
-        COMMAND bash -c "LANG=en;lscpu|grep -i flags | tr ' ' '\n' | egrep -v '^Flags:|^$' | sort -d | tr '\n' ' '"
+        COMMAND bash -c "LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' '"
         OUTPUT_VARIABLE TARGETS_FLAGS
         RESULT_VARIABLE TSLHardwareReturnValue
       )
