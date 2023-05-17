@@ -24,6 +24,15 @@
 ### Docker image containing all requirements
 [![dockerio](./doc/badges/docker.io.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml)
 
+|Table of contents|
+|:--|
+[1. About the TSL](#tsl-intro)|
+[2. Motivation](#tsl-motivation)|
+[3. Prerequisites](#tsl-prerequisites)|
+[4. Usage](#tsl-usage)|
+[4.1 Integration into your project](#tsl-include)|
+[4.2 Starting from scratch](#tsl-scratch)|
+[5. Contribute](#tsl-contribute)|
 
 ---
 
