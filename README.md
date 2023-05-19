@@ -1,4 +1,4 @@
-![](./doc/media/tsl_repo_logo_wide3.png)
+![](./doc/media/tsl_repo_logo_wide.png)
 
 ---
 
@@ -155,6 +155,8 @@ user@host:~/tslroot  docker tag jpietrzyktud/tslgen:latest tslgen:latest
 ~~~
 
 The provided image defines a console as an entry point and exposes a path `/tslgen` as the mount point for the host machine.
+
+> Note: The workflow description for using docker is still _work in progress_. 
 
 [Go back to toc](#toc)
 
