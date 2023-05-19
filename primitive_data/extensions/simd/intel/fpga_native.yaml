@@ -3,7 +3,7 @@ description: "Definition of the SIMD TargetExtension fpga for Intel fpga using d
 vendor: "intel"
 extension_name: "oneAPIfpgaRTL"
 lscpu_flags: ["oneAPIfpgaDev"]
-includes: ["<array>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>", "<lib.hpp>"]
+includes: ["<array>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>", "<tslOneAPIfpgaRTL.hpp>"]
 simdT_name: "oneAPIfpgaRTL"
 needs_arch_flags: False
 simdT_default_size_in_bits: 512 #this is just a default value, we can let it out if we want to
@@ -17,6 +17,7 @@ required_supplementary_libraries:
     name: "libtslOneAPIFPGA"
     cmakelists_path: "oneApiFPGA"
     library_create_function: "create_one_api_fpga_library"
+    include_path: "oneApiFPGA/include"
 
 #simdT_mask_type: "std::bitset<VectorSizeInBits/sizeof(BaseType)>" #the mask-type should contain a bit for every entry within the register_type. maybe we can substitute the bitset with an integral value at some point
 ...

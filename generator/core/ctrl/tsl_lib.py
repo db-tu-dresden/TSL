@@ -38,11 +38,15 @@ class TSLLib:
                 for entry_dict in extension.data["required_supplementary_libraries"]:
                     if entry_dict["name"] not in libnames:
                         libnames.add(entry_dict["name"])
-                        result.append({
+                        entry = {
                             "name": entry_dict["name"],
                             "cmakelists_path": f"{supplementary_root_path.joinpath(entry_dict['cmakelists_path'])}",
-                            "library_create_function": entry_dict["library_create_function"]
-                        })
+                            "library_create_function": entry_dict["library_create_function"],
+
+                        }
+                        if "include_path" in entry_dict:
+                            entry["include_path"] = f"{supplementary_root_path.joinpath(entry_dict['include_path'])}"
+                        result.append(entry)
                     else:
                         self.log(logging.WARNING, f"Supplementary library {entry_dict['name']} already added. Ignoring.")
         return result
