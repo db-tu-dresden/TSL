@@ -12,7 +12,6 @@ endif()
 
 set(ONE_API_FPGA_OBJECTS_TARGETS )
 set(ONE_API_FPGA_OBJECTS )
-set(ONE_API_FPGA_LIBRARY_TARGET "libtslOneAPIFPGA" PARENT_SCOPE)
 
 # This is a CMake macro that creates a custom command and target for generating an FPGA object file
 # using the `fpga_crossgen` tool. The macro takes in a `NAME` argument for the name of the object file
@@ -57,13 +56,16 @@ macro(create_one_api_fpga_library)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Running fpga_libtool to build ${CREATE_ONE_API_FPGA_LIBRARY_NAME}.a"
   )
-  add_custom_target(${ONE_API_FPGA_LIBRARY_TARGET}
+  add_custom_target(${CREATE_ONE_API_FPGA_LIBRARY_NAME}
     DEPENDS ${CREATE_ONE_API_FPGA_LIBRARY_NAME}.a
   )
-  add_dependencies(${ONE_API_FPGA_LIBRARY_TARGET} ${ONE_API_FPGA_OBJECTS_TARGETS})
+  add_dependencies(${CREATE_ONE_API_FPGA_LIBRARY_NAME} ${ONE_API_FPGA_OBJECTS_TARGETS})
 endmacro()
 
 
-
-
-
+#This macro must be called for every object file that should be compiled
+register_one_api_fpga_object(
+  NAME "rtl_lzc32"
+  SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/lib_rtl_model_lzc32.cpp
+  SPECS ${CMAKE_CURRENT_SOURCE_DIR}/specs/lib_rtl_spec_lzc32.xml
+)

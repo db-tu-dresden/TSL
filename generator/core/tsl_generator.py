@@ -185,6 +185,8 @@ class TSLGenerator:
                 self.log(logging.INFO, f"Creating file {tsl_file.file_name}")
                 tsl_file.render_to_file()
 
+            lib.copy_relevant_supplementary_files()
+
             cmake_config = config.get_expansion_config("cmake")
 
 
