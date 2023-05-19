@@ -156,7 +156,8 @@ parameter: &parameter
 
 primitive_specialization_requirements: &primitive_specialization_requirements
    target_extension:
-      type: "str"
+      type: "list"
+      entry_type: "str"
       brief: "The TSL extension for which this definition is a specialization."
    ctype:
       type: "list"

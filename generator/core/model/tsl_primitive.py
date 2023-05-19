@@ -93,6 +93,16 @@ class TSLPrimitive:
             self.log(logging.INFO,
                      f"Created Primitive Definition for {self.__data_dict['target_extension']} using {self.__data_dict['ctype']}")
 
+        @classmethod
+        def construct(cls, data_dict: dict):
+            if isinstance(data_dict['target_extension'], list):
+                for target_extension in data_dict['target_extension']:
+                    cd = copy.deepcopy(data_dict)
+                    cd['target_extension'] = target_extension
+                    yield TSLPrimitive.Definition(cd)
+            else:
+                yield TSLPrimitive.Definition(data_dict)
+
         def __str__(self) -> str:
             return f"<{self.target_extension} -> {self.ctypes}>"
 
@@ -294,8 +304,10 @@ class TSLPrimitive:
         if TSLPrimitive.Definition.schema_identifier() in data_dict:
             definitions_dict_list = data_dict.pop(TSLPrimitive.Definition.schema_identifier())
         declaration: TSLPrimitive.Declaration = TSLPrimitive.Declaration(data_dict)
-        definitions: List[TSLPrimitive.Definition] = [TSLPrimitive.Definition(definition_dict) for definition_dict in
-                                                      definitions_dict_list]
+        definitions: List[TSLPrimitive.Definition] = [
+            definition for definition_dict in definitions_dict_list 
+            for definition in TSLPrimitive.Definition.construct(definition_dict)
+        ]
         return TSLPrimitive(declaration, definitions)
 
     def __deepcopy__(self, memodict={}):
