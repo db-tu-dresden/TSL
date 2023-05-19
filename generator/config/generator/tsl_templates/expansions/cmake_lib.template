@@ -35,6 +35,5 @@ add_subdirectory({{ supplementary_lib["cmakelists_path"] }})
 {% endfor %}
 # Add custom targets for supplementary libraries
 {% for supplementary_lib in tsl_required_supplementary_libraries %}
-{{ supplementary_lib["library_create_function"] }}(NAME {{ supplementary_lib["name"] }})
 add_dependencies({{ tsl_lib_name}} {{ supplementary_lib["name"] }})
 {% endfor %}
