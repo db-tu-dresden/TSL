@@ -121,6 +121,13 @@ jobs:
           CXX: ${{ matrix.compiler }}
         run: cmake -S . -B tsl
       -
+        name: 'Upload generated TSL as artifact'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tsl_${{ github.event.pull_request.head.sha }}
+          path: ./tsl
+          retention-days: 2
+      -
         name: 'Build TSL'
         run: make -j -C tsl
       -
