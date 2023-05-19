@@ -194,7 +194,7 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         continue-on-error: true
         id: build
-        run: cmake -S . -B tsl && make -j -C tsl
+        run: CXX=${{ matrix.compiler }} cmake -S . -B tsl && make -j -C tsl
       -
         name: 'Run Tests'
         id: test
@@ -213,10 +213,19 @@ jobs:
       -
         name: 'Determine compiler version'
         run: |
-          VERSION=$({{ matrix.compiler }} --version sed -E 's/[^0-9]*//' | grep -oP '[0-9]+\.[0-9]+\.[0-9]+'})
-          echo "COMPILER_VERSION=$VERSION" >> $GITHUB_ENV
-          #if [ "${{ matrix.compiler }}" == "clang++" ]; then COMPILER_VERSION=`clang++ --version | head -n 1 | cut -d ' ' -f 3`; fi
-          #if [ "${{ matrix.compiler }}" == "g++" ]; then COMPILER_VERSION=`g++ --version | head -n 1 | cut -d ' ' -f 3`; fi
+          set -x
+          if [ "${{ matrix.compiler }}" == "clang++" ]; then
+            clang++ --version
+            VERSION=$(clang++ --version | head -n 1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+')
+          elif [ "${{ matrix.compiler }}" == "g++" ]; then
+            g++ --version
+            VERSION=$(g++ --version | head -n 1 | tr " " "\n" | grep -oP '[0-9]+\.[0-9]+\.[0-9]+$')
+          else
+            VERSION="unknown"
+          fi
+          echo $VERSION
+          echo "COMPILER_VERSION=$VERSION" >> "$GITHUB_ENV"
+          # --version | head -n 1 | cut -d ' ' -f 3
       -
         name: Update status badge building with ${{ matrix.compiler }} for success
         if: steps.build.outcome == 'success'
