@@ -21,9 +21,9 @@ returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing packed elements."
 definitions:
-  - target_extension: ['oneAPIfpga', 'oneAPIfpgaRTL']
-    ctype: ['uint64_t']
-    lscpu_flags: ['oenAPIfpgaDev']
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
     implementation: |

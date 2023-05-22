@@ -993,7 +993,7 @@ primitive_name: "lzc"
 brief_description: "Leading zeros counter."
 parameters:
   - ctype: "const typename Vec::register_type"
-    name: "vec_a"
+    name: "data"
     description: "First vector."
 returns:
    ctype: "typename Vec::offset_base_register_type"
@@ -1002,6 +1002,7 @@ definitions:
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint32_t", "int32_t", "float"]
     lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
     vector_length_agnostic: True
     implementation: |
       using base_t = typename Vec::base_type;
@@ -1011,7 +1012,7 @@ definitions:
       typename Vec::offset_base_register_type lzc_data{};
       #pragma unroll
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
-        lzc_data[i] = Lzc32Uint(vec_a[i]);
+        lzc_data[i] = Lzc32Uint(data[i]);
       }
       #pragma unroll
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
@@ -1026,7 +1027,7 @@ definitions:
       using bitInt = ac_int<(sizeof(base_t)*CHAR_BIT), std::is_signed_v<base_t>>;
       #pragma unroll
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
-        bitInt val = bitInt(data[idx]);
+        bitInt val(data[idx]);
         int k;
         #pragma unroll
         for(k = (sizeof(base_t)*CHAR_BIT)-1; k >= 0 && val[k] == 0; k--) {}
