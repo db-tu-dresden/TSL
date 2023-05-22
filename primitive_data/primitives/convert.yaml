@@ -137,11 +137,11 @@ definitions:
     lscpu_flags: []
     implementation: "return data;"
 #INTEL - FPGA
-  - target_extension: "fpga_generic"
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["float","double"]
     additional_simd_template_base_type_mapping_dict: {"float":["int32_t", "uint32_t"],"double":["int64_t", "uint64_t"]}
     vector_length_agnostic: True
-    lscpu_flags: ["fpga_generic"]
+    lscpu_flags: ["oneAPIfpgaDev"]
     implementation: |
       using U = typename ToType::register_type;
       U result{};

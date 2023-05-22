@@ -50,4 +50,6 @@ configuration_files:
    static_files:
       root_path:                  "generator/static_files"
       lib:                        "core"
+   supplementary:
+      root_path:                  "supplementary"
 ...

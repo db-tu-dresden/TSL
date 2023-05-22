@@ -77,9 +77,9 @@ definitions:
     lscpu_flags: []
     implementation: "return *memory;"
 #FPGA
-  - target_extension: "fpga_generic"
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-    lscpu_flags: ["fpga_generic"]
+    lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
       using T = typename Vec::register_type;
@@ -166,21 +166,9 @@ definitions:
     lscpu_flags: []
     implementation: "return *memory;"
 #FPGA
-  - target_extension: "fpga_generic"
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-    lscpu_flags: ["fpga_generic"]
-    vector_length_agnostic: True
-    implementation: |
-      using T = typename Vec::register_type;
-      T reg; //initialize the result
-      #pragma unroll
-      for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
-        reg[idx] = memory[idx];
-      }
-      return reg;
-  - target_extension: "fpga_native"
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-    lscpu_flags: ["fpga_native"]
+    lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
       using T = typename Vec::register_type;
@@ -339,18 +327,9 @@ definitions:
     lscpu_flags: []
     implementation: "*memory = data;"
 #FPGA
-  - target_extension: "fpga_generic"
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-    lscpu_flags: ["fpga_generic"]
-    vector_length_agnostic: True
-    implementation: |
-      #pragma unroll
-      for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
-        memory[idx] = data[idx];
-      }
-  - target_extension: "fpga_native"
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-    lscpu_flags: ["fpga_native"]
+    lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
       #pragma unroll
@@ -478,27 +457,15 @@ definitions:
     lscpu_flags: []
     implementation: "return value;"
 #INTEL - FPGA
-  - target_extension: "fpga_generic"
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-    lscpu_flags: ["fpga_generic"]
+    lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
       using T = typename Vec::register_type;
       T result;
       #pragma unroll
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
-        result[i] = value;
-      }
-      return result;
-  - target_extension: "fpga_native"
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-    lscpu_flags: ["fpga_native"]
-    vector_length_agnostic: True
-    implementation: |
-      using T = typename Vec::register_type;
-      T result;
-      #pragma unroll
-      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = value;
       }
       return result;

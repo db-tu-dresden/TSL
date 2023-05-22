@@ -132,9 +132,9 @@ definitions:
       return c;
     specialization_comment: "Benchmark what to use. Current implementation or: uint64_t c = (*((uint64_t *)&a) & *((uint64_t *)&b)); return *((double *)&c);"
 #INTEL - FPGA
-  - target_extension: "fpga_generic"
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t"]
-    lscpu_flags: ["fpga_generic"]
+    lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
       using T = typename Vec::register_type;
@@ -243,9 +243,9 @@ definitions:
     is_native: False
     implementation: "uint64_t r = *((uint64_t *)&a) | *((uint64_t *)&b); return *(double*)&r;"
 #INTEL - FPGA
-  - target_extension: "fpga_generic"
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t"]
-    lscpu_flags: ["fpga_generic"]
+    lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
       using T = typename Vec::register_type;
@@ -987,4 +987,51 @@ testing:
           allOk &= test_helper.validate();
       }
       return allOk;
+...
+---
+primitive_name: "lzc"
+brief_description: "Leading zeros counter."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "First vector."
+returns:
+   ctype: "typename Vec::offset_base_register_type"
+   description: "Vector containing leading zeros number."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint32_t", "int32_t", "float"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    vector_length_agnostic: True
+    implementation: |
+      typename Vec::offset_base_register_type result{};
+      {% if target_extension == 'oneAPIfpgaRTL' %}
+      typename Vec::offset_base_register_type lzc_data{};
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        lzc_data[i] = Lzc32Uint(data[i]);
+      }
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        if(lzc_data[i]>32)
+          result[i] = 32;
+        else
+          result[i] = lzc_data[i];
+      }
+      {% else %}
+      using base_t = typename Vec::base_type;
+      // as the current version of oneAPI does not properly implement ac_int::leading_sign() we "reimplemented" it
+      // /glob/development-tools/versions/oneapi/2023.0.1/oneapi/compiler/2023.0.0/linux/lib/oclfpga/include/sycl/ext/intel/ac_types/ac_int.hpp
+      using bitInt = ac_int<(sizeof(base_t)*CHAR_BIT), std::is_signed_v<base_t>>;
+      #pragma unroll
+      for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+        bitInt val(data[idx]);
+        int k;
+        #pragma unroll
+        for(k = (sizeof(base_t)*CHAR_BIT)-1; k >= 0 && val[k] == 0; k--) {}
+        result[idx] = (sizeof(base_t)*CHAR_BIT) + ~k;
+      }
+      {% endif %}
+      return result;
 ...
