@@ -50,6 +50,69 @@ definitions:
       }
       return result;
 ...
+---
+primitive_name: "pack_bits_linear"
+functor_name: "pack_bits_linear_merge"
+brief_description: ""
+detailed_description: ""
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "src"
+    description: "Source register which is used for merging (assumed to be packed already)."
+  - ctype: "const unsigned"
+    name: "bit_offset"
+    description: "Bit offset of the last set bit."
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Data vector."
+  - ctype: "const unsigned"
+    name: "bitwidth"
+    description: "Bitwidth of each element."
+returns:
+  ctype: "std::tuple<typename Vec::register_type, int, typename Vec::register_type>"
+  description: "Tuple containing the merged vector, an int indicating whether the data vector had an overflow (-1: false, >=0 new offset) and the overflow."
+  # description: "Vector containing packed and merged elements."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<tuple>", "<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    implementation: |
+      auto packed_data = tsl::pack_bits_linear<Vec>(data, bitwidth);
+      using T = typename Vec::base_type;
+      using BigIntT = ac_int<Vec::vector_size_b(), std::is_signed_v<T>>;
+      int src_array[Vec::vector_size_B() / sizeof(int)];
+      int const * const src_ptr = reinterpret_cast<int const * const>(src.data());
+      int packed_data_array[Vec::vector_size_B() / sizeof(int)];
+      int const * const packed_data_ptr = reinterpret_cast<int const * const>(packed_data.data());
+      #pragma unroll
+      for (std::size_t i = 0; i < Vec::vector_size_B() / sizeof(int); ++i) {
+        src_array[i] = src_ptr[i];
+        packed_data_array[i] = packed_data_ptr[i];
+      }
+      BigIntT src_int = ac::bit_fill<BigIntT>(src_array, false);
+      BigIntT packed_data_int = ac::bit_fill<BigIntT>(packed_data_array, false);
+      src_int |= (packed_data_int << bit_offset);
+      typename Vec::register_type result{};
+      #pragma unroll
+      for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = src_int.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
+      }
+      // check for overflow
+      auto new_bitwidth = (bit_offset + bitwidth * Vec::vector_element_count());
+      if (new_bitwidth > Vec::vector_size_b()) {
+        int const new_offset = new_bitwidth - Vec::vector_size_b();
+        packed_data_int >>= (new_offset);
+        typename Vec::register_type overflow_result{};
+        #pragma unroll
+        for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          overflow_result[i] = packed_data_int.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
+        }
+        return std::make_tuple(result, new_offset, overflow_result);
+      }
+      return std::make_tuple(result, -1, data);
+...
 # ---
 # primitive_name: "pack_bits_treelike"
 # brief_description: "Packs elements from a vector together using a fixed bitwidth."

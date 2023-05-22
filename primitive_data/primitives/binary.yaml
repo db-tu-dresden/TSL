@@ -1005,9 +1005,7 @@ definitions:
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
     vector_length_agnostic: True
     implementation: |
-      using base_t = typename Vec::base_type;
       typename Vec::offset_base_register_type result{};
-
       {% if target_extension == 'oneAPIfpgaRTL' %}
       typename Vec::offset_base_register_type lzc_data{};
       #pragma unroll
@@ -1022,6 +1020,7 @@ definitions:
           result[i] = lzc_data[i];
       }
       {% else %}
+      using base_t = typename Vec::base_type;
       // as the current version of oneAPI does not properly implement ac_int::leading_sign() we "reimplemented" it
       // /glob/development-tools/versions/oneapi/2023.0.1/oneapi/compiler/2023.0.0/linux/lib/oclfpga/include/sycl/ext/intel/ac_types/ac_int.hpp
       using bitInt = ac_int<(sizeof(base_t)*CHAR_BIT), std::is_signed_v<base_t>>;
