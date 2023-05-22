@@ -36,7 +36,8 @@ add_subdirectory({{ supplementary_lib["cmakelists_path"] }})
 # Add includes if present
 {% for supplementary_lib in tsl_required_supplementary_libraries %}
 {% if "include_path" in supplementary_lib %}
-target_include_directories({{ tsl_lib_name}} INTERFACE {{ supplementary_lib["include_path"] }}/)
+#target_include_directories({{ tsl_lib_name}} INTERFACE {{ supplementary_lib["include_path"] }}/)
+target_include_directories({{ tsl_lib_name }} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/{{ supplementary_lib["include_path"] }}> $<INSTALL_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/{{ supplementary_lib["include_path"] }} )
 {% endif %}
 {% endfor %}
 # Add custom targets for supplementary libraries
