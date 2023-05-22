@@ -21,8 +21,9 @@
 [vendor](#extension--vendor) | [intrin_tp_full](#extension--intrin_tp_full)
 [name](#extension-custom_types-entry_type--name) | [language](#extension--language)
 [struct_code](#extension-custom_types-entry_type--struct_code) | [needs_arch_flags](#extension--needs_arch_flags)
- | [simdT_default_size_in_bits](#extension--simdT_default_size_in_bits)
- | [simdT_integral_mask_type](#extension--simdT_integral_mask_type)
+[cmakelists_path](#extension-required_supplementary_libraries-entry_type--cmakelists_path) | [required_supplementary_libraries](#extension--required_supplementary_libraries)
+[library_create_function](#extension-required_supplementary_libraries-entry_type--library_create_function) | [simdT_default_size_in_bits](#extension--simdT_default_size_in_bits)
+[name](#extension-required_supplementary_libraries-entry_type--name) | [simdT_integral_mask_type](#extension--simdT_integral_mask_type)
  | [simdT_mask_type_attributes](#extension--simdT_mask_type_attributes)
  | [simdT_mask_type_compiler_attributes](#extension--simdT_mask_type_compiler_attributes)
  | [simdT_register_type_attributes](#extension--simdT_register_type_attributes)
@@ -285,6 +286,68 @@ example: `'CXX' or 'CUDA'` <br />
 type: `bool` <br />
 brief: Indicates, whether the lscpu-flags should be used as compiler flags. <br />
 default: True <br />
+
+
+</blockquote>
+
+[Back to Table of Content](#toc-extension)
+
+</details>
+
+<details>
+<summary><a name="extension--required_supplementary_libraries"></a>required_supplementary_libraries: (optional)</summary>
+
+<blockquote>
+
+type: `list` <br />
+brief: List of libraries which are required for this extension. <br />
+default: [] <br />
+<details open>
+<summary><a name="entry_type"></a>entry_type</summary>
+
+<blockquote>
+
+<details open>
+<summary><a name="extension-required_supplementary_libraries-entry_type--cmakelists_path"></a>cmakelists_path: (required)</summary>
+
+<blockquote>
+
+type: `str` <br />
+brief: Path to the top-level directory where the CMakeLists.txt file resides which will be used for add_subdirectory. <br />
+
+
+</blockquote>
+</details>
+
+<details open>
+<summary><a name="extension-required_supplementary_libraries-entry_type--library_create_function"></a>library_create_function: (required)</summary>
+
+<blockquote>
+
+type: `str` <br />
+brief: Name of the function which will be used to create the library. <br />
+
+
+</blockquote>
+</details>
+
+<details open>
+<summary><a name="extension-required_supplementary_libraries-entry_type--name"></a>name: (required)</summary>
+
+<blockquote>
+
+type: `str` <br />
+brief: Name of the library which will be used for linking. <br />
+
+
+</blockquote>
+</details>
+
+
+
+</blockquote>
+</details>
+
 
 
 </blockquote>
@@ -591,7 +654,8 @@ brief: The actual implementation for this definition. <br />
 
 <blockquote>
 
-type: `str` <br />
+type: `list` <br />
+entry_type: str <br />
 brief: The TSL extension for which this definition is a specialization. <br />
 
 
