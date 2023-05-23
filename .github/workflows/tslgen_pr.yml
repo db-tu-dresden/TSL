@@ -86,7 +86,17 @@ jobs:
     strategy:
       matrix:
         compiler: ["clang++", "g++"]
-        # generator_opts: ["", "--no-concepts"]
+        target_flags: 
+          - "sse"
+          - "sse;sse2"
+          - "sse;sse2;ssse3"
+          - "sse;sse2;ssse3;sse4_1"
+          - "sse;sse2;ssse3;sse4_1;sse4_2"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f;avx512cd;avx512er;avx512pf" #avx3.1
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f;avx512cd;avx512bw;avx512dq;avx512vl" #avx3.2
     needs: [lint, generate]
     steps:
       -
@@ -119,7 +129,17 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         env:
           CXX: ${{ matrix.compiler }}
-        run: cmake -S . -B tsl
+        run: |
+          HW_LIST=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ';')
+          IFS=";" read -ra TARGET_FLAGS <<< "${{ matrix.target_flags }}"
+          IFS=";" read -ra HW_FLAGS <<< "${HW_LIST}"
+          for i in "${TARGET_FLAGS[@]}"; do
+            if [[ ! " ${HW_FLAGS[*]} " =~ " ${i} " ]]; then
+              echo "Target flag ${i} not supported by hardware"
+              exit 0
+            fi
+          done
+          cmake -S . -B tsl
       -
         name: 'Upload generated TSL as artifact'
         uses: actions/upload-artifact@v3
