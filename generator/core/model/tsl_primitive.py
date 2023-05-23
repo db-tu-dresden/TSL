@@ -158,6 +158,11 @@ class TSLPrimitive:
         @property
         def additional_simd_template_base_type_mapping_dict(self) -> Dict[str, List[str]]:
             return self.__data_dict["additional_simd_template_base_type_mapping_dict"]
+        
+        @property 
+        def additional_simd_template_extension(self) -> str:
+            aste = self.__data_dict['additional_simd_template_extension']
+            return aste if aste else self.target_extension
 
         def update_types(self, ct: List[str]):
             ctypes = copy.deepcopy(self.ctypes)
@@ -328,15 +333,20 @@ class TSLPrimitive:
                     result[definition.target_extension].append(ctype)
         return result
 
-    def conversion_types(self, specializations: Dict[str, List[str]]) -> Dict[str, Dict[str, List[str]]]:
+    # resulting dict: (extension, additional_simd_template_extension, ctype) -> list of additional_simd_template_base_type
+    def conversion_types(self, specializations: Dict[str, List[str]]) -> Dict[str, Dict[str, Dict[str, List[str]]]]:
         if not self.declaration.has_additional_simd_template_parameters():
             return None
-        result: Dict[str, Dict[str, List[str]]] = {}
+        result: Dict[str, Dict[str, Dict[str, List[str]]]] = {}
         for definition in self.definitions:
             te = definition.target_extension
             if te not in result:
                 result[te] = {}
-            known_conversions = result[te]
+            result_te = result[te]
+            aste = definition.additional_simd_template_extension
+            if aste not in result_te:
+                result_te[aste] = {}
+            known_conversions = result_te[aste]
             tsdict: Dict[str, List[str]] = definition.types_dict
             for tstype in tsdict:
                 if tstype in specializations[te]:

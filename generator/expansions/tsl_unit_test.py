@@ -23,13 +23,13 @@ from generator.utils.yaml_utils import YamlDataType, yaml_load
 import os
 
 class TSLPrimitiveTestCaseData:
-    def __init__(self, class_name: str, primitive_name: str, data_dict: YamlDataType, lib_definitions: Dict[str, List[str]], conversion_types: Dict[str, Dict[str, List[str]]], missing_primitive_definitions: Dict[str, Dict[str, List[str]]]):
+    def __init__(self, class_name: str, primitive_name: str, data_dict: YamlDataType, lib_definitions: Dict[str, List[str]], conversion_types: Dict[str, Dict[str, Dict[str, List[str]]]], missing_primitive_definitions: Dict[str, Dict[str, List[str]]]):
         self.__class_name: str = class_name
         self.__primitive_name: str = primitive_name
         self.__test_name: str = data_dict["test_name"]
         self.__data_dict: YamlDataType = data_dict
         self.__lib_definitions: Dict[str, List[str]] = lib_definitions
-        self.__conversion_types: Dict[str, Dict[str, List[str]]] = conversion_types
+        self.__conversion_types: Dict[str, Dict[str, Dict[str, List[str]]]] = conversion_types
         self.__complete_tests_lib_definitions: Dict[str, List[str]] = lib_definitions
         self.__missing_previous_tests: Dict[str, Dict[str, List[str]]] = dict()
         self.__missing_required_primitive_definitions: Dict[str, Dict[str, List[str]]] = missing_primitive_definitions
@@ -79,7 +79,7 @@ class TSLPrimitiveTestCaseData:
         return copy.deepcopy(self.__lib_definitions)
 
     @property
-    def conversion_types(self) -> Dict[str, Dict[str, List[str]]]:
+    def conversion_types(self) -> Dict[str, Dict[str, Dict[str, List[str]]]]:
         return copy.deepcopy(self.__conversion_types)
 
     @property
@@ -117,7 +117,7 @@ class TSLPrimitiveTestCase:
     def __init__(self, case_data: TSLPrimitiveTestCaseData):
         self.__data: YamlDataType = case_data.data
         self.__lib_definitions: Dict[str, List[str]] = case_data.lib_definitions
-        self.__conversion_types: Dict[str, Dict[str, List[str]]] = case_data.conversion_types
+        self.__conversion_types: Dict[str, Dict[str, Dict[str, List[str]]]] = case_data.conversion_types
         self.__complete_tests_lib_definitions: Dict[str, List[str]] = case_data.complete_tests_lib_definitions
         self.__associated_primitive_class_name = case_data.class_name
         self.__associated_primitive_name = case_data.primitive_name
