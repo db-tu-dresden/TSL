@@ -3,8 +3,7 @@ name: 'tsl-validate-pr'
 on:
   pull_request:
     branches: ['main']
-    types: ['opened', 'reopened']
-
+    types: ['opened', 'reopened', 'synchronize', 'edited', 'ready_for_review']
 permissions:
   contents: read
 
@@ -129,29 +128,37 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         env:
           CXX: ${{ matrix.compiler }}
+        id: cmake
         run: |
           HW_LIST=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ';')
           IFS=";" read -ra TARGET_FLAGS <<< "${{ matrix.target_flags }}"
           IFS=";" read -ra HW_FLAGS <<< "${HW_LIST}"
+          BUILD=0
           for i in "${TARGET_FLAGS[@]}"; do
             if [[ ! " ${HW_FLAGS[*]} " =~ " ${i} " ]]; then
               echo "Target flag ${i} not supported by hardware"
-              exit 0
+              echo "GENERATED=SKIPPED" >> $GITHUB_OUTPUT
+              BUILD=1
             fi
           done
-          cmake -S . -B tsl
+          if [ $BUILD -eq 0 ]; then
+            cmake -S . -B tsl
+          fi
       -
         name: 'Upload generated TSL as artifact'
         uses: actions/upload-artifact@v3
+        if: steps.cmake.outputs.GENERATED != 'SKIPPED'
         with:
           name: tsl_${{ github.event.pull_request.head.sha }}
           path: ./tsl
           retention-days: 2
       -
         name: 'Build TSL'
+        if: steps.cmake.outputs.GENERATED != 'SKIPPED'
         run: make -j -C tsl
       -
         name: 'Run Tests'
+        if: steps.cmake.outputs.GENERATED != 'SKIPPED'
         run: ./tsl/generator_output/build/src/test/tsl_test
 
   integration:
