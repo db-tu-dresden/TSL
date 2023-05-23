@@ -22,7 +22,7 @@ returns:
   description: "Vector containing packed elements."
 definitions:
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
-    ctype: ["uint64_t"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
@@ -30,7 +30,7 @@ definitions:
       using T = typename Vec::base_type;
       using BigIntT = ac_int<Vec::vector_size_b(), std::is_signed_v<T>>;
       BigIntT intermediate_results[Vec::vector_element_count()];
-      BigIntT const all_zero_but_effective_bits{ (bitwidth << 1) - 1 };
+      BigIntT const all_zero_but_effective_bits{ (1<<bitwidth) - 1 };
       #pragma unroll
       for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         intermediate_results[i] = (all_zero_but_effective_bits & BigIntT{data[i]}) << (bitwidth*i);
@@ -54,7 +54,15 @@ definitions:
 primitive_name: "pack_bits_linear"
 functor_name: "pack_bits_linear_merge"
 brief_description: ""
-detailed_description: ""
+detailed_description: |
+  Packs elements from two vector registers together using a fixed bitwidth. The bitwidth
+  must be less than the number of bits in the vector's base type.
+  The elements are packed together in little-endian order, i.e. the least
+  significant bits of the first element are used first.
+  The 'src' operand is assumed to be packed already. The 'bit_offset' parameter indicates
+  the bit offset of the last set bit in the 'src' operand. The 'data' operand is packed
+  and merged with the 'src' operand. The 'bitwidth' parameter indicates the bitwidth of
+  each element in the 'data' operand.
 parameters:
   - ctype: "const typename Vec::register_type"
     name: "src"
@@ -74,7 +82,7 @@ returns:
   # description: "Vector containing packed and merged elements."
 definitions:
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
-    ctype: ["uint64_t"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     includes: ["<tuple>", "<sycl/ext/intel/ac_types/ac_int.hpp>"]
@@ -101,15 +109,15 @@ definitions:
       }
       // check for overflow
       auto new_bitwidth = (bit_offset + bitwidth * Vec::vector_element_count());
-      if (new_bitwidth > Vec::vector_size_b()) {
-        int const new_offset = new_bitwidth - Vec::vector_size_b();
-        packed_data_int >>= (new_offset);
+      if (new_bitwidth >= Vec::vector_size_b()) {
+        new_bitwidth -= Vec::vector_size_b();
+        packed_data_int >>= (bitwidth * Vec::vector_element_count() - new_bitwidth);
         typename Vec::register_type overflow_result{};
         #pragma unroll
         for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
           overflow_result[i] = packed_data_int.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
         }
-        return std::make_tuple(result, new_offset, overflow_result);
+        return std::make_tuple(result, new_bitwidth, overflow_result);
       }
       return std::make_tuple(result, -1, data);
 ...
