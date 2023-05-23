@@ -776,7 +776,7 @@ definitions:
     implementation: "return _mm_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   - target_extension: "sse"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
-    lscpu_flags: ["sse2"]
+    lscpu_flags: ["avx2"]
     implementation: "return _mm_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #ARM - NEON
   - target_extension: "neon"
@@ -850,7 +850,7 @@ definitions:
   #Intel - SSE
   - target_extension: "sse"
     ctype: ["int32_t", "uint32_t"]
-    lscpu_flags: ["sse2"]
+    lscpu_flags: ["avx2"]
     implementation: "return _mm_srav_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   - target_extension: "sse"
     ctype: ["uint16_t", "uint64_t", "int16_t", "int64_t"]
@@ -941,7 +941,7 @@ definitions:
     implementation: "return _mm_srlv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   - target_extension: "sse"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
-    lscpu_flags: ["sse2"]
+    lscpu_flags: ["avx2"]
     implementation: "return _mm_srlv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
 
   #ARM - NEON
