@@ -708,7 +708,7 @@ definitions:
       {% if ctype == "uint64_t" %}
       __m128i sign_bits = _mm_set1_epi64x((int64_t)0x8000000000000000);
       {% endif %}
-      return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_epi64(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits)));
+      return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_epi{{ intrin_tp[ctype][1] }}(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits)));
 #ARM - NEON
   - target_extension: "neon"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]

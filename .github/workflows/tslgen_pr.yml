@@ -117,24 +117,20 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         env:
           CXX: ${{ matrix.compiler }}
-        id: cmake
         run: |
           cmake -S . -B tsl
       -
         name: 'Upload generated TSL as artifact'
         uses: actions/upload-artifact@v3
-        if: steps.cmake.outputs.GENERATED != 'SKIPPED'
         with:
           name: tsl_${{ github.event.pull_request.head.sha }}
           path: ./tsl
           retention-days: 2
       -
         name: 'Build TSL'
-        if: steps.cmake.outputs.GENERATED != 'SKIPPED'
         run: make -j -C tsl
       -
         name: 'Run Tests'
-        if: steps.cmake.outputs.GENERATED != 'SKIPPED'
         run: ./tsl/generator_output/build/src/test/tsl_test
 
   validate-lscpu-flags:
