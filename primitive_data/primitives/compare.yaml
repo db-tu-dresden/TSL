@@ -429,7 +429,7 @@ definitions:
     implementation: "__m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_b, sign_bits), _mm256_xor_si256(vec_a, sign_bits));"
 #INTEL - SSE
   - target_extension: "sse"
-    ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    ctype: ["int8_t", "int16_t", "int32_t", "float", "double"]
     lscpu_flags: ['sse2']
     specialization_comment: "Signed comparison."
     implementation: "return _mm_cmplt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
