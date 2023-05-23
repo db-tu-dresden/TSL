@@ -6,7 +6,7 @@ description: "Load/Store primitives"
 primitive_name: "load"
 brief_description: "Loads data from aligned memory into a vector register."
 parameters:
-  - ctype: "const typename Vec::base_type *"
+  - ctype: "const typename Vec::base_type*"
     name: "memory"
     description: "Aligned memory which should be transferred into a vector register."
 returns:
@@ -95,7 +95,7 @@ definitions:
 primitive_name: "loadu"
 brief_description: "Loads data from (un)aligned memory into a vector register."
 parameters:
-  - ctype: "const typename Vec::base_type *"
+  - ctype: "const typename Vec::base_type*"
     name: "memory"
     description: "(Un)aligned memory which should be transferred into a vector register."
 returns:
@@ -183,7 +183,7 @@ definitions:
 primitive_name: "store"
 brief_description: "Stores data from a vector register to aligned memory."
 parameters:
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type*"
     name: "memory"
     description: "Aligned memory where the data should be stored into."
   - ctype: "const typename Vec::register_type"
@@ -216,11 +216,11 @@ definitions:
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_store_si512(reinterpret_cast<void *>(assume_aligned<Vec::vector_alignment()>(memory)), data);"
+    implementation: "_mm512_store_si512(reinterpret_cast<void*>(assume_aligned<Vec::vector_alignment()>(memory)), data);"
   - target_extension: "avx512"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_store_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void *>(assume_aligned<Vec::vector_alignment()>(memory)), data);"
+    implementation: "_mm512_store_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(assume_aligned<Vec::vector_alignment()>(memory)), data);"
 #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -258,7 +258,7 @@ definitions:
 primitive_name: "storeu"
 brief_description: "Stores data from a vector register to (un)aligned memory."
 parameters:
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type*"
     name: "memory"
     description: "(Un)aligned memory where the data should be stored into."
   - ctype: "const typename Vec::register_type"
@@ -289,11 +289,11 @@ definitions:
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_storeu_si512(reinterpret_cast<void *>(memory), data);"
+    implementation: "_mm512_storeu_si512(reinterpret_cast<void*>(memory), data);"
   - target_extension: "avx512"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void *>(memory), data);"
+    implementation: "_mm512_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), data);"
 #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -712,7 +712,7 @@ definitions:
 ---
 primitive_name: "gather"
 brief_description: "Transfers data from arbitrary locations into a vector register."
-additional_simd_template_parameter: 
+additional_simd_template_parameter:
   name: "IndicesType"
   default_value:  "typename Vec::offset_register_type"
 additional_non_specialized_template_parameters:
@@ -720,7 +720,7 @@ additional_non_specialized_template_parameters:
     name: "N"
     default_value: "sizeof(typename Vec::base_type)"
 parameters:
-  - ctype: "const void *"
+  - ctype: "const void*"
     name: "memory"
     description: "(Start)pointer of the memory (which is used as base for address calculation)."
   - ctype: "const typename IndicesType::register_type"
@@ -740,7 +740,7 @@ testing:
     implementation: |
       constexpr size_t test_mem_size = 256;
       constexpr size_t test_mem_offset = test_mem_size / 2;
-      constexpr size_t iteration_count = 16;      
+      constexpr size_t iteration_count = 16;
       testing::test_memory_helper_t<Vec> test_helper{test_mem_size, Vec::vector_element_count(), true, testing::seq_init_start_0<typename Vec::base_type>};
       testing::test_memory_helper_t<IndicesType> test_helper_indices{
           iteration_count * Vec::vector_element_count(), 0, true,
@@ -842,8 +842,8 @@ definitions:
 ---
 primitive_name: "gather"
 functor_name: "mask_gather"
-additional_simd_template_parameter: 
-  name: "IndicesType" 
+additional_simd_template_parameter:
+  name: "IndicesType"
   default_value: "typename Vec::offset_register_type"
 brief_description: "If mask[i] is 1, load memory[index[i] * scale], otherwise use source[i]"
 additional_non_specialized_template_parameters:
@@ -856,7 +856,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "source"
     description: "Vector register containing values which should be preserved depending on the mask (if mask[i] == 0)."
-  - ctype: "const void *"
+  - ctype: "const void*"
     name: "memory"
     description: "(Start)pointer of the memory (which is used as base for address calculation)."
   - ctype: "const typename IndicesType::offset_base_register_type"
@@ -965,7 +965,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
     description: "Vector register containing values which should be scattered to memory."
-  - ctype: "void *"
+  - ctype: "void*"
     name: "memory"
     description: "(Start)pointer of the memory (which is used as base for address calculation)."
   - ctype: "const typename Vec::offset_base_register_type"
@@ -1092,7 +1092,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
     description: "Vector register containing values which should be scattered to memory."
-  - ctype: "void *"
+  - ctype: "void*"
     name: "memory"
     description: "(Start)pointer of the memory (which is used as base for address calculation)."
   - ctype: "const typename Vec::offset_base_register_type"
@@ -1219,7 +1219,7 @@ definitions:
 ...
 #---
 #primitive_name: "gather"
-#additional_simd_template_parameter: 
+#additional_simd_template_parameter:
 #  name: "OffsetType"
 #brief_description: "Transfers data from arbitrary locations into a vector register."
 #additional_non_specialized_template_parameters:
@@ -1257,7 +1257,7 @@ parameters:
   - ctype: "const typename Vec::imask_type"
     name: "mask"
     description: "Mask"
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type*"
     name: "memory"
     description: "Memory"
   - ctype: "const typename Vec::register_type"
@@ -1337,7 +1337,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "src"
     description: "Source register. Data is kept if corresponding mask bit is set to 0."
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type*"
     name: "memory"
     description: "Memory"
 returns:
@@ -1412,7 +1412,7 @@ definitions:
 ...
 ---
 primitive_name: "load_convert_up"
-additional_simd_template_parameter: 
+additional_simd_template_parameter:
   name: "ToType"
 parameters:
   - ctype: "typename Vec::base_type const *"

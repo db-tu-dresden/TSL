@@ -4,7 +4,7 @@ description: "Conversion primitives."
 ...
 ---
 primitive_name: "reinterpret"
-additional_simd_template_parameter: 
+additional_simd_template_parameter:
   name: "ToType"
 parameters:
   - ctype: "const typename Vec::register_type"
@@ -154,7 +154,7 @@ definitions:
 ...
 ---
 primitive_name: "cast"
-additional_simd_template_parameter: 
+additional_simd_template_parameter:
   name: "ToType"
 parameters:
   - ctype: "const typename Vec::register_type"
@@ -247,7 +247,7 @@ definitions:
 ---
 # TODO(cmrs): add more implementations here
 primitive_name: "split"
-additional_simd_template_parameter: 
+additional_simd_template_parameter:
   name: "ToType"
 parameters:
   - ctype: "const typename Vec::register_type"
@@ -284,7 +284,7 @@ definitions:
 ---
 # TODO(cmrs): add more implementations here
 primitive_name: "merge"
-additional_simd_template_parameter: 
+additional_simd_template_parameter:
   name: "ToType"
 parameters:
   - ctype: "std::array<typename Vec::register_type, sizeof(typename Vec::base_type)/sizeof(typename ToType::base_type) * ToType::vector_element_count() / Vec::vector_element_count()>"
@@ -308,7 +308,7 @@ definitions:
 ...
 ---
 primitive_name: "convert_up"
-additional_simd_template_parameter: 
+additional_simd_template_parameter:
   name: "ToType"
 parameters:
   - ctype: "const typename Vec::register_type"
@@ -703,7 +703,7 @@ definitions:
 ...
 ---
 primitive_name: "convert_down"
-additional_simd_template_parameter: 
+additional_simd_template_parameter:
   name: "ToType"
 parameters:
   - ctype: "std::array<typename Vec::register_type, sizeof(typename Vec::base_type)/sizeof(typename ToType::base_type)>"

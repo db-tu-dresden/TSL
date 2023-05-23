@@ -11,23 +11,23 @@
 {%- endmacro -%}
 
 namespace {{ tsl_namespace }} {
-  {% for primitive_class_test in tests %}
-  {%    for primitive_test in primitive_class_test['primitive_tests'] %}
-  {%       for case in primitive_test['cases'] %}
-  {%        if case['conversion_types'] %}
+    {% for primitive_class_test in tests %}
+    {%    for primitive_test in primitive_class_test['primitive_tests'] %}
+    {%       for case in primitive_test['cases'] %}
+    {%        if case['conversion_types'] %}
     template<VectorProcessingStyle {{ primitive_test['vector_name'] }}, VectorProcessingStyle {{ primitive_test['additional_simd_template_parameter']['name'] }}>
-  {%        else %}
+    {%        else %}
     template<VectorProcessingStyle {{ primitive_test['vector_name'] }}>
-  {%        endif %}
+    {%        endif %}
     bool test_{{ case['primitive_name'] }}_{{ case['test_name'] }}() {
         using namespace {{ tsl_namespace }};
         {%- filter indent(width=8) +%}
 {{ case['implementation'] }}
         {% endfilter %}
     }
-  {%       endfor %}
-  {%    endfor %}
-  {% endfor %}
+    {%       endfor %}
+    {%    endfor %}
+    {% endfor %}
 }
 
 {% for primitive_class_test in tests %}
