@@ -79,8 +79,13 @@ definitions:
       return launch_elemenwise_op<typename Vec::register_type, add>(vec_a, vec_b, VectorSize);
 #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ['avx512f']
+    specialization_comment: "Signed addition."
+    implementation: "return _mm512_add_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ['avx512f', 'avx512bw']
     specialization_comment: "Signed addition."
     implementation: "return _mm512_add_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
   - target_extension: "avx512"
@@ -212,8 +217,13 @@ definitions:
       return launch_elemenwise_op<typename Vec::register_type, add>(vec_a, vec_b, VectorSize);
 #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ['avx512f']
+    specialization_comment: "Signed addition."
+    implementation: "return _mm512_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ['avx512f', 'avx512bw']
     specialization_comment: "Signed addition."
     implementation: "return _mm512_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b);"
   - target_extension: "avx512"

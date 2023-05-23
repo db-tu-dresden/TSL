@@ -440,7 +440,7 @@ definitions:
     implementation: "return _mm_cmpgt_epi64(vec_b, vec_a);"
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t"]
-    lscpu_flags: ['sse2']
+    lscpu_flags: ['sse2', 'sse4_1']
     specialization_comment: "Unsigned comparison."
     is_native: False
     implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
@@ -546,7 +546,7 @@ definitions:
     implementation: "__m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_a, sign_bits), _mm256_xor_si256(vec_b, sign_bits));"
 #INTEL - SSE
   - target_extension: "sse"
-    ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    ctype: ["int8_t", "int16_t", "int32_t", "float", "double"]
     lscpu_flags: ['sse2']
     specialization_comment: "Signed comparison."
     implementation: "return _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
@@ -665,7 +665,7 @@ definitions:
       return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpgt_epi64(_mm256_xor_si256(vec_a, sign_bits), _mm256_xor_si256(vec_b, sign_bits)));
 #INTEL - SSE
   - target_extension: "sse"
-    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["int8_t", "int16_t", "int32_t"]
     lscpu_flags: ['sse2']
     is_native: False
     implementation: "return  _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));"
@@ -790,8 +790,13 @@ definitions:
 
 #INTEL - SSE
   - target_extension: "sse"
-    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["int8_t", "int16_t", "int32_t"]
     lscpu_flags: ['sse2']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_b, vec_a));"
+  - target_extension: "sse"
+    ctype: ["int64_t"]
+    lscpu_flags: ['sse4_2']
     specialization_comment: "Signed comparison."
     implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_b, vec_a));"
   - target_extension: "sse"
