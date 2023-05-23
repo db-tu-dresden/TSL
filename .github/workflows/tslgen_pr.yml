@@ -186,16 +186,18 @@ jobs:
           HW_LIST=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ';')
           IFS=";" read -ra TARGET_FLAGS <<< "${{ matrix.target_flags }}"
           IFS=";" read -ra HW_FLAGS <<< "${HW_LIST}"
-          BUILD=0
+          ANY_TARGET_FLAG_FOUND=0
           for i in "${TARGET_FLAGS[@]}"; do
-            if [[ ! " ${HW_FLAGS[*]} " =~ " ${i} " ]]; then
-              echo "Target flag ${i} not supported by hardware"
-              echo "GENERATED=SKIPPED" >> $GITHUB_OUTPUT
-              BUILD=1
+            if [[ " ${HW_FLAGS[*]} " =~ " ${i} " ]]; then
+              echo "Seems to be an intel CPU sinc ${i} is supported."
+              ANY_TARGET_FLAG_FOUND=1
+              break
             fi
           done
-          if [ $BUILD -eq 0 ]; then
+          if [ $ANY_TARGET_FLAG_FOUND -eq 1 ]; then
             cmake -S . -B tsl -DTARGETS_FLAGS="${{ matrix.target_flags }}"
+          else
+            echo "GENERATED=SKIPPED" >> $GITHUB_OUTPUT
           fi
       -
         name: 'Build TSL'
