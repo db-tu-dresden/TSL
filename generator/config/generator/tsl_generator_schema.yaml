@@ -249,6 +249,23 @@ template_parameter: &template_parameter
     name:
       type: "str"
       brief: "Name of template parameter."
+  optional:
+    default_value:
+        type: "str"
+        brief: "A default value."
+        default: ""
+        
+additional_simd_template_parameter: &additional_simd_template_parameter
+  required:
+    name:
+      type: "str"
+      default: ""
+      brief: "Name of template parameter."
+  optional:
+    default_value: 
+      type: "str"
+      default: ""
+      brief: "default value for the template parameter"
 
 primitive:
   required:
@@ -310,9 +327,10 @@ primitive:
       default: { "ctype": "void", "description": "" }
       brief: "The return type of the primitive. (default = void)"
     additional_simd_template_parameter:
-      type: "str"
-      default: ""
-      brief: "Additional template parameter which may be used for conversion operations."
+      type: "dict"
+      entry_type: *additional_simd_template_parameter
+      default: { "name": "", "default_value": "" }
+      brief: "Additional template parameter which may be used for conversion operations."  
     additional_non_specialized_template_parameters:
       type: "list"
       entry_type: *template_parameter

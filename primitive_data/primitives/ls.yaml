@@ -712,10 +712,13 @@ definitions:
 ---
 primitive_name: "gather"
 brief_description: "Transfers data from arbitrary locations into a vector register."
-additional_simd_template_parameter: "IndicesType" # NOTE(cmrs): would really like to have a default value for this (Vec in this case)
+additional_simd_template_parameter: 
+  name: "IndicesType"
+  default_value:  "typename Vec::offset_register_type"
 additional_non_specialized_template_parameters:
   - ctype: "int"
     name: "N"
+    default_value: "sizeof(typename Vec::base_type)"
 parameters:
   - ctype: "const void *"
     name: "memory"
@@ -828,8 +831,10 @@ definitions:
 ---
 primitive_name: "gather"
 functor_name: "mask_gather"
-additional_simd_template_parameter: "IndicesType" # NOTE(cmrs): would really like to have a default value for this (Vec in this case)
-brief_description: "Transfers data from arbitrary locations into a vector register."
+additional_simd_template_parameter: 
+  name: "IndicesType" 
+  default_value: "typename Vec::offset_register_type"
+brief_description: "If mask[i] is 1, load memory[index[i] * scale], otherwise use source[i]"
 additional_non_specialized_template_parameters:
   - ctype: "int"
     name: "N"
@@ -1203,7 +1208,8 @@ definitions:
 ...
 #---
 #primitive_name: "gather"
-#additional_simd_template_parameter: "OffsetType"
+#additional_simd_template_parameter: 
+#  name: "OffsetType"
 #brief_description: "Transfers data from arbitrary locations into a vector register."
 #additional_non_specialized_template_parameters:
 #  - ctype: "int"
@@ -1395,7 +1401,8 @@ definitions:
 ...
 ---
 primitive_name: "load_convert_up"
-additional_simd_template_parameter: "ToType"
+additional_simd_template_parameter: 
+  name: "ToType"
 parameters:
   - ctype: "typename Vec::base_type const *"
     name: "memory"

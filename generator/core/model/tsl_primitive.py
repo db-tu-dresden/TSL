@@ -43,7 +43,7 @@ class TSLPrimitive:
                 setattr(result, k, deepcopy(v, memodict))
             return result
         def has_additional_simd_template_parameters(self) -> bool:
-           return len(self.__data_dict["additional_simd_template_parameter"]) > 0
+           return self.__data_dict["additional_simd_template_parameter"]["name"] != ""
 
     class Definition:
         @classmethod

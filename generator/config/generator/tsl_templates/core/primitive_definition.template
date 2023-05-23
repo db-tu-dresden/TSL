@@ -62,13 +62,13 @@
       {% set ns.parameters_types = ns.parameters_types ~ param['ctype'] ~ comma %}
    {% endif %}
 {% endfor %}
-{% if additional_simd_template_parameter != "" %}
+{% if additional_simd_template_parameter["name"] != "" %}
     {% if additional_simd_template_extension != "" %}
         {% set ns.additional_target_extension = additional_simd_template_extension %}
     {% else %}
         {% set ns.additional_target_extension = target_extension %}
     {% endif %}
-    {% set ns.using_return_type = 'using ' ~ additional_simd_template_parameter ~ ' = simd<' ~ additional_simd_template_base_type ~ ', ' ~ ns.additional_target_extension ~ ns.simd_register_length ~ '>;' %}
+    {% set ns.using_return_type = 'using ' ~ additional_simd_template_parameter["name"] ~ ' = simd<' ~ additional_simd_template_base_type ~ ', ' ~ ns.additional_target_extension ~ ns.simd_register_length ~ '>;' %}
     {% set ns.return_template_type = 'simd<' ~ additional_simd_template_base_type ~ ', ' ~ ns.additional_target_extension ~ ns.simd_register_length ~ '>, ' %}
 {% endif %}
 {% if additional_non_specialized_template_parameters|length > 0 %}

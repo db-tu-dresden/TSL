@@ -15,7 +15,7 @@ namespace {{ tsl_namespace }} {
   {%    for primitive_test in primitive_class_test['primitive_tests'] %}
   {%       for case in primitive_test['cases'] %}
   {%        if case['conversion_types'] %}
-    template<VectorProcessingStyle {{ primitive_test['vector_name'] }}, VectorProcessingStyle {{ primitive_test['additional_simd_template_parameter'] }}>
+    template<VectorProcessingStyle {{ primitive_test['vector_name'] }}, VectorProcessingStyle {{ primitive_test['additional_simd_template_parameter']['name'] }}>
   {%        else %}
     template<VectorProcessingStyle {{ primitive_test['vector_name'] }}>
   {%        endif %}
