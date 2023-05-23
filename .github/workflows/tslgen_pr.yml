@@ -3,8 +3,7 @@ name: 'tsl-validate-pr'
 on:
   pull_request:
     branches: ['main']
-    types: ['opened', 'reopened']
-
+    types: ['opened', 'reopened', 'synchronize']
 permissions:
   contents: read
 
@@ -86,7 +85,6 @@ jobs:
     strategy:
       matrix:
         compiler: ["clang++", "g++"]
-        # generator_opts: ["", "--no-concepts"]
     needs: [lint, generate]
     steps:
       -
@@ -119,7 +117,8 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         env:
           CXX: ${{ matrix.compiler }}
-        run: cmake -S . -B tsl
+        run: |
+          cmake -S . -B tsl
       -
         name: 'Upload generated TSL as artifact'
         uses: actions/upload-artifact@v3
@@ -134,9 +133,76 @@ jobs:
         name: 'Run Tests'
         run: ./tsl/generator_output/build/src/test/tsl_test
 
+  validate-lscpu-flags:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target_flags: 
+          - "sse"
+          - "sse;sse2"
+          - "sse;sse2;ssse3"
+          - "sse;sse2;ssse3;sse4_1"
+          - "sse;sse2;ssse3;sse4_1;sse4_2"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f;avx512cd;avx512er;avx512pf" #avx3.1
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f;avx512cd;avx512bw;avx512dq;avx512vl" #avx3.2
+    needs: [lint, generate]
+    steps:
+      -
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+      -
+        name: 'Install packages for generated code'
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential cmake g++ clang
+      -
+        name: 'Run CMake'
+        id: cmake
+        run: |
+          HW_LIST=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ';')
+          IFS=";" read -ra TARGET_FLAGS <<< "${{ matrix.target_flags }}"
+          IFS=";" read -ra HW_FLAGS <<< "${HW_LIST}"
+          ANY_TARGET_FLAG_FOUND=0
+          for i in "${TARGET_FLAGS[@]}"; do
+            if [[ " ${HW_FLAGS[*]} " =~ " ${i} " ]]; then
+              echo "Seems to be an intel CPU sinc ${i} is supported."
+              ANY_TARGET_FLAG_FOUND=1
+              break
+            fi
+          done
+          if [ $ANY_TARGET_FLAG_FOUND -eq 1 ]; then
+            cmake -S . -B tsl -DTARGETS_FLAGS="${{ matrix.target_flags }}"
+          else
+            echo "GENERATED=SKIPPED" >> $GITHUB_OUTPUT
+          fi
+      -
+        name: 'Build TSL'
+        if: steps.cmake.outputs.GENERATED != 'SKIPPED'
+        run: make -j -C tsl
+
   integration:
     runs-on: ubuntu-latest
-    needs: [build-and-test, generate]
+    needs: [validate-lscpu-flags, build-and-test, generate]
     steps:
       -
         name: Checkout main
