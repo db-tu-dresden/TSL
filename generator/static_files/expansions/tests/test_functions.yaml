@@ -13,22 +13,29 @@ includes:
    - "<limits>"
    - '"catch.hpp"'
 implementations:
-   - |
+  - |
       template<typename T>
-      void rnd_init(T* data, std::size_t element_count) {
+      void rnd_init_bounded(
+          T* data, std::size_t element_count, T min_inclusive, T max_inclusive
+      ) {
           std::mt19937 engine(std::chrono::high_resolution_clock::now().time_since_epoch().count());
           using dist_type = std::conditional_t< std::is_floating_point_v<T>, std::uniform_real_distribution<T>, std::uniform_int_distribution<T>>;
-          T max = std::clamp<T>(
-                            static_cast<T>(1000),
-                            static_cast<T>(0),
-                            static_cast<T>(std::numeric_limits<T>::max() / 3)
-                        );
-          dist_type dist(static_cast<T>(0), max);
+          dist_type dist(min_inclusive, max_inclusive);
           for(std::size_t i = 0; i < element_count; ++i) {
             data[i] = dist(engine);
           }
       }
-   - |
+  - |
+    template<typename T>
+    void rnd_init(T* data, std::size_t element_count) {
+        rnd_init_bounded(
+            data, 
+            element_count, 
+            static_cast<T>(0), 
+            std::clamp<T>(static_cast<T>(1000), static_cast<T>(0), static_cast<T>(std::numeric_limits<T>::max() / 3))
+        );
+    }
+  - |
       template<typename T>
       void alternate_init_no_zero(T* data, std::size_t element_count) {
           T max =
@@ -57,14 +64,14 @@ implementations:
             }
           }
       }
-   - |
+  - |
       template<typename T>
       void seq_init_start_0(T* data, std::size_t element_count) {
           for(std::size_t i = 0; i < element_count; ++i) {
             data[i] = i;
           }
       }
-   - |
+  - |
       template<typename T>
       void seq_init_start_low(T* data, std::size_t element_count) {
           T current_value = std::numeric_limits<T>::lowest();
@@ -72,7 +79,7 @@ implementations:
             data[i] = current_value++;
           }
       }
-   - |
+  - |
       template<typename T>
       void seq_init(T* data, std::size_t element_count, T start) {
           T current_value = start;
@@ -81,7 +88,7 @@ implementations:
             current_value = current_value + (T)1;
           }
       }
-   - |
+  - |
       template<typename T>
       bool check_value(T base, T to_be_examined) {
           if constexpr(std::is_integral_v<T>) {
@@ -99,7 +106,7 @@ implementations:
             return (std::fabs(static_cast<T>(base - to_be_examined)) <= std::numeric_limits<T>::epsilon());
           }
       }
-   - |
+  - |
       template<VectorProcessingStyle Vec>
       class set_call_helper_t {
           private:
@@ -112,7 +119,7 @@ implementations:
                 return call_set_impl(data, std::make_index_sequence<Vec::vector_element_count()>{});
             }
       };
-   - |
+  - |
       template<VectorProcessingStyle Vec>
       class test_memory_helper_t {
           public:
@@ -136,9 +143,9 @@ implementations:
                 m_result_target        {(aligned) ? tsl::allocate_aligned<Vec>(p_result_count*sizeof(base_t), Vec::vector_alignment()) : tsl::allocate<Vec>(p_result_count*sizeof(base_t))}
             { 
                 
-              }
+            }
             template<typename... Ts>
-            test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, std::function<void(base_t*,std::size_t)> const & fun = rnd_init<base_t>, Ts... init_args):
+            test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, std::function<void(base_t*,std::size_t, Ts...)> const & fun = rnd_init<base_t>, Ts... init_args):
                 m_data_element_count   {p_data_element_count},
                 m_result_count         {p_result_count},
                 m_data_ref             {tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_data_element_count*sizeof(base_t))},
@@ -149,19 +156,6 @@ implementations:
             {
                 fun(m_data_ref, p_data_element_count, init_args...);
                 tsl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
-            }
-            template<typename... Ts>
-            test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, std::function<void(base_t*,std::size_t, base_t)> const & fun, base_t start):
-              m_data_element_count   {p_data_element_count},
-              m_result_count         {p_result_count},
-              m_data_ref             {tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_data_element_count*sizeof(base_t))},
-              m_data_target          {(aligned) ? tsl::allocate_aligned<Vec>(p_data_element_count*sizeof(base_t), Vec::vector_alignment()) : tsl::allocate<Vec>(p_data_element_count*sizeof(base_t))},
-              m_result_ref           {tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_result_count*sizeof(base_t))},
-              m_result_target_for_ref{tsl::allocate<tsl::simd<base_t, tsl::scalar>>(p_result_count*sizeof(base_t))},
-              m_result_target        {(aligned) ? tsl::allocate_aligned<Vec>(p_result_count*sizeof(base_t), Vec::vector_alignment()) : tsl::allocate<Vec>(p_result_count*sizeof(base_t))}
-            {
-              fun(m_data_ref, p_data_element_count, start);
-              tsl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
             }
             virtual ~test_memory_helper_t() {
                 tsl::deallocate<Vec>(m_result_target);
