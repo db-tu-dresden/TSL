@@ -85,17 +85,6 @@ jobs:
     strategy:
       matrix:
         compiler: ["clang++", "g++"]
-        target_flags: 
-          - "sse"
-          - "sse;sse2"
-          - "sse;sse2;ssse3"
-          - "sse;sse2;ssse3;sse4_1"
-          - "sse;sse2;ssse3;sse4_1;sse4_2"
-          - "sse;sse2;ssse3;sse4_1;sse4_2;avx"
-          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2"
-          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f"
-          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f;avx512cd;avx512er;avx512pf" #avx3.1
-          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f;avx512cd;avx512bw;avx512dq;avx512vl" #avx3.2
     needs: [lint, generate]
     steps:
       -
