@@ -1787,20 +1787,20 @@ definitions:
 
 
       for (int i = 63; i >= 0; --i) {
-          // Test the current bit of each int64_t
-          __m256i bit_set = _mm256_and_si256(temp, current_bit);
+        // Test the current bit of each int64_t
+        __m256i bit_set = _mm256_and_si256(temp, current_bit);
 
-          // Create a mask with the number of leading zeros (63 - i) where the current bit is set
-          __m256i leading_zeros_update = _mm256_set1_epi64x(63 - i);
-          __m256i index_mask = _mm256_cmpeq_epi64(bit_set, current_bit);
+        // Create a mask with the number of leading zeros (63 - i) where the current bit is set
+        __m256i leading_zeros_update = _mm256_set1_epi64x(63 - i);
+        __m256i index_mask = _mm256_cmpeq_epi64(bit_set, current_bit);
 
-          // Update result with the masked leading zeros values only if they haven't been set before (greater than 63 - i)
-          __m256i not_set_yet = _mm256_cmpgt_epi64(result, leading_zeros_update);
-          index_mask = _mm256_and_si256(index_mask, not_set_yet);
-          result = _mm256_blendv_epi8(result, leading_zeros_update, index_mask);
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than 63 - i)
+        __m256i not_set_yet = _mm256_cmpgt_epi64(result, leading_zeros_update);
+        index_mask = _mm256_and_si256(index_mask, not_set_yet);
+        result = _mm256_blendv_epi8(result, leading_zeros_update, index_mask);
 
-          // Update the current_bit for the next iteration
-          current_bit = _mm256_srli_epi64(current_bit, 1);
+        // Update the current_bit for the next iteration
+        current_bit = _mm256_srli_epi64(current_bit, 1);
       }
       return result;
   - target_extension: "avx2"
@@ -1808,7 +1808,6 @@ definitions:
     lscpu_flags: [ 'avx2' ]
     implementation: |
       __m256i result = _mm256_set1_epi{{intrin_tp[ctype][1]}}({{intrin_tp[ctype][1]}}); // Set initial result to be, indicating all bits are zero
-      //ICH WÜRDE GERNE EINFACH SOWAS WIE 2^({{intrin_tp[ctype][1]}}-1) nehmen aber das geht nicht!! DASRF ICH INCLUDEN??
       int msb = 0;
       {% if ctype == "uint16_t"%}
       msb = 0x8000;
@@ -1911,20 +1910,20 @@ definitions:
       temp = _mm256_add_epi64(temp, _mm256_and_si256(is_negative, _mm256_set1_epi64x(1)));
 
       for (int i = 63; i >= 0; --i) {
-          // Test the current bit of each int64_t
-          __m256i bit_set = _mm256_and_si256(temp, current_bit);
+        // Test the current bit of each int64_t
+        __m256i bit_set = _mm256_and_si256(temp, current_bit);
 
-          // Create a mask with the number of leading zeros (63 - i) where the current bit is set
-          __m256i leading_zeros_update = _mm256_set1_epi64x(63 - i);
-          __m256i index_mask = _mm256_cmpeq_epi64(bit_set, current_bit);
+        // Create a mask with the number of leading zeros (63 - i) where the current bit is set
+        __m256i leading_zeros_update = _mm256_set1_epi64x(63 - i);
+        __m256i index_mask = _mm256_cmpeq_epi64(bit_set, current_bit);
 
-          // Update result with the masked leading zeros values only if they haven't been set before (greater than 63 - i)
-          __m256i not_set_yet = _mm256_cmpgt_epi64(result, leading_zeros_update);
-          index_mask = _mm256_and_si256(index_mask, not_set_yet);
-          result = _mm256_blendv_epi8(result, leading_zeros_update, index_mask);
+        // Update result with the masked leading zeros values only if they haven't been set before (greater than 63 - i)
+        __m256i not_set_yet = _mm256_cmpgt_epi64(result, leading_zeros_update);
+        index_mask = _mm256_and_si256(index_mask, not_set_yet);
+        result = _mm256_blendv_epi8(result, leading_zeros_update, index_mask);
 
-          // Update the current_bit for the next iteration
-          current_bit = _mm256_srli_epi64(current_bit, 1);
+        // Update the current_bit for the next iteration
+        current_bit = _mm256_srli_epi64(current_bit, 1);
       }
       return _mm256_castsi256_{{intrin_tp_full[ctype]}}(result);
 # INTEL - SSE
@@ -2433,4 +2432,293 @@ definitions:
     ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double' ]
     lscpu_flags: [ ]
     implementation: return (vec == val);
+...
+---
+primitive_name: 'mod' #TODO: Does it make sense to implement that for float and double aswell? || Maybe Barrett reduction
+brief_description: 'Operates the modulo operation on one datavector modulo one input value.'
+parameters:
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec'
+    description: 'Input Vector'
+  - ctype: 'const typename Vec::base_type'
+    name: 'val'
+    description: 'Modulo value'
+returns: 
+    ctype: 'typename Vec::register_type'
+    description: 'Resulting Vector'
+testing:
+  - test_name: "with_modulo_one"
+    requires: ["loadu", "storeu", "set1"]
+    includes: [ ]
+    implementation: |
+      using T = typename Vec::base_type;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(0);
+      storeu<Vec>(reference_result_ptr, vec);
+      storeu<Vec>(test_result_ptr, mod<Vec>(vec, 1));
+      test_helper.synchronize();
+      return test_helper.validate();
+  - test_name: "with_check_barrett_reduction_constraint"
+    requires: ["loadu", "storeu", "set1"]
+    includes: [ ]
+    implementation: |
+      using T = typename Vec::base_type;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(1025);
+      storeu<Vec>(reference_result_ptr, set1<Vec>(1));
+      storeu<Vec>(test_result_ptr, mod<Vec>(vec, 32));
+      test_helper.synchronize();
+      return test_helper.validate();
+  - test_name: "with_modulo_rand"
+    requires: ["loadu", "storeu", "set1"]
+    includes: [ ]
+    implementation: |
+      using T = typename Vec::base_type;
+      using IntType = std::conditional_t<std::is_same_v<T, float>, int32_t, std::conditional_t<std::is_same_v<T, double>, int64_t, T>>;
+      std::size_t element_count = 1024 + (1024 / Vec::vector_element_count());
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init_no_zero<T>};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto offset = 1024;
+      for(std::size_t i = 0; i < (element_count - Vec::vector_element_count() - offset); i +=Vec::vector_element_count()){
+        std::size_t tester_idx = 0;
+        T data[Vec::vector_element_count()];
+        for(std::size_t j = i; j < i + Vec::vector_element_count(); j++){
+          data[tester_idx] = reference_data_ptr[j] % reference_data_ptr[offset];
+          reference_result_ptr[tester_idx++] = reference_data_ptr[j] % reference_data_ptr[offset];
+        }
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto val = test_data_ptr[offset];
+        auto vec_result = mod<Vec>(vec, val);
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        bool a = test_helper.validate();
+        allOk &= a;
+        if(!a){
+          std::cout << "vec: [";
+          for(int j = i; j < Vec::vector_element_count(); j++) std::cout << (long)test_data_ptr[j] << ", ";
+          std::cout << "]\t;\tval: " << (long)test_data_ptr[offset] << "\t;\toutputVector: [";
+          for(int j = 0; j < Vec::vector_element_count(); j++) std::cout << (long)test_result_ptr[j] << ", ";
+          std::cout << "]\t;\texpectedVector: [";
+          for(int j= 0; j < Vec::vector_element_count(); j++) std::cout << (long)data[j] << ", ";
+          std::cout << "]\n";
+        }
+        offset ++;
+      }
+      return allOk;
+
+definitions:
+# INTEL - AVX2
+  - target_extension: 'avx2'
+    ctype: [ 'int8_t', 'uint8_t' ]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      // Compute Barrett constants
+      const uint16_t BRT_MUL = ((uint16_t)1 << 8); //(2^8)
+
+      uint16_t m = BRT_MUL / val;
+      __m256i n = _mm256_set1_epi8(val);
+ 
+      // Barrett reduction
+      __m256i vec_hi16, vec_lo16, q_hi16, q_lo16, q;
+      vec_hi16 = _mm256_unpackhi_epi8(vec, _mm256_setzero_si256());
+      vec_lo16 = _mm256_unpacklo_epi8(vec, _mm256_setzero_si256());
+
+      q_hi16 = _mm256_mulhi_epu16(vec_hi16, _mm256_set1_epi16(m));
+      q_lo16 = _mm256_mulhi_epu16(vec_lo16, _mm256_set1_epi16(m));
+
+      q_hi16 = _mm256_srli_epi16(q_hi16, 8);
+      q_lo16 = _mm256_srli_epi16(q_lo16, 8);
+
+      q_hi16 = _mm256_mullo_epi16(q_hi16, _mm256_set1_epi16(val));
+      q_lo16 = _mm256_mullo_epi16(q_lo16, _mm256_set1_epi16(val));
+
+      q = _mm256_packus_epi16(q_lo16, q_hi16);
+
+      // Calculate the remainder
+      __m256i r = _mm256_sub_epi8(vec, q);
+
+      // Handle negative remainders
+      __m256i cmp = _mm256_cmpgt_epi8(n, r);
+      r = _mm256_add_epi8(r, _mm256_and_si256(cmp, n));
+
+      // Handle remainders greater than the input value
+      __m256i greater_than_val = _mm256_cmpgt_epi8(r, vec);
+      r = _mm256_sub_epi8(r, _mm256_and_si256(greater_than_val, n));
+
+      return r;
+  - target_extension: 'avx2'
+    ctype: [ 'int16_t', 'uint16_t', 'int32_t', 'uint32_t']
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      {% if ctype == "int16_t" or ctype == "uint16_t" %}
+      using T = uint32_t;
+      {% else %}
+      using T = uint64_t;
+      {% endif %}
+      
+      // Compute Barrett constants
+      const T BRT_MUL = ((T)1 << {{intrin_tp[ctype][1]}}); //(2^{{intrin_tp[ctype][1]}})
+
+      const T m = BRT_MUL / val;
+      __m256i n = _mm256_set1_epi{{intrin_tp[ctype][1]}}(val);
+
+      // Barrett reduction
+      {% if ctype == "int16_t" or ctype == "uint16_t" %}
+      __m256i q = _mm256_mulhi_epu{{intrin_tp[ctype][1]}}(vec, _mm256_set1_epi{{intrin_tp[ctype][1]}}(m));
+      {% else %}
+      __m256i q = _mm256_mul_epu{{intrin_tp[ctype][1]}}(vec, _mm256_set1_epi64x(m));
+      {% endif %}
+      q = _mm256_srli_epi{{intrin_tp[ctype][1]}}(q, {{intrin_tp[ctype][1]}});
+      q = _mm256_mullo_epi{{intrin_tp[ctype][1]}}(q, n);
+
+      // Calculate the remainder
+      __m256i r = _mm256_sub_epi{{intrin_tp[ctype][1]}}(vec, q);
+
+      // Handle negative remainders
+      __m256i cmp = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(n, r);
+      r = _mm256_add_epi{{intrin_tp[ctype][1]}}(r, _mm256_and_si256(cmp, n));
+
+      // Handle remainders greater than the input value
+      __m256i greater_than_val = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(r, vec);
+      r = _mm256_sub_epi{{intrin_tp[ctype][1]}}(r, _mm256_and_si256(greater_than_val, n));
+
+      return r;
+  - target_extension: 'avx2'
+    ctype: [ 'int64_t', 'uint64_t']
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      // Compute Barrett constants
+      const __uint128_t BRT_MUL = ((__uint128_t)1 << 64);
+      const long double BRT_MUL_REC = 1.0 / BRT_MUL;
+
+      __uint128_t mu = (__uint128_t) ((long double)val * BRT_MUL_REC);
+      __m256i val_vec = _mm256_set1_epi64x(val);
+
+      // Barrett reduction
+      __m256i vec_hi64 = _mm256_srli_epi64(vec, 32);
+      __m256i vec_lo64 = _mm256_and_si256(vec, _mm256_set1_epi64x(0xFFFFFFFF));
+      __m256i mu_vec = _mm256_set1_epi64x((int64_t)mu);
+
+      __m256i q_hi64 = _mm256_mul_epu32(vec_hi64, mu_vec);
+      __m256i q_lo64 = _mm256_mul_epu32(vec_lo64, mu_vec);
+
+      q_hi64 = _mm256_srli_epi64(q_hi64, 64 - 32);
+      q_lo64 = _mm256_srli_epi64(q_lo64, 64);
+
+      __m256i q = _mm256_or_si256(q_hi64, q_lo64);
+      q = _mm256_mul_epu32(q, val_vec);
+
+      // Calculate the remainder
+      __m256i r = _mm256_sub_epi64(vec, q);
+
+      // Handle negative remainders
+      __m256i cmp = _mm256_cmpgt_epi64(val_vec, r);
+      r = _mm256_add_epi64(r, _mm256_and_si256(cmp, val_vec));
+
+      // Handle remainders greater than the input value
+      __m256i greater_than_val = _mm256_cmpgt_epi64(r, vec);
+      r = _mm256_sub_epi64(r, _mm256_and_si256(greater_than_val, val_vec));
+
+      return r;
+# INTEL - SSE - TODO -> uint8, int8
+  - target_extension: 'sse'
+    ctype: [ 'int16_t' , 'uint16_t', 'uint32_t', 'int32_t' ]
+    lscpu_flags: [ 'sse2' ]
+    implementation: |
+      {% if ctype == "uint16_t" or ctype == "int16_t" %}
+      using T = uint32_t;
+      {% else %}
+      using T = uint64_t;
+      {% endif %}
+      // Compute Barrett constants
+      const T BRT_MUL = ((T)1 << {{intrin_tp[ctype][1]}}); //(2^{{intrin_tp[ctype][1]}})
+      const T m = BRT_MUL / val;
+
+      __m128i n = _mm_set1_epi{{intrin_tp[ctype][1]}}(val);
+
+      // Barrett reduction
+      {% if ctype == "uint16_t" or ctype == "int16_t" %}
+      __m128i q = _mm_mulhi_epu{{intrin_tp[ctype][1]}}(vec, _mm_set1_epi{{intrin_tp[ctype][1]}}(m));
+      {% else %}
+      __m128i q  = _mm_mul_epu32(vec, _mm_set1_epi64x(m));
+      {% endif %}
+      q = _mm_srli_epi{{intrin_tp[ctype][1]}}(q, {{intrin_tp[ctype][1]}});
+      q = _mm_mullo_epi{{intrin_tp[ctype][1]}}(q, n);
+
+      // Calculate the remainder
+      __m128i r = _mm_sub_epi{{intrin_tp[ctype][1]}}(vec, q);
+
+      // Handle negative remainders
+      __m128i cmp = _mm_cmpgt_epi{{intrin_tp[ctype][1]}}(n, r);
+      r = _mm_add_epi{{intrin_tp[ctype][1]}}(r, _mm_and_si128(cmp, n));
+
+      // Handle remainders greater than the input value
+      __m128i greater_than_val = _mm_cmpgt_epi{{intrin_tp[ctype][1]}}(r, vec);
+      r = _mm_sub_epi{{intrin_tp[ctype][1]}}(r, _mm_and_si128(greater_than_val, n));
+
+      return r;
+  - target_extension: 'sse'
+    ctype: [ 'int64_t' , 'uint64_t']
+    lscpu_flags: [ 'sse2', 'sse4_1' ]
+    implementation: |
+      using T = __m128i;
+      // Compute Barrett constants
+      const __uint128_t BRT_MUL = ((__uint128_t)1 << 64);
+      const long double BRT_MUL_REC = 1.0 / BRT_MUL;
+
+      __uint128_t mu = (__uint128_t) ((long double)val * BRT_MUL_REC);
+      T val_vec = _mm_set1_epi64x(val);
+
+      // Barret reduction
+      T vec_hi, vec_lo, mu_vec, q_hi, q_lo, q;
+      vec_hi = _mm_srli_epi64(vec, 32);
+      vec_lo = _mm_and_si128(vec, _mm_set1_epi64x(0xFFFFFFFF));
+      mu_vec = _mm_set1_epi64x((int64_t)mu);
+
+      q_hi = _mm_mul_epu32(vec_hi, mu_vec);
+      q_lo = _mm_mul_epu32(vec_lo, mu_vec);
+
+      q_hi = _mm_srli_epi64(q_hi, 64-32);
+      q_lo = _mm_srli_epi64(q_lo, 64);
+
+      q = _mm_or_si128(q_hi, q_lo);
+      q = _mm_mul_epu32(q, val_vec);
+      
+      // Calculate the remainder
+      T r = _mm_sub_epi64(vec, q);
+
+      // Handle negative remainders
+      T cmp = _mm_cmpgt_epi64(val_vec, r);
+      r = _mm_add_epi64(r, _mm_and_si128(cmp, val_vec));
+
+      // Handle remainders greater than the input value
+      cmp = _mm_cmpgt_epi64(r, vec);
+      r = _mm_sub_epi64(r, _mm_and_si128(cmp, val_vec));
+      
+      return r;
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ['sse2']
+    is_native: False
+    includes: ["<array>", "<cstddef>"]
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+      _mm_store_si128(reinterpret_cast<__m128i*>(buffer_a.data()), vec);
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        buffer_a[i] =  buffer_a[i] % val;
+      }
+      return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
+# SCALAR
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']
+    lscpu_flags: [ ]
+    implementation: return vec % val;
 ...
