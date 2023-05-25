@@ -878,11 +878,11 @@ definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
-    lscpu_flags: ['avx512bw']
+    lscpu_flags: ['avx512f']
     implementation: return ~(_mm512_cmpeq_epi{{intrin_tp[ctype][1]}}_mask(vec, _mm512_setzero_si512()));
   - target_extension: "avx512"
     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
-    lscpu_flags: ['avx512f']
+    lscpu_flags: ['avx512bw', 'avx512f']
     implementation: return ~(_mm512_cmpeq_epi{{intrin_tp[ctype][1]}}_mask(vec, _mm512_setzero_si512())) & 0x1;
   - target_extension: "avx512"
     ctype: ["float", "double"]
