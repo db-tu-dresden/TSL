@@ -6,7 +6,7 @@ description: "Load/Store primitives"
 primitive_name: "load"
 brief_description: "Loads data from aligned memory into a vector register."
 parameters:
-  - ctype: "const typename Vec::base_type *"
+  - ctype: "const typename Vec::base_type*"
     name: "memory"
     description: "Aligned memory which should be transferred into a vector register."
 returns:
@@ -95,7 +95,7 @@ definitions:
 primitive_name: "loadu"
 brief_description: "Loads data from (un)aligned memory into a vector register."
 parameters:
-  - ctype: "const typename Vec::base_type *"
+  - ctype: "const typename Vec::base_type*"
     name: "memory"
     description: "(Un)aligned memory which should be transferred into a vector register."
 returns:
@@ -183,7 +183,7 @@ definitions:
 primitive_name: "store"
 brief_description: "Stores data from a vector register to aligned memory."
 parameters:
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type*"
     name: "memory"
     description: "Aligned memory where the data should be stored into."
   - ctype: "const typename Vec::register_type"
@@ -216,11 +216,11 @@ definitions:
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_store_si512(reinterpret_cast<void *>(assume_aligned<Vec::vector_alignment()>(memory)), data);"
+    implementation: "_mm512_store_si512(reinterpret_cast<void*>(assume_aligned<Vec::vector_alignment()>(memory)), data);"
   - target_extension: "avx512"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_store_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void *>(assume_aligned<Vec::vector_alignment()>(memory)), data);"
+    implementation: "_mm512_store_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(assume_aligned<Vec::vector_alignment()>(memory)), data);"
 #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -258,7 +258,7 @@ definitions:
 primitive_name: "storeu"
 brief_description: "Stores data from a vector register to (un)aligned memory."
 parameters:
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type*"
     name: "memory"
     description: "(Un)aligned memory where the data should be stored into."
   - ctype: "const typename Vec::register_type"
@@ -289,11 +289,11 @@ definitions:
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_storeu_si512(reinterpret_cast<void *>(memory), data);"
+    implementation: "_mm512_storeu_si512(reinterpret_cast<void*>(memory), data);"
   - target_extension: "avx512"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void *>(memory), data);"
+    implementation: "_mm512_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), data);"
 #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -712,100 +712,102 @@ definitions:
 ---
 primitive_name: "gather"
 brief_description: "Transfers data from arbitrary locations into a vector register."
-additional_simd_template_parameter: "IndicesType" # NOTE(cmrs): would really like to have a default value for this (Vec in this case)
+additional_simd_template_parameter:
+  name: "IndicesType"
+  default_value:  "typename Vec::offset_register_type"
 additional_non_specialized_template_parameters:
   - ctype: "int"
     name: "N"
+    default_value: "sizeof(typename Vec::base_type)"
 parameters:
-  - ctype: "const void *"
+  - ctype: "const void*"
     name: "memory"
     description: "(Start)pointer of the memory (which is used as base for address calculation)."
-  - ctype: "const typename IndicesType::offset_base_register_type"
+  - ctype: "const typename IndicesType::register_type"
     name: "index"
     description: "Offsets array containing simd<offset_t, EXTENSION> register_types containing relative offsets to the start pointer (the number of array elements depend on the sizeof(offset_type)/sizeof(base_type) ratio, where sizeof(offset_type) should be 8)."
   - ctype: "std::integral_constant<int, N>"
     name: "scale"
     description: "Scale."
+    default_value: std::integral_constant<int, sizeof(typename Vec::base_type)>{}
     declaration_attributes: "[[maybe_unused]]"
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing gathered data."
+testing:
+  - requires: ["storeu", "loadu"]
+    includes: ["<cstddef>", "<algorithm>", "<limits>", "<type_traits>"]
+    implementation: |
+      constexpr size_t test_mem_size = 256;
+      constexpr size_t test_mem_offset = test_mem_size / 2;
+      constexpr size_t iteration_count = 16;
+      testing::test_memory_helper_t<Vec> test_helper{test_mem_size, Vec::vector_element_count(), true, testing::seq_init_start_0<typename Vec::base_type>};
+      testing::test_memory_helper_t<IndicesType> test_helper_indices{
+          iteration_count * Vec::vector_element_count(), 0, true,
+          testing::rnd_init_bounded<typename IndicesType::base_type>,
+          (typename IndicesType::base_type)(std::is_signed_v<typename IndicesType::base_type> ? -test_mem_offset : 0),
+          (typename IndicesType::base_type)(test_mem_offset - 1)
+      };
+      for(size_t i = 0; i < iteration_count; i++) {
+          for(size_t j = 0; j < Vec::vector_element_count(); j++) {
+              test_helper.result_ref()[j] = test_helper.data_ref()[test_helper_indices.data_ref()[i * Vec::vector_element_count() + j] + test_mem_offset];
+          }
+          auto indices = loadu<IndicesType>(test_helper_indices.data_target() + (i * Vec::vector_element_count()));
+          auto result = gather<Vec, IndicesType>(test_helper.data_target() + test_mem_offset, indices);
+          store<Vec>(test_helper.result_target(), result);
+          test_helper.synchronize();
+          if (!test_helper.validate()) return false;
+      }
+      return true;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
     additional_simd_template_extension: "avx512"
-    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {
+      "uint32_t": ["int32_t", "uint32_t"],
+      "int32_t":  ["int32_t", "uint32_t"],
+      "float":    ["int32_t", "uint32_t"],
+      "uint64_t": ["int64_t", "uint64_t"],
+      "int64_t":  ["int64_t", "uint64_t"],
+      "double":   ["int64_t", "uint64_t"],
+    }
     lscpu_flags: ['avx512f']
-    implementation: "return _mm512_i{{ intrin_tp[ctype][1] }}gather_epi{{ intrin_tp[ctype][1] }}(index, memory, scale());"
-  - target_extension: "avx512"
-    additional_simd_template_extension: "avx512"
-    ctype: ["float"]
-    lscpu_flags: ['avx512f']
-    implementation: "return _mm512_i32gather_ps(index, memory, scale());"
-  - target_extension: "avx512"
-    additional_simd_template_extension: "avx512"
-    ctype: ["double"]
-    lscpu_flags: ['avx512f']
-    implementation: "return _mm512_i64gather_pd(index, memory, scale());"
+    implementation: "return _mm512_i{{ intrin_tp[additional_simd_template_base_type][1] }}gather_{{ intrin_tp_full[ctype].replace('epu', 'epi') }}(index, memory, N);"
   #INTEL - AVX512 / AVX2
   - target_extension: "avx512"
     additional_simd_template_extension: "avx2"
-    ctype: ["uint64_t", "int64_t"]
+    ctype: ["uint64_t", "int64_t", "double"]
     additional_simd_template_base_type_mapping_dict: {
-      "uint64_t": ["int32_t"],
-      "int64_t": ["int32_t"],
-      "double": ["int32_t"]
+      "uint64_t": ["int32_t", "uint32_t"],
+      "int64_t":  ["int32_t", "uint32_t"],
+      "double":   ["int32_t", "uint32_t"],
     }
     lscpu_flags: ['avx512f']
-    implementation: "return _mm512_i{{ intrin_tp[additional_simd_template_base_type][1] }}gather_epi{{ intrin_tp[ctype][1] }}(index, memory, scale());"
-  #INTEL - AVX2
-  - target_extension: "avx2"
-    additional_simd_template_extension: "avx2"
-    ctype: ["uint64_t", "int64_t"]
-    lscpu_flags: ["avx2"]
-    implementation: "return _mm256_i64gather_epi64(reinterpret_cast<long long int const *>(memory), index, scale());"
-  - target_extension: "avx2"
-    additional_simd_template_extension: "avx2"
-    ctype: ["uint32_t", "int32_t"]
-    lscpu_flags: ["avx2"]
-    implementation: "return _mm256_i32gather_epi32(reinterpret_cast<int const *>(memory), index, scale());"
-  - target_extension: "avx2"
-    additional_simd_template_extension: "avx2"
-    ctype: ["float"]
-    lscpu_flags: ["avx2"]
-    implementation: "return _mm256_i32gather_ps(reinterpret_cast<float const *>(memory), index, scale());"
-  - target_extension: "avx2"
-    additional_simd_template_extension: "avx2"
-    ctype: ["double"]
-    lscpu_flags: ["avx2"]
-    implementation: "return _mm256_i64gather_pd(reinterpret_cast<double const *>(memory), index, scale());"
+    implementation: "return _mm512_i{{ intrin_tp[additional_simd_template_base_type][1] }}gather_{{ intrin_tp_full[ctype].replace('epu', 'epi') }}(index, memory, N);"
   #INTEL - SSE
   - target_extension: "sse"
     additional_simd_template_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {
+      "int8_t":   ["int8_t", "uint8_t"],
+      "uint8_t":  ["int8_t", "uint8_t"],
+      "int16_t":  ["int16_t", "uint16_t"],
+      "uint16_t": ["int16_t", "uint16_t"],
+      "int32_t":  ["int32_t", "uint32_t"],
+      "uint32_t": ["int32_t", "uint32_t"],
+      "float":    ["int32_t", "uint32_t"],
+      "int64_t":  ["int64_t", "uint64_t"],
+      "uint64_t": ["int64_t", "uint64_t"],
+      "double":   ["int64_t", "uint64_t"],
+    }
     lscpu_flags: ['sse2']
     is_native: False
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
-      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tsl::to_array<offsetExt>(index);
-      if constexpr(N == 1) {
-        auto mem = reinterpret_cast<char const*>(memory);
-        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-          result[i] = mem[idx_array[i]];
-        }
-      } else {
-        if constexpr(N == sizeof(typename Vec::base_type)) {
-          auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
-          for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-            result[i] = mem[idx_array[i]];
-          }
-        } else {
-          auto mem = reinterpret_cast<char const*>(memory);
-          for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-            result[i] = mem[idx_array[i]*scale()];
-          }
-        }
+      auto const idx_array = tsl::to_array<IndicesType>(index);
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
       }
       return tsl::load<Vec>(result.data());
   #ARM - NEON
@@ -821,15 +823,29 @@ definitions:
   #SCALAR
   - target_extension: "scalar"
     additional_simd_template_extension: "scalar"
+    additional_simd_template_base_type_mapping_dict: {
+      "int8_t":   ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"],
+      "uint8_t":  ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"],
+      "int16_t":  ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"],
+      "uint16_t": ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"],
+      "int32_t":  ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"],
+      "uint32_t": ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"],
+      "int64_t":  ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"],
+      "uint64_t": ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"],
+      "float":    ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"],
+      "double":   ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"],
+    }
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ ]
-    implementation: "return reinterpret_cast<typename Vec::base_type const *>(memory)[index];"
+    implementation: "return *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<const char*>(memory) + index * N);"
 ...
 ---
 primitive_name: "gather"
 functor_name: "mask_gather"
-additional_simd_template_parameter: "IndicesType" # NOTE(cmrs): would really like to have a default value for this (Vec in this case)
-brief_description: "Transfers data from arbitrary locations into a vector register."
+additional_simd_template_parameter:
+  name: "IndicesType"
+  default_value: "typename Vec::offset_register_type"
+brief_description: "If mask[i] is 1, load memory[index[i] * scale], otherwise use source[i]"
 additional_non_specialized_template_parameters:
   - ctype: "int"
     name: "N"
@@ -840,7 +856,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "source"
     description: "Vector register containing values which should be preserved depending on the mask (if mask[i] == 0)."
-  - ctype: "const void *"
+  - ctype: "const void*"
     name: "memory"
     description: "(Start)pointer of the memory (which is used as base for address calculation)."
   - ctype: "const typename IndicesType::offset_base_register_type"
@@ -859,38 +875,38 @@ definitions:
     additional_simd_template_extension: "avx512"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ['avx512f']
-    implementation: "return _mm512_mask_i{{ intrin_tp[ctype][1] }}gather_epi{{ intrin_tp[ctype][1] }}(source, mask, index, memory, scale());"
+    implementation: "return _mm512_mask_i{{ intrin_tp[ctype][1] }}gather_epi{{ intrin_tp[ctype][1] }}(source, mask, index, memory, N);"
   - target_extension: "avx512"
     additional_simd_template_extension: "avx512"
     ctype: ["float"]
     lscpu_flags: ['avx512f']
-    implementation: "return _mm512_mask_i32gather_ps(source, mask, index, memory, scale());"
+    implementation: "return _mm512_mask_i32gather_ps(source, mask, index, memory, N);"
   - target_extension: "avx512"
     additional_simd_template_extension: "avx512"
     ctype: ["double"]
     lscpu_flags: ['avx512f']
-    implementation: "return _mm512_mask_i64gather_pd(source, mask, index, memory, scale());"
+    implementation: "return _mm512_mask_i64gather_pd(source, mask, index, memory, N);"
   #INTEL - AVX2
   - target_extension: "avx2"
     additional_simd_template_extension: "avx2"
     ctype: ["uint64_t", "int64_t"]
     lscpu_flags: ["avx2"]
-    implementation: "return _mm256_mask_i64gather_epi64(source, reinterpret_cast<long long int const *>(memory), index, mask, scale());"
+    implementation: "return _mm256_mask_i64gather_epi64(source, reinterpret_cast<long long int const *>(memory), index, mask, N);"
   - target_extension: "avx2"
     additional_simd_template_extension: "avx2"
     ctype: ["uint32_t", "int32_t"]
     lscpu_flags: ["avx2"]
-    implementation: "return _mm256_mask_i32gather_epi32(source, reinterpret_cast<int const *>(memory), index, mask, scale());"
+    implementation: "return _mm256_mask_i32gather_epi32(source, reinterpret_cast<int const *>(memory), index, mask, N);"
   - target_extension: "avx2"
     additional_simd_template_extension: "avx2"
     ctype: ["float"]
     lscpu_flags: ["avx2"]
-    implementation: "return _mm256_mask_i32gather_ps(source, reinterpret_cast<float const *>(memory), index, mask, scale());"
+    implementation: "return _mm256_mask_i32gather_ps(source, reinterpret_cast<float const *>(memory), index, mask, N);"
   - target_extension: "avx2"
     additional_simd_template_extension: "avx2"
     ctype: ["double"]
     lscpu_flags: ["avx2"]
-    implementation: "return _mm256_mask_i64gather_pd(source, reinterpret_cast<double const *>(memory), index, mask, scale());"
+    implementation: "return _mm256_mask_i64gather_pd(source, reinterpret_cast<double const *>(memory), index, mask, N);"
   #INTEL - SSE
   - target_extension: "sse"
     additional_simd_template_extension: "sse"
@@ -917,7 +933,7 @@ definitions:
         } else {
           auto mem = reinterpret_cast<char const*>(memory);
           for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-            result[i] = (mask_array[i] == 0) ? src_array[i] : mem[idx_array[i]*scale()];
+            result[i] = (mask_array[i] == 0) ? src_array[i] : mem[idx_array[i]*N];
           }
         }
       }
@@ -949,7 +965,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
     description: "Vector register containing values which should be scattered to memory."
-  - ctype: "void *"
+  - ctype: "void*"
     name: "memory"
     description: "(Start)pointer of the memory (which is used as base for address calculation)."
   - ctype: "const typename Vec::offset_base_register_type"
@@ -966,16 +982,16 @@ definitions:
     lscpu_flags: ["avx512f"]
     implementation: |
       _mm512_i{{ intrin_tp[ctype][1] }}scatter_epi{{ intrin_tp[ctype][1] }}(
-         memory, index, data, scale()
+         memory, index, data, N
       );
   - target_extension: "avx512"
     ctype: ["float"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_i32scatter_ps(memory, index, data, scale());"
+    implementation: "_mm512_i32scatter_ps(memory, index, data, N);"
   - target_extension: "avx512"
     ctype: ["double"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_i64scatter_pd(memory, index, data, scale());"
+    implementation: "_mm512_i64scatter_pd(memory, index, data, N);"
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -1076,7 +1092,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
     description: "Vector register containing values which should be scattered to memory."
-  - ctype: "void *"
+  - ctype: "void*"
     name: "memory"
     description: "(Start)pointer of the memory (which is used as base for address calculation)."
   - ctype: "const typename Vec::offset_base_register_type"
@@ -1093,16 +1109,16 @@ definitions:
     lscpu_flags: ["avx512f"]
     implementation: |
       _mm512_mask_i{{ intrin_tp[ctype][1] }}scatter_epi{{ intrin_tp[ctype][1] }}(
-         memory, mask, index, data, scale()
+         memory, mask, index, data, N
       );
   - target_extension: "avx512"
     ctype: ["float"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_mask_i32scatter_ps(memory, mask, index, data, scale());"
+    implementation: "_mm512_mask_i32scatter_ps(memory, mask, index, data, N);"
   - target_extension: "avx512"
     ctype: ["double"]
     lscpu_flags: ["avx512f"]
-    implementation: "_mm512_mask_i64scatter_pd(memory, mask, index, data, scale());"
+    implementation: "_mm512_mask_i64scatter_pd(memory, mask, index, data, N);"
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -1203,7 +1219,8 @@ definitions:
 ...
 #---
 #primitive_name: "gather"
-#additional_simd_template_parameter: "OffsetType"
+#additional_simd_template_parameter:
+#  name: "OffsetType"
 #brief_description: "Transfers data from arbitrary locations into a vector register."
 #additional_non_specialized_template_parameters:
 #  - ctype: "int"
@@ -1230,8 +1247,8 @@ definitions:
 #    lscpu_flags: ['avx2']
 #    implementation: |
 #      auto base_addr = reinterpret_cast<int const*>(memory);
-#      _mm256_i32gather_epi32(base_addr, indices[0], scale());
-#      return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), scale() );
+#      _mm256_i32gather_epi32(base_addr, indices[0], N);
+#      return _mm512_mask_i64gather_epi64( source, mask, index[0], reinterpret_cast< void const * >( memory ), N );
 #...
 ---
 primitive_name: "compress_store"
@@ -1240,7 +1257,7 @@ parameters:
   - ctype: "const typename Vec::imask_type"
     name: "mask"
     description: "Mask"
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type*"
     name: "memory"
     description: "Memory"
   - ctype: "const typename Vec::register_type"
@@ -1320,7 +1337,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "src"
     description: "Source register. Data is kept if corresponding mask bit is set to 0."
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type*"
     name: "memory"
     description: "Memory"
 returns:
@@ -1395,7 +1412,8 @@ definitions:
 ...
 ---
 primitive_name: "load_convert_up"
-additional_simd_template_parameter: "ToType"
+additional_simd_template_parameter:
+  name: "ToType"
 parameters:
   - ctype: "typename Vec::base_type const *"
     name: "memory"

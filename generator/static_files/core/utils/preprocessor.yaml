@@ -1,19 +1,19 @@
 ---
 file_description: "TODO."
 implementations:
-   - |
+    - |
       #ifndef TSL_FORCE_INLINE
-      #  if defined(__clang__) || defined(__GNUC__)
-      #    define TSL_FORCE_INLINE inline __attribute__((always_inline))
-      #  elif defined(_MSC_VER)
-      #    define TSL_FORCE_INLINE inline __forceinline
-      #  endif
+      #   if defined(__clang__) || defined(__GNUC__)
+      #       define TSL_FORCE_INLINE inline __attribute__((always_inline))
+      #   elif defined(_MSC_VER)
+      #       define TSL_FORCE_INLINE inline __forceinline
+      #   endif
       #endif
       #ifndef TSL_NO_NATIVE_SUPPORT_WARNING
       #   define TSL_NO_NATIVE_SUPPORT_WARNING [[deprecated("This primitive is not supported by your hardware natively. Thus, a workaround is used.")]]
       #endif
       #ifndef TSL_DEP_TYPE
-      #   define TSL_DEP_TYPE(CONDITION, IFBRANCH, ELSEBRANCH) std::conditional_t< CONDITION, IFBRANCH, ELSEBRANCH >
+      #   define TSL_DEP_TYPE(CONDITION, IFBRANCH, ELSEBRANCH) std::conditional_t<CONDITION, IFBRANCH, ELSEBRANCH>
       #endif
       #ifndef TSL_CVAL
       #   define TSL_CVAL(type, value) std::integral_constant<type,value>{}

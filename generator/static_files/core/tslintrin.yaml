@@ -2,8 +2,8 @@
 file_description: "General header which should be included to use the TSL."
 includes: ['"static/tsl_static.hpp"', '"generated/tsl_generated.hpp"']
 implementations:
-   - |
-      #ifndef TSL_GIT_VERSION_STR
-         #   define TSL_GIT_VERSION_STR "{{ git_version_str }}"
-         #endif
+  - |
+    #ifndef TSL_GIT_VERSION_STR
+    #   define TSL_GIT_VERSION_STR "{{ git_version_str }}"
+    #endif
 ...

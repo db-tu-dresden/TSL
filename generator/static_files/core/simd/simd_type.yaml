@@ -6,7 +6,7 @@ includes:
    - '"simd_type_concepts.hpp"'
    - "<array>"
 implementations:
-   - >
+    - |
       template<
             TSLArithmetic BaseType,
       #ifdef TSL_USE_CONCEPTS

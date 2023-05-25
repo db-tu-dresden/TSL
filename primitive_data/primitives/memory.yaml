@@ -10,7 +10,7 @@ parameters:
     name: "count_bytes"
     description: "Number of bytes which should be allocated."
 returns:
-  ctype: "typename Vec::base_type *"
+  ctype: "typename Vec::base_type*"
   description: "Pointer to allocated memory."
 definitions:
 #INTEL - AVX512
@@ -46,7 +46,7 @@ parameters:
     declaration_attributes: "[[maybe_unused]]"
     description: "Alignment bytes."
 returns:
-  ctype: "typename Vec::base_type *"
+  ctype: "typename Vec::base_type*"
   description: "Pointer to allocated memory."
 definitions:
 #INTEL - AVX512
@@ -74,7 +74,7 @@ definitions:
 primitive_name: "deallocate"
 brief_description: "Deallocates (possibly aligned) contiguous memory."
 parameters:
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type*"
     name: "ptr"
     description: "Pointer to memory which should be deallocated."
 definitions:
@@ -104,10 +104,10 @@ primitive_name: "memory_cp"
 brief_description: "Copy memory."
 includes: ["<cstring>"]
 parameters:
-  - ctype: "typename Vec::base_type *"
+  - ctype: "typename Vec::base_type*"
     name: "dst"
     description: "Destination."
-  - ctype: "typename Vec::base_type const *"
+  - ctype: "typename Vec::base_type const*"
     name: "src"
     description: "Source."
   - ctype: "std::size_t"

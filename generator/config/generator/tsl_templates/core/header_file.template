@@ -2,10 +2,8 @@
 
 {% include 'core/doxygen_file.template' %}
 
-
 #ifndef {{ tsl_include_guard }}
 #define {{ tsl_include_guard }}
-
 {% if preliminary_defines is defined %}
 {% for preliminary_define in preliminary_defines %}
 {{preliminary_define}}
@@ -16,6 +14,7 @@
 #include {{ include }}
 {% endfor %}
 #include <tuple>
+
 {% if codes %}
 namespace {{ tsl_namespace }} {
 {% if nested_namespaces is defined %}
@@ -23,9 +22,12 @@ namespace {{ tsl_namespace }} {
 namespace {{ nested_namespace }} {
 {% endfor %}
 {% endif %}
+{%- filter indent(width=4) +%}
 {%    for code in codes %}
-   {{ code }}
+{{ code }}
+
 {%    endfor %}
+{% endfilter %}
 {% if nested_namespaces %}
 {% for nested_namespace in nested_namespaces %}
 } // end of namespace {{ nested_namespace }}

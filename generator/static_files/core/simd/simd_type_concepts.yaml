@@ -1,11 +1,10 @@
 ---
 file_description: "TODO."
 includes:
-   - '<type_traits>'
-   - '"../utils/type_concepts.hpp"'
+    - '<type_traits>'
+    - '"../utils/type_concepts.hpp"'
 implementations:
-   - |
-
+    - |
       #ifdef TSL_USE_CONCEPTS
          template<typename T, typename U>
          concept TargetExtension = TSLArithmetic<U> && requires {
@@ -41,14 +40,14 @@ implementations:
             ( T::vector_mask_ratio() > 0 ) &&
             ( T::mask_shift() > 0 );
       #else
-      #define VectorProcessingStyle class
+      #   define VectorProcessingStyle class
       #endif
-         struct native{};
-         struct workaround{};
+      struct native{};
+      struct workaround{};
       #ifdef TSL_USE_CONCEPTS
-         template<class T>
-         concept ImplementationDegreeOfFreedom = std::is_same_v<T, native> || std::is_same_v<T, workaround>;
+          template<class T>
+          concept ImplementationDegreeOfFreedom = std::is_same_v<T, native> || std::is_same_v<T, workaround>;
       #else
-      #define ImplementationDegreeOfFreedom class
+      #   define ImplementationDegreeOfFreedom class
       #endif
 ...
