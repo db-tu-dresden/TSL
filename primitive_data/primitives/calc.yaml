@@ -715,16 +715,16 @@ definitions:
 primitive_name: "min"
 brief_description: "compares the values of 2 vectors and returns a vector with the minimum of each corrisponding values"
 parameters:
-    - ctype: "const typename Vec::register_type"
-      name: "vec_a"
-      description: "First vector"
-    - ctype: "const typename Vec::register_type"
-      name: "vec_b"
-      description: "Second vector"
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector"
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector"
 returns:
-    ctype: "typename Vec::register_type"
-    description: "Vector containing result of the comparison"
-testing: 
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the comparison"
+testing:
   - test_name: "min_general_case"
     requires: ["set1", "loadu"]
     includes: ["<cstddef>"]
@@ -740,12 +740,12 @@ testing:
         auto vec = set1<Vec>(0);
         for(std::size_t i = 0; i < element_count / 2; i += Vec::vector_element_count()){
           std::size_t tester_idx = 0;
-          for(size_t j = i; j < i + Vec::vector_element_count(); j++){  
+          for(size_t j = i; j < i + Vec::vector_element_count(); j++){
             if(reference_data_ptr[j] < reference_data_ptr[j + (element_count/2)]){
               reference_result_ptr[tester_idx++] = reference_data_ptr[j];
             } else {
               reference_result_ptr[tester_idx++] = reference_data_ptr[j + (element_count/2)];
-            } 
+            }
           }
           auto elements_vec1 = loadu<Vec>(&test_data_ptr[i]);
           auto elements_vec2 = loadu<Vec>(&test_data_ptr[i + (element_count/2)]);
@@ -817,7 +817,7 @@ definitions:
     implementation: "return _mm_min_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
 #ARM - NEON
   - target_extension: "neon"
-    ctype: ["uint8_t", "uint16_t", "uint32_t" , "int8_t", "int32_t", "double", "float"]
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "int8_t", "int32_t", "double", "float" ]
     lscpu_flags: ['neon']
     implementation: "return vminq_{{intrin_tp_full[ctype]}}(vec_a, vec_b);" #What about 64-Bit
 #SCALAR
@@ -834,21 +834,21 @@ definitions:
 primitive_name: "div" #TODO: TestCase without divide by zero case
 brief_description: "Divides two vector registers."
 parameters:
-   - ctype: "const typename Vec::register_type"
-     name: "vec_a"
-     description: "First vector."
-   - ctype: "const typename Vec::register_type"
-     name: "vec_b"
-     description: "Second vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector."
 returns:
-   ctype: "typename Vec::register_type"
-   description: "Vector containing result of the division."
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the division."
 testing:
   - test_name: "div_divide_vec_with_itself"
     requires: ["loadu", "storeu", "set1"]
     includes: ["<cstddef>", "<iostream>", "<algorithm>", "<limits>"]
     implementation: |
-      using T = typename Vec::base_type;      
+      using T = typename Vec::base_type;
       std::size_t element_count = 0;
       if constexpr(std::is_integral_v<T>) {
         element_count = std::clamp<size_t>(std::numeric_limits<T>::max()-1, 1, 1024);
@@ -978,7 +978,7 @@ definitions:
     ctype: ["uint32_t"]
     lscpu_flags: ['neon']
     is_native: False
-    implementation: |      
+    implementation: |
       typename Vec::register_type temp = vrecpe_{{intrin_tp_full[ctype]}}(vec_b);
       temp = vmulq_{{intrin_tp_full[ctype]}}(temp, vrecpsq_{{intrin_tp_full[ctype]}}(vec_b, temp));
       return vmulq_{{intrin_tp_full[ctype]}}(vec_a, temp);
@@ -1008,12 +1008,12 @@ definitions:
 primitive_name: "hor"
 brief_description: "Operates horizontal OR on vector register"
 parameters:
-   - ctype: "const typename Vec::register_type"
-     name: "vec"
-     description: "Operating Vector"
+  - ctype: "const typename Vec::register_type"
+    name: "vec"
+    description: "Operating Vector"
 returns:
-   ctype: "typename Vec::base_type"
-   description: "Result of the horizontal OR"
+  ctype: "typename Vec::base_type"
+  description: "Result of the horizontal OR"
 testing:
   - test_name: "with_only_zero"
     requires: ["set1", "loadu", "storeu"]
@@ -1056,11 +1056,11 @@ testing:
       for(std::size_t i = 0; i < element_count; i += Vec::vector_element_count()){
         auto vec = loadu<Vec>(&test_data_ptr[i]);
         if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
-          typename std::conditional<std::is_same_v<T, float>, int32_t, 
+          typename std::conditional<std::is_same_v<T, float>, int32_t,
           typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type result = 0;
           union {
               T val;
-              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, float>, int32_t,
               typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
             } u;
           for(size_t j=i; j < i + Vec::vector_element_count(); j++){
@@ -1185,7 +1185,7 @@ definitions:
     ctype: ["uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "uint8_t", "int8_t"]
     lscpu_flags: [ 'sse2' ]
     implementation: |
-        // Reduce Lanes dependend on datatype 
+        // Reduce Lanes dependend on datatype
         Vec::register_type temp = _mm_or_si128(vec, _mm_srli_si128(vec, 8));
         {% if ctype != "int64_t" and ctype != "uint64_t" %}
         temp = _mm_or_si128(temp, _mm_srli_si128(temp, 4));
@@ -1206,7 +1206,7 @@ definitions:
       temp = _mm_or_si128(temp, _mm_srli_si128(temp, 8));
       temp = _mm_or_si128(temp, _mm_srli_si128(temp, 4));
       __m128 as_float = _mm_castsi128_ps(temp);
-      return _mm_cvtss_f32(as_float);      
+      return _mm_cvtss_f32(as_float);
   - target_extension: "sse"
     ctype: ["double"]
     lscpu_flags: [ 'sse2' ]
@@ -1227,16 +1227,16 @@ definitions:
 primitive_name: "inv"
 brief_description: "Bitwise invertion values in vector Register."
 parameters:
-   - ctype: "const typename Vec::register_type"
-     name: "vec"
-     description: "Operating Vector"
+  - ctype: "const typename Vec::register_type"
+    name: "vec"
+    description: "Operating Vector"
 returns:
-   ctype: "typename Vec::register_type"
-   description: "Result of the invertion."
+  ctype: "typename Vec::register_type"
+  description: "Result of the invertion."
 testing:
   - test_name: "with_only_zero"
     requires: ["set1", "loadu", "storeu"]
-    includes: ["<cstddef>","<algorithm>", "<limits>"]
+    includes: ["<cstddef>", "<algorithm>", "<limits>"]
     implementation: |
         using T = typename Vec::base_type;
         testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
@@ -1250,13 +1250,13 @@ testing:
           for(int i = 0; i < Vec::vector_element_count(); i ++){
             union {
               T f_val;
-              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, float>, int32_t,
               typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
             } u;
             u.f_val = test_result_ptr[i];
             union {
               T f_val;
-              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, float>, int32_t,
               typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
             } v;
             v.f_val = data[i];
@@ -1286,13 +1286,13 @@ testing:
           for(int i = 0; i < Vec::vector_element_count(); i ++){
             union {
               T f_val;
-              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, float>, int32_t,
               typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
             } u;
             u.f_val = test_result_ptr[i];
             union {
               T f_val;
-              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, float>, int32_t,
               typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
             } v;
             v.f_val = data[i];
@@ -1325,11 +1325,11 @@ testing:
           storeu<Vec>(data, vec);
           storeu<Vec>(test_result_ptr, inv<Vec>(vec));
           for(int i = 0; i < Vec::vector_element_count(); i ++){
-            typename std::conditional<std::is_same_v<T, float>, int32_t, 
+            typename std::conditional<std::is_same_v<T, float>, int32_t,
             typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type test_i_val = 0;
             union {
               T val;
-              typename std::conditional<std::is_same_v<T, float>, int32_t, 
+              typename std::conditional<std::is_same_v<T, float>, int32_t,
               typename std::conditional<std::is_same_v<T, double>, int64_t, void>::type>::type i_val;
             } u;
             u.val = test_result_ptr[i];
@@ -1418,16 +1418,16 @@ definitions:
 primitive_name: "lzc"  #TODO: 2er Komplement zu einem neuen Primitiv machen
 brief_description: "Counts leading zeroes of the vector register values"
 parameters:
-   - ctype: "const typename Vec::register_type"
-     name: "vec"
-     description: "Operating Vector"
+  - ctype: "const typename Vec::register_type"
+    name: "vec"
+    description: "Operating Vector"
 returns:
-   ctype: "typename Vec::register_type"
-   description: "Result of the count"
+  ctype: "typename Vec::register_type"
+  description: "Result of the count"
 testing:
   - test_name: "with_only_zero"
     requires: ["set1", "loadu", "storeu"]
-    includes: ["<cstddef>","<algorithm>", "<limits>"]
+    includes: ["<cstddef>", "<algorithm>", "<limits>"]
     implementation: |
       using T = typename Vec::base_type;
       using IntType = std::conditional_t<std::is_same_v<T, float>, int32_t, std::conditional_t<std::is_same_v<T, double>, int64_t, T>>;
@@ -1481,7 +1481,7 @@ testing:
       return test_helper.validate();
   - test_name: "with_only_one"
     requires: ["set1", "loadu", "storeu"]
-    includes: ["<cstddef>","<algorithm>", "<limits>"]
+    includes: ["<cstddef>", "<algorithm>", "<limits>"]
     implementation: |
       using T = typename Vec::base_type;
       using IntType = std::conditional_t<std::is_same_v<T, float>, int32_t, std::conditional_t<std::is_same_v<T, double>, int64_t, T>>;
@@ -1546,7 +1546,7 @@ testing:
       auto reference_result_ptr = test_helper.result_ref();
       auto test_data_ptr = test_helper.data_target();
       auto test_result_ptr = test_helper.result_target();
-      for(std::size_t i = 0; i < (element_count - Vec::vector_element_count()); i += Vec::vector_element_count()){  
+      for(std::size_t i = 0; i < (element_count - Vec::vector_element_count()); i += Vec::vector_element_count()){
         auto vec = loadu<Vec>(&test_data_ptr[i]);
         IntType data[Vec::vector_element_count()];
         if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>){
@@ -1672,7 +1672,7 @@ definitions:
       __m512i corrected_lower = _mm512_sub_epi32(lzcnt_lower, correction);
       __m512i corrected_upper = _mm512_sub_epi32(lzcnt_upper, correction);
 
-      // Convert 32-bit values to 16-bit values 
+      // Convert 32-bit values to 16-bit values
       lower = _mm512_cvtepi32_epi16(corrected_lower);
       upper = _mm512_cvtepi32_epi16(corrected_upper);
 
@@ -1735,9 +1735,8 @@ definitions:
     implementation: |
       Vec::register_type temp = vec;
       int msb = {{intrin_tp[ctype][1]}};
-      __m256i result = _mm256_set1_epi{{intrin_tp[ctype][1]}}(msb); 
-      
-      
+      __m256i result = _mm256_set1_epi{{intrin_tp[ctype][1]}}(msb);
+
       {% if ctype == "int16_t" %}
       __m256i current_bit = _mm256_set1_epi{{intrin_tp[ctype][1]}}(0x8000); // Also sign_bit
       {% elif ctype == "int32_t" %}
@@ -1870,7 +1869,7 @@ definitions:
       //Cast as int
       __m256i temp = _mm256_cast{{intrin_tp_full[ctype]}}_si256(vec);
 
-      __m256i result = _mm256_set1_epi32(32); 
+      __m256i result = _mm256_set1_epi32(32);
       __m256i current_bit = _mm256_set1_epi32(0x80000000); // Also sign_bit
 
       // If the input value is negative, we need to invert the bits
@@ -1900,7 +1899,7 @@ definitions:
     lscpu_flags: [ 'avx2' ]
     implementation: |
       __m256i temp = _mm256_cast{{intrin_tp_full[ctype]}}_si256(vec); //Cast as int
-      
+
       __m256i result = _mm256_set1_epi64x(64); // Set initial result to 63, indicating all bits are zero
       __m256i current_bit = _mm256_set1_epi64x(0x8000000000000000); // Also sign_bit
 
@@ -2003,7 +2002,6 @@ definitions:
     lscpu_flags: [ 'sse2', 'sse4_1']
     implementation: |
       __m128i result = _mm_set1_epi{{intrin_tp[ctype][1]}}({{intrin_tp[ctype][1]}}); // Set initial result to {{intrin_tp[ctype][1]}}, indicating all bits are zero
-      
       //ICH WÜRDE GERNE EINFACH SOWAS WIE 2^({{intrin_tp[ctype][1]}}-1) nehmen aber das geht nicht!! DASRF ICH INCLUDEN??
       int msb = 0;
       {% if ctype == "uint16_t"%}
@@ -2174,7 +2172,7 @@ definitions:
       }
       u.i_val = leading_zeroes;
       return u.val;
-# FPGA      
+# FPGA
   - target_extension: "fpga_native"
     ctype: ["uint32_t", "int32_t", "float"]
     lscpu_flags: ["fpga_native"]
@@ -2200,15 +2198,15 @@ definitions:
 primitive_name: "count_matches"
 brief_description: "Counts number of matches of a chosen value within a vector register."
 parameters:
-   - ctype: "const typename Vec::register_type"
-     name: "vec"
-     description: "Operating Vector"
-   - ctype: "const typename Vec::base_type"
-     name: "val"
-     description: "Compared value"
+  - ctype: "const typename Vec::register_type"
+    name: "vec"
+    description: "Operating Vector"
+  - ctype: "const typename Vec::base_type"
+    name: "val"
+    description: "Compared value"
 returns:
-   ctype: "typename Vec::base_type"
-   description: "Result of the count"
+  ctype: "typename Vec::base_type"
+  description: "Result of the count"
 testing:
   - test_name: "with_only_zero_searching_zero"
     requires: ["loadu", "storeu", "set1"]
@@ -2262,7 +2260,6 @@ definitions:
       Vec::base_type result = 0;
       __m512i target_value = _mm512_set1_epi8(val);
       __mmask64 cmp_result = _mm512_cmpeq_epi8_mask(vec, target_value);
-      
       uint64_t mask_bits = static_cast<uint64_t>(cmp_result);
       while (mask_bits != 0) {
         result += mask_bits & 1;
@@ -2276,7 +2273,6 @@ definitions:
       Vec::base_type result = 0;
       __m512i target_value = _mm512_set1_epi16(val);
       __mmask32 cmp_result = _mm512_cmpeq_epi16_mask(vec, target_value);
-      
       uint32_t mask_bits = static_cast<uint32_t>(cmp_result);
       while (mask_bits != 0) {
         result += mask_bits & 1;
@@ -2284,7 +2280,7 @@ definitions:
       }
       return result;
   - target_extension: 'avx512'
-    ctype: [ 'uint32_t', 'int32_t', 'uint64_t',  'int64_t']
+    ctype: [ 'uint32_t', 'int32_t', 'uint64_t', 'int64_t']
     lscpu_flags: [ 'avx512f' ]
     implementation: |
       __m512i value = _mm512_set1_epi{{intrin_tp[ctype][1]}}(val);
@@ -2327,14 +2323,12 @@ definitions:
     implementation: |
       using T =  Vec::base_type;
       T result = 0;
-
       {% if ctype != "uint64_t" and ctype != "int64_t" %}
       __m256i value = _mm256_set1_epi{{intrin_tp[ctype][1]}}(val);
       {% else %}
       __m256i value = _mm256_set1_epi{{intrin_tp[ctype][1]}}x(val);
       {% endif %}
       __m256i is_equal = _mm256_cmpeq_epi{{intrin_tp[ctype][1]}}(vec, value);
-      
       T mask[Vec::vector_element_count()];
       _mm256_storeu_si256(reinterpret_cast<__m256i*>(mask), is_equal);
 
@@ -2373,14 +2367,12 @@ definitions:
     implementation: |
       using T =  Vec::base_type;
       T result = 0;
-
       {% if ctype != "uint64_t" and ctype != "int64_t" %}
       __m128i value = _mm_set1_epi{{intrin_tp[ctype][1]}}(val);
       {% else %}
       __m128i value = _mm_set1_epi{{intrin_tp[ctype][1]}}x(val);
       {% endif %}
       __m128i is_equal = _mm_cmpeq_epi{{intrin_tp[ctype][1]}}(vec, value);
-      
       T mask[Vec::vector_element_count()];
       _mm_storeu_si128(reinterpret_cast<__m128i*>(mask), is_equal);
 
@@ -2432,293 +2424,4 @@ definitions:
     ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double' ]
     lscpu_flags: [ ]
     implementation: return (vec == val);
-...
----
-primitive_name: 'mod' #TODO: Does it make sense to implement that for float and double aswell? || Maybe Barrett reduction
-brief_description: 'Operates the modulo operation on one datavector modulo one input value.'
-parameters:
-  - ctype: 'const typename Vec::register_type'
-    name: 'vec'
-    description: 'Input Vector'
-  - ctype: 'const typename Vec::base_type'
-    name: 'val'
-    description: 'Modulo value'
-returns: 
-    ctype: 'typename Vec::register_type'
-    description: 'Resulting Vector'
-testing:
-  - test_name: "with_modulo_one"
-    requires: ["loadu", "storeu", "set1"]
-    includes: [ ]
-    implementation: |
-      using T = typename Vec::base_type;
-      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
-      auto reference_result_ptr = test_helper.result_ref();
-      auto test_result_ptr = test_helper.result_target();
-      auto vec = set1<Vec>(0);
-      storeu<Vec>(reference_result_ptr, vec);
-      storeu<Vec>(test_result_ptr, mod<Vec>(vec, 1));
-      test_helper.synchronize();
-      return test_helper.validate();
-  - test_name: "with_check_barrett_reduction_constraint"
-    requires: ["loadu", "storeu", "set1"]
-    includes: [ ]
-    implementation: |
-      using T = typename Vec::base_type;
-      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
-      auto reference_result_ptr = test_helper.result_ref();
-      auto test_result_ptr = test_helper.result_target();
-      auto vec = set1<Vec>(1025);
-      storeu<Vec>(reference_result_ptr, set1<Vec>(1));
-      storeu<Vec>(test_result_ptr, mod<Vec>(vec, 32));
-      test_helper.synchronize();
-      return test_helper.validate();
-  - test_name: "with_modulo_rand"
-    requires: ["loadu", "storeu", "set1"]
-    includes: [ ]
-    implementation: |
-      using T = typename Vec::base_type;
-      using IntType = std::conditional_t<std::is_same_v<T, float>, int32_t, std::conditional_t<std::is_same_v<T, double>, int64_t, T>>;
-      std::size_t element_count = 1024 + (1024 / Vec::vector_element_count());
-      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init_no_zero<T>};
-      bool allOk = true;
-      auto reference_data_ptr = test_helper.data_ref();
-      auto reference_result_ptr = test_helper.result_ref();
-      auto test_data_ptr = test_helper.data_target();
-      auto test_result_ptr = test_helper.result_target();
-      auto offset = 1024;
-      for(std::size_t i = 0; i < (element_count - Vec::vector_element_count() - offset); i +=Vec::vector_element_count()){
-        std::size_t tester_idx = 0;
-        T data[Vec::vector_element_count()];
-        for(std::size_t j = i; j < i + Vec::vector_element_count(); j++){
-          data[tester_idx] = reference_data_ptr[j] % reference_data_ptr[offset];
-          reference_result_ptr[tester_idx++] = reference_data_ptr[j] % reference_data_ptr[offset];
-        }
-        auto vec = loadu<Vec>(&test_data_ptr[i]);
-        auto val = test_data_ptr[offset];
-        auto vec_result = mod<Vec>(vec, val);
-        storeu<Vec>(test_result_ptr, vec_result);
-        test_helper.synchronize();
-        bool a = test_helper.validate();
-        allOk &= a;
-        if(!a){
-          std::cout << "vec: [";
-          for(int j = i; j < Vec::vector_element_count(); j++) std::cout << (long)test_data_ptr[j] << ", ";
-          std::cout << "]\t;\tval: " << (long)test_data_ptr[offset] << "\t;\toutputVector: [";
-          for(int j = 0; j < Vec::vector_element_count(); j++) std::cout << (long)test_result_ptr[j] << ", ";
-          std::cout << "]\t;\texpectedVector: [";
-          for(int j= 0; j < Vec::vector_element_count(); j++) std::cout << (long)data[j] << ", ";
-          std::cout << "]\n";
-        }
-        offset ++;
-      }
-      return allOk;
-
-definitions:
-# INTEL - AVX2
-  - target_extension: 'avx2'
-    ctype: [ 'int8_t', 'uint8_t' ]
-    lscpu_flags: [ 'avx2' ]
-    implementation: |
-      // Compute Barrett constants
-      const uint16_t BRT_MUL = ((uint16_t)1 << 8); //(2^8)
-
-      uint16_t m = BRT_MUL / val;
-      __m256i n = _mm256_set1_epi8(val);
- 
-      // Barrett reduction
-      __m256i vec_hi16, vec_lo16, q_hi16, q_lo16, q;
-      vec_hi16 = _mm256_unpackhi_epi8(vec, _mm256_setzero_si256());
-      vec_lo16 = _mm256_unpacklo_epi8(vec, _mm256_setzero_si256());
-
-      q_hi16 = _mm256_mulhi_epu16(vec_hi16, _mm256_set1_epi16(m));
-      q_lo16 = _mm256_mulhi_epu16(vec_lo16, _mm256_set1_epi16(m));
-
-      q_hi16 = _mm256_srli_epi16(q_hi16, 8);
-      q_lo16 = _mm256_srli_epi16(q_lo16, 8);
-
-      q_hi16 = _mm256_mullo_epi16(q_hi16, _mm256_set1_epi16(val));
-      q_lo16 = _mm256_mullo_epi16(q_lo16, _mm256_set1_epi16(val));
-
-      q = _mm256_packus_epi16(q_lo16, q_hi16);
-
-      // Calculate the remainder
-      __m256i r = _mm256_sub_epi8(vec, q);
-
-      // Handle negative remainders
-      __m256i cmp = _mm256_cmpgt_epi8(n, r);
-      r = _mm256_add_epi8(r, _mm256_and_si256(cmp, n));
-
-      // Handle remainders greater than the input value
-      __m256i greater_than_val = _mm256_cmpgt_epi8(r, vec);
-      r = _mm256_sub_epi8(r, _mm256_and_si256(greater_than_val, n));
-
-      return r;
-  - target_extension: 'avx2'
-    ctype: [ 'int16_t', 'uint16_t', 'int32_t', 'uint32_t']
-    lscpu_flags: [ 'avx2' ]
-    implementation: |
-      {% if ctype == "int16_t" or ctype == "uint16_t" %}
-      using T = uint32_t;
-      {% else %}
-      using T = uint64_t;
-      {% endif %}
-      
-      // Compute Barrett constants
-      const T BRT_MUL = ((T)1 << {{intrin_tp[ctype][1]}}); //(2^{{intrin_tp[ctype][1]}})
-
-      const T m = BRT_MUL / val;
-      __m256i n = _mm256_set1_epi{{intrin_tp[ctype][1]}}(val);
-
-      // Barrett reduction
-      {% if ctype == "int16_t" or ctype == "uint16_t" %}
-      __m256i q = _mm256_mulhi_epu{{intrin_tp[ctype][1]}}(vec, _mm256_set1_epi{{intrin_tp[ctype][1]}}(m));
-      {% else %}
-      __m256i q = _mm256_mul_epu{{intrin_tp[ctype][1]}}(vec, _mm256_set1_epi64x(m));
-      {% endif %}
-      q = _mm256_srli_epi{{intrin_tp[ctype][1]}}(q, {{intrin_tp[ctype][1]}});
-      q = _mm256_mullo_epi{{intrin_tp[ctype][1]}}(q, n);
-
-      // Calculate the remainder
-      __m256i r = _mm256_sub_epi{{intrin_tp[ctype][1]}}(vec, q);
-
-      // Handle negative remainders
-      __m256i cmp = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(n, r);
-      r = _mm256_add_epi{{intrin_tp[ctype][1]}}(r, _mm256_and_si256(cmp, n));
-
-      // Handle remainders greater than the input value
-      __m256i greater_than_val = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(r, vec);
-      r = _mm256_sub_epi{{intrin_tp[ctype][1]}}(r, _mm256_and_si256(greater_than_val, n));
-
-      return r;
-  - target_extension: 'avx2'
-    ctype: [ 'int64_t', 'uint64_t']
-    lscpu_flags: [ 'avx2' ]
-    implementation: |
-      // Compute Barrett constants
-      const __uint128_t BRT_MUL = ((__uint128_t)1 << 64);
-      const long double BRT_MUL_REC = 1.0 / BRT_MUL;
-
-      __uint128_t mu = (__uint128_t) ((long double)val * BRT_MUL_REC);
-      __m256i val_vec = _mm256_set1_epi64x(val);
-
-      // Barrett reduction
-      __m256i vec_hi64 = _mm256_srli_epi64(vec, 32);
-      __m256i vec_lo64 = _mm256_and_si256(vec, _mm256_set1_epi64x(0xFFFFFFFF));
-      __m256i mu_vec = _mm256_set1_epi64x((int64_t)mu);
-
-      __m256i q_hi64 = _mm256_mul_epu32(vec_hi64, mu_vec);
-      __m256i q_lo64 = _mm256_mul_epu32(vec_lo64, mu_vec);
-
-      q_hi64 = _mm256_srli_epi64(q_hi64, 64 - 32);
-      q_lo64 = _mm256_srli_epi64(q_lo64, 64);
-
-      __m256i q = _mm256_or_si256(q_hi64, q_lo64);
-      q = _mm256_mul_epu32(q, val_vec);
-
-      // Calculate the remainder
-      __m256i r = _mm256_sub_epi64(vec, q);
-
-      // Handle negative remainders
-      __m256i cmp = _mm256_cmpgt_epi64(val_vec, r);
-      r = _mm256_add_epi64(r, _mm256_and_si256(cmp, val_vec));
-
-      // Handle remainders greater than the input value
-      __m256i greater_than_val = _mm256_cmpgt_epi64(r, vec);
-      r = _mm256_sub_epi64(r, _mm256_and_si256(greater_than_val, val_vec));
-
-      return r;
-# INTEL - SSE - TODO -> uint8, int8
-  - target_extension: 'sse'
-    ctype: [ 'int16_t' , 'uint16_t', 'uint32_t', 'int32_t' ]
-    lscpu_flags: [ 'sse2' ]
-    implementation: |
-      {% if ctype == "uint16_t" or ctype == "int16_t" %}
-      using T = uint32_t;
-      {% else %}
-      using T = uint64_t;
-      {% endif %}
-      // Compute Barrett constants
-      const T BRT_MUL = ((T)1 << {{intrin_tp[ctype][1]}}); //(2^{{intrin_tp[ctype][1]}})
-      const T m = BRT_MUL / val;
-
-      __m128i n = _mm_set1_epi{{intrin_tp[ctype][1]}}(val);
-
-      // Barrett reduction
-      {% if ctype == "uint16_t" or ctype == "int16_t" %}
-      __m128i q = _mm_mulhi_epu{{intrin_tp[ctype][1]}}(vec, _mm_set1_epi{{intrin_tp[ctype][1]}}(m));
-      {% else %}
-      __m128i q  = _mm_mul_epu32(vec, _mm_set1_epi64x(m));
-      {% endif %}
-      q = _mm_srli_epi{{intrin_tp[ctype][1]}}(q, {{intrin_tp[ctype][1]}});
-      q = _mm_mullo_epi{{intrin_tp[ctype][1]}}(q, n);
-
-      // Calculate the remainder
-      __m128i r = _mm_sub_epi{{intrin_tp[ctype][1]}}(vec, q);
-
-      // Handle negative remainders
-      __m128i cmp = _mm_cmpgt_epi{{intrin_tp[ctype][1]}}(n, r);
-      r = _mm_add_epi{{intrin_tp[ctype][1]}}(r, _mm_and_si128(cmp, n));
-
-      // Handle remainders greater than the input value
-      __m128i greater_than_val = _mm_cmpgt_epi{{intrin_tp[ctype][1]}}(r, vec);
-      r = _mm_sub_epi{{intrin_tp[ctype][1]}}(r, _mm_and_si128(greater_than_val, n));
-
-      return r;
-  - target_extension: 'sse'
-    ctype: [ 'int64_t' , 'uint64_t']
-    lscpu_flags: [ 'sse2', 'sse4_1' ]
-    implementation: |
-      using T = __m128i;
-      // Compute Barrett constants
-      const __uint128_t BRT_MUL = ((__uint128_t)1 << 64);
-      const long double BRT_MUL_REC = 1.0 / BRT_MUL;
-
-      __uint128_t mu = (__uint128_t) ((long double)val * BRT_MUL_REC);
-      T val_vec = _mm_set1_epi64x(val);
-
-      // Barret reduction
-      T vec_hi, vec_lo, mu_vec, q_hi, q_lo, q;
-      vec_hi = _mm_srli_epi64(vec, 32);
-      vec_lo = _mm_and_si128(vec, _mm_set1_epi64x(0xFFFFFFFF));
-      mu_vec = _mm_set1_epi64x((int64_t)mu);
-
-      q_hi = _mm_mul_epu32(vec_hi, mu_vec);
-      q_lo = _mm_mul_epu32(vec_lo, mu_vec);
-
-      q_hi = _mm_srli_epi64(q_hi, 64-32);
-      q_lo = _mm_srli_epi64(q_lo, 64);
-
-      q = _mm_or_si128(q_hi, q_lo);
-      q = _mm_mul_epu32(q, val_vec);
-      
-      // Calculate the remainder
-      T r = _mm_sub_epi64(vec, q);
-
-      // Handle negative remainders
-      T cmp = _mm_cmpgt_epi64(val_vec, r);
-      r = _mm_add_epi64(r, _mm_and_si128(cmp, val_vec));
-
-      // Handle remainders greater than the input value
-      cmp = _mm_cmpgt_epi64(r, vec);
-      r = _mm_sub_epi64(r, _mm_and_si128(cmp, val_vec));
-      
-      return r;
-  - target_extension: "sse"
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
-    lscpu_flags: ['sse2']
-    is_native: False
-    includes: ["<array>", "<cstddef>"]
-    implementation: |
-      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
-      _mm_store_si128(reinterpret_cast<__m128i*>(buffer_a.data()), vec);
-      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        buffer_a[i] =  buffer_a[i] % val;
-      }
-      return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
-# SCALAR
-  - target_extension: 'scalar'
-    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']
-    lscpu_flags: [ ]
-    implementation: return vec % val;
 ...
