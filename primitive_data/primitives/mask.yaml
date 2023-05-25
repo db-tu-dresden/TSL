@@ -490,7 +490,7 @@ definitions:
                vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(first),
                vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(second)
             )
-         );"
+         );
 ...
 ---
 primitive_name: "mask_binary_and"
@@ -598,7 +598,7 @@ definitions:
                vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(first),
                vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(second)
             )
-         );"
+         );
 ...
 ---
 primitive_name: "mask_binary_or"
@@ -706,7 +706,7 @@ definitions:
                vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(first),
                vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(second)
             )
-         );"
+         );
 ...
 ---
 primitive_name: "mask_binary_xor"
