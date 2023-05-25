@@ -126,7 +126,7 @@ You may have to adopt the package manager and the package names for other Linux 
 # update apt
 user@host:~/tslroot  sudo apt update
 # install TSL-generator-specific dependencies
-user@host:~/tslroot  sudo apt -y install python3.10 graphviz-dev
+user@host:~/tslroot  sudo apt -y install python3.10 graphviz-dev python3-pip
 # install the required CMake version
 user@host:~/tslroot  sudo apt -y install cmake
 # make sure that the CMake version is at least 3.19
