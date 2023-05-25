@@ -469,16 +469,18 @@ default: "" <br />
 |Required Fields|Optional Fields
 |:--|:--|
 [primitive_name](#primitive--primitive_name) | [additional_non_specialized_template_parameters](#primitive--additional_non_specialized_template_parameters)
-[ctype](#primitive-additional_non_specialized_template_parameters-entry_type--ctype) | [additional_simd_template_parameter](#primitive--additional_simd_template_parameter)
-[name](#primitive-additional_non_specialized_template_parameters-entry_type--name) | [brief_description](#primitive--brief_description)
-[ctype](#primitive-definitions-entry_type--ctype) | [definitions](#primitive--definitions)
-[implementation](#primitive-definitions-entry_type--implementation) | [additional_simd_template_base_type](#primitive-definitions-entry_type--additional_simd_template_base_type)
-[lscpu_flags](#primitive-definitions-entry_type--lscpu_flags) | [additional_simd_template_base_type_mapping_dict](#primitive-definitions-entry_type--additional_simd_template_base_type_mapping_dict)
-[target_extension](#primitive-definitions-entry_type--target_extension) | [additional_simd_template_extension](#primitive-definitions-entry_type--additional_simd_template_extension)
-[ctype](#primitive-parameters-entry_type--ctype) | [includes](#primitive-definitions-entry_type--includes)
-[name](#primitive-parameters-entry_type--name) | [is_native](#primitive-definitions-entry_type--is_native)
-[ctype](#primitive-returns-entry_type--ctype) | [specialization_comment](#primitive-definitions-entry_type--specialization_comment)
-[implementation](#primitive-testing-entry_type--implementation) | [vector_length_agnostic](#primitive-definitions-entry_type--vector_length_agnostic)
+[ctype](#primitive-additional_non_specialized_template_parameters-entry_type--ctype) | [default_value](#primitive-additional_non_specialized_template_parameters-entry_type--default_value)
+[name](#primitive-additional_non_specialized_template_parameters-entry_type--name) | [additional_simd_template_parameter](#primitive--additional_simd_template_parameter)
+[name](#primitive-additional_simd_template_parameter-entry_type--name) | [default_value](#primitive-additional_simd_template_parameter-entry_type--default_value)
+[ctype](#primitive-definitions-entry_type--ctype) | [brief_description](#primitive--brief_description)
+[implementation](#primitive-definitions-entry_type--implementation) | [definitions](#primitive--definitions)
+[lscpu_flags](#primitive-definitions-entry_type--lscpu_flags) | [additional_simd_template_base_type](#primitive-definitions-entry_type--additional_simd_template_base_type)
+[target_extension](#primitive-definitions-entry_type--target_extension) | [additional_simd_template_base_type_mapping_dict](#primitive-definitions-entry_type--additional_simd_template_base_type_mapping_dict)
+[ctype](#primitive-parameters-entry_type--ctype) | [additional_simd_template_extension](#primitive-definitions-entry_type--additional_simd_template_extension)
+[name](#primitive-parameters-entry_type--name) | [includes](#primitive-definitions-entry_type--includes)
+[ctype](#primitive-returns-entry_type--ctype) | [is_native](#primitive-definitions-entry_type--is_native)
+[implementation](#primitive-testing-entry_type--implementation) | [specialization_comment](#primitive-definitions-entry_type--specialization_comment)
+ | [vector_length_agnostic](#primitive-definitions-entry_type--vector_length_agnostic)
  | [vector_length_bits](#primitive-definitions-entry_type--vector_length_bits)
  | [detailed_description](#primitive--detailed_description)
  | [force_inline](#primitive--force_inline)
@@ -552,6 +554,19 @@ brief: Name of template parameter. <br />
 </blockquote>
 </details>
 
+<details open>
+<summary><a name="primitive-additional_non_specialized_template_parameters-entry_type--default_value"></a>default_value: (optional)</summary>
+
+<blockquote>
+
+type: `str` <br />
+brief: A default value. <br />
+default: "" <br />
+
+
+</blockquote>
+</details>
+
 
 
 </blockquote>
@@ -572,8 +587,55 @@ brief: Additional template parameters which may be needed <br />
 
 <blockquote>
 
+type: `dict` <br />
+<details open>
+<summary><a name="entry_type"></a>entry_type</summary>
+
+<blockquote>
+
+<details open>
+<summary><a name="primitive-additional_simd_template_parameter-entry_type--name"></a>name: (required)</summary>
+
+<blockquote>
+
 type: `str` <br />
 default: "" <br />
+brief: Name of template parameter. <br />
+
+
+</blockquote>
+</details>
+
+<details open>
+<summary><a name="primitive-additional_simd_template_parameter-entry_type--default_value"></a>default_value: (optional)</summary>
+
+<blockquote>
+
+type: `str` <br />
+default: "" <br />
+brief: default value for the template parameter <br />
+
+
+</blockquote>
+</details>
+
+
+
+</blockquote>
+</details>
+
+<details open>
+<summary><a name="default"></a>default</summary>
+
+<blockquote>
+
+name: "" <br />
+default_value: "" <br />
+
+
+</blockquote>
+</details>
+
 brief: Additional template parameter which may be used for conversion operations. <br />
 
 
@@ -939,9 +1001,7 @@ default: "" <br />
 
 <blockquote>
 
-type: `str` <br />
-brief: A default value. <br />
-default: "" <br />
+   same as: [default_value](#primitive-additional_non_specialized_template_parameters-entry_type--default_value)
 
 
 </blockquote>
