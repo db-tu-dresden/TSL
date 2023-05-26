@@ -721,3 +721,301 @@ definitions:
     lscpu_flags: [ ]
     implementation: "return value;"
 ...
+---
+primitive_name: "min"
+brief_description: "compares the values of 2 vectors and returns a vector with the minimum of each corrisponding values"
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector"
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector"
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the comparison"
+testing:
+  - test_name: "min_general_case"
+    requires: ["set1", "loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+        using T = typename Vec::base_type;
+        const std::size_t element_count = 2048;
+        testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+        bool allOk = true;
+        auto reference_data_ptr = test_helper.data_ref();
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_data_ptr = test_helper.data_target();
+        auto test_result_ptr = test_helper.result_target();
+        auto vec = set1<Vec>(0);
+        for(std::size_t i = 0; i < element_count / 2; i += Vec::vector_element_count()){
+          std::size_t tester_idx = 0;
+          for(size_t j = i; j < i + Vec::vector_element_count(); j++){
+            if(reference_data_ptr[j] < reference_data_ptr[j + (element_count/2)]){
+              reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+            } else {
+              reference_result_ptr[tester_idx++] = reference_data_ptr[j + (element_count/2)];
+            }
+          }
+          auto elements_vec1 = loadu<Vec>(&test_data_ptr[i]);
+          auto elements_vec2 = loadu<Vec>(&test_data_ptr[i + (element_count/2)]);
+          vec = min<Vec>(elements_vec1, elements_vec2);
+          storeu<Vec>(test_result_ptr, vec);
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
+        }
+        return allOk;
+  - test_name: "min_zero_case"
+    requires: ["set1", "loadu", "storeu"]
+    includes: ["<cstddef>"]
+    implementation: |
+        using T = typename Vec::base_type;
+        std::size_t element_count = 1024;
+        testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+        bool allOk = true;
+        auto reference_data_ptr = test_helper.data_ref();
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_data_ptr = test_helper.data_target();
+        auto test_result_ptr = test_helper.result_target();
+        for(std::size_t i = 0; i < element_count; i += Vec::vector_element_count()){
+          auto vec = set1<Vec>(0);
+          storeu<Vec>(reference_result_ptr, vec);
+          auto elements_vec = loadu<Vec>(&test_data_ptr[i]);
+          vec = min<Vec>(vec, elements_vec);
+          storeu<Vec>(test_result_ptr, vec);
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
+        }
+        return allOk;
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    specialization_comment: "Signed Min"
+    implementation: "return _mm512_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t" ]
+    lscpu_flags: ['avx512bw']
+    specialization_comment: "Signed Min"
+    implementation: "return _mm512_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t"]
+    lscpu_flags: ['avx2']
+    specialization_comment: "Signed & unsigned Min"
+    implementation: "return _mm256_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx']
+    implementation: "return _mm256_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["int64_t", "uint64_t"]
+    lscpu_flags: ['avx2']
+    specialization_comment: "Takes a mask to check the smaller value of each Vector and takes that mask to get the smaller value of either vec_a or vec_b"
+    is_native: False
+    implementation: |
+      typename Vec::register_type mask = _mm256_cmpgt_epi64(vec_a, vec_b);
+      return _mm256_blendv_epi8(vec_a, vec_b, mask);
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ['sse']
+    implementation: "return _mm_min_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int16_t", "double"]
+    lscpu_flags: ['sse2']
+    implementation: "return _mm_min_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint16_t", "uint32_t", "int32_t"]
+    lscpu_flags: ['sse4_1']
+    implementation: "return _mm_min_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+#ARM - NEON
+  - target_extension: "neon"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "int8_t", "int32_t", "double", "float" ]
+    lscpu_flags: ['neon']
+    implementation: "return vminq_{{intrin_tp_full[ctype]}}(vec_a, vec_b);" #What about 64-Bit
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    includes: []
+    implementation: |
+        if (vec_a > vec_b) return vec_b;
+        return vec_a;
+#INTEL - FPGA
+...
+---
+primitive_name: "div" #TODO: TestCase without divide by zero case
+brief_description: "Divides two vector registers."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the division."
+testing:
+  - test_name: "div_divide_vec_with_itself"
+    requires: ["loadu", "storeu", "set1"]
+    includes: ["<cstddef>", "<iostream>", "<algorithm>", "<limits>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 0;
+      if constexpr(std::is_integral_v<T>) {
+        element_count = std::clamp<size_t>(std::numeric_limits<T>::max()-1, 1, 1024);
+      } else {
+        element_count = 1024;
+      }
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::seq_init<T>, 1};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        auto vec = set1<Vec>(1);
+        storeu<Vec>(reference_result_ptr, vec);
+        std::cout << "TestData: " << (size_t)test_data_ptr[i] << "("<< type_name < Vec > () << ")" << "\n";
+        auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+        vec = div<Vec>(vec_a, vec_a);
+        storeu<Vec>(test_result_ptr, vec);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "div_divide_vec_with_one"
+    requires: ["loadu", "storeu", "set1"]
+    includes: ["<cstddef>", "<algorithm>", "<limits>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 0;
+      if constexpr(std::is_integral_v<T>) {
+        element_count = std::clamp<size_t>(std::numeric_limits<T>::max()-1, 1, 1024);
+      } else {
+        element_count = 1024;
+      }
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::seq_init<T>, 1};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        std::size_t tester_idx = 0;
+        for(size_t j=i; j < i + Vec::vector_element_count(); j++){
+          reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+        }
+        auto vec = set1<Vec>(1);
+        auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+        auto vec_result = div<Vec>(vec_a, vec);
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_div_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    includes: ["<array>", "<cstddef>"]
+    implementation: |
+          alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+          alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+          _mm512_store_si512(reinterpret_cast<void*>(buffer_a.data()), vec_a);
+          _mm512_store_si512(reinterpret_cast<void*>(buffer_b.data()), vec_b);
+          for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+            buffer_a[i] /= buffer_b[i];
+          }
+          return _mm512_load_si512(reinterpret_cast<void const *>(buffer_a.data()));
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx']
+    implementation: "return _mm256_div_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ['avx']
+    is_native: False
+    includes: ["<array>", "<cstddef>"]
+    implementation: |
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+        _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_a.data()), vec_a);
+        _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_b.data()), vec_b);
+        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+           buffer_a[i] /= buffer_b[i];
+        }
+        return _mm256_load_si256(reinterpret_cast<__m256i const *>(buffer_a.data()));
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ['sse']
+    implementation: "return _mm_div_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ['sse2']
+    is_native: False
+    includes: ["<array>", "<cstddef>"]
+    implementation: |
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+        alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_b;
+        _mm_store_si128(reinterpret_cast<__m128i*>(buffer_a.data()), vec_a);
+        _mm_store_si128(reinterpret_cast<__m128i*>(buffer_b.data()), vec_b);
+        for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+           buffer_a[i] /= buffer_b[i];
+        }
+        return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
+#ARM - NEON - TODO: other bits
+  - target_extension: "neon"
+    ctype: ["float", "double"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vdivq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );"
+  - target_extension: "neon"
+    ctype: ["uint64_t"]
+    lscpu_flags: ['neon']
+    implementation: |
+      typename Vec::register_type recipocal_estimate = vshrq_n_u64(vdupq_n_u64(0xFFFFFFFFFFFFFFFF), vclzq_u64(vec_b));
+      recipocal_estimate = vmulq_u64(recipocal_estimate, vsubq_u64(vdupq_n_u64(2), vmulq_u64(vec_b, recipocal_estimate)));
+      typename Vec::register_type temp = vmulq_u64(vec_a, recipocal_estimate);
+      temp = vqrdmulhq_u64(temp, vec_b);
+      return temp;
+  - target_extension: "neon"
+    ctype: ["uint32_t"]
+    lscpu_flags: ['neon']
+    is_native: False
+    implementation: |
+      typename Vec::register_type temp = vrecpe_{{intrin_tp_full[ctype]}}(vec_b);
+      temp = vmulq_{{intrin_tp_full[ctype]}}(temp, vrecpsq_{{intrin_tp_full[ctype]}}(vec_b, temp));
+      return vmulq_{{intrin_tp_full[ctype]}}(vec_a, temp);
+  - target_extension: "neon"
+    ctype: ["uint16_t"]
+    lscpu_flags: ['neon']
+    is_native: False
+    implementation: return vdivq_u16(vec_a, vdupq_n_u16(vec_b));
+  - target_extension: "neon"
+    ctype: ["uint8_t"]
+    lscpu_flags: ['neon']
+    is_native: False
+    implementation: |
+      typename Vec::register_type temp = vmol_u8(vec_a);
+      temp = vmulq_n_u16(temp, 0x100);
+      typename Vec::register_type result = vqrdmulhq_u8(temp, vec_b);
+      result = vshrn_n_u16(result, 8);
+      return result;
+#SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ ]
+    implementation: return vec_a / vec_b;
+#INTEL - FPGA
+...
