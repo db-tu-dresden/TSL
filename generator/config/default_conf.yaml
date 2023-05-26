@@ -3,7 +3,7 @@ configuration:
    namespace:                     "tsl"
    header_file_extension:         ".hpp"
    source_file_extension:         ".cpp"
-   root_path:                     "../libs/tsl"
+   root_path:                     "./generated_tsl"
    compiler_architecture_prefix:  "-m"
    use_concepts:                  True
    emit_workaround_warnings:      True
