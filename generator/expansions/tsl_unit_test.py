@@ -573,21 +573,20 @@ class TSLTestGenerator:
 
             if primitive_test == None:
                 primitive_test = TSLPrimitiveTest(case.associated_primitive_name,declaration_dict[case.associated_primitive_class_name][case.associated_primitive_name])
-            
+                primitive_class.add_primitive_test( primitive_test )
             primitive_test.add_case( case )
-            primitive_class.add_primitive_test( primitive_test )
 
             test_by_primitive_dict[primitive_class.primitive_class_name].import_includes(case.data_dict)
 
-        for prim, tsf in test_by_primitive_dict.items():
-            if prim in tests:
+        for primitiveClassTest, tsf in test_by_primitive_dict.items():
+            if primitiveClassTest in tests:
                 tsf.add_code(
                     config.get_template("expansions::unit_test").render(
                         {
                             "tsl_namespace": config.lib_namespace,
                             "known_extensions": lib.extension_set.known_extensions,
                             "known_ctypes": lib.primitive_class_set.known_ctypes,
-                            "tests": [tests[prim].as_dict()],
+                            "tests": [tests[primitiveClassTest].as_dict()],
                             "nested_namespaces": [unit_test_config["namespace"]]
                         }
                     )
