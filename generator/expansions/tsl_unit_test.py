@@ -223,8 +223,8 @@ class TSLPrimitiveClassTests:
             "class_name": self.__primitive_class_name,
             "primitive_tests": [x.as_dict() for x in self.__primitive_tests]
         }
-
-
+    
+    
 class TSLTestSuite:
     @LogInit()
     def __init__(self, lib: TSLLib) -> None:
@@ -517,14 +517,12 @@ class TSLTestGenerator:
                 tsltestgenerator.log(logging.WARN,
                                     f"Could not download the necessary test header file. Check your network connection. {e}")
 
-        tests: Dict[str,List[TSLPrimitiveClassTests]] = dict()
-        primitive_class: TSLPrimitiveClassTests = None
+        tests: Dict[str,TSLPrimitiveClassTests] = dict()
         primitive_test: TSLPrimitiveTest = None
         declaration_dict: Dict[Dict[str, TSLPrimitive.Declaration]] = lib.primitive_class_set.get_declaration_dict()
 
         test_by_primitive_dict: Dict[str, TSLSourceFile] = dict()
         for pClass in lib.primitive_class_set:
-            tests[pClass.name] = []
             test_by_primitive_dict[pClass.name] = TSLSourceFile.create_from_dict(
                 root_path.joinpath(f"{pClass.name}_unit_test.cpp"),
                 {
@@ -562,39 +560,33 @@ class TSLTestGenerator:
 
         for test_data in dependency_graph.get_case_data_topological_order():
             case: TSLPrimitiveTestCase = TSLPrimitiveTestCase(test_data)
-            if primitive_class is None:
-                primitive_class = TSLPrimitiveClassTests(case.associated_primitive_class_name)
-                primitive_test = TSLPrimitiveTest(case.associated_primitive_name,
-                                                  declaration_dict[case.associated_primitive_class_name][
-                                                      case.associated_primitive_name])
-            else:
-                if primitive_class.primitive_class_name != case.associated_primitive_class_name:
-                    primitive_class.add_primitive_test(primitive_test)
-                    tests[primitive_class.primitive_class_name].append(primitive_class)
-                    primitive_class = TSLPrimitiveClassTests(case.associated_primitive_class_name)
-                    primitive_test = TSLPrimitiveTest(case.associated_primitive_name,
-                                                      declaration_dict[case.associated_primitive_class_name][
-                                                          case.associated_primitive_name])
-                if primitive_test.primitive_name != case.associated_primitive_name:
-                    primitive_class.add_primitive_test(primitive_test)
-                    primitive_test = TSLPrimitiveTest(case.associated_primitive_name,
-                                                      declaration_dict[case.associated_primitive_class_name][
-                                                          case.associated_primitive_name])
-            primitive_test.add_case(case)
-            test_by_primitive_dict[primitive_class.primitive_class_name].import_includes(case.data_dict)
-        if primitive_class is not None:
-            primitive_class.add_primitive_test(primitive_test)
-            tests[primitive_class.primitive_class_name].append(primitive_class)
+            
+            if case.associated_primitive_class_name not in tests:
+                tests[case.associated_primitive_class_name] = TSLPrimitiveClassTests(case.associated_primitive_class_name)
+            primitive_class = tests[case.associated_primitive_class_name]
+            
+            primitive_test: TSLPrimitiveTest = None
+            for tslPrimTest in primitive_class.primitive_tests:
+                if tslPrimTest.primitive_name == case.associated_primitive_name:
+                    primitive_test = tslPrimTest
+                    break
 
-        for prim, tsf in test_by_primitive_dict.items():
-            if tests[prim]:
+            if primitive_test == None:
+                primitive_test = TSLPrimitiveTest(case.associated_primitive_name,declaration_dict[case.associated_primitive_class_name][case.associated_primitive_name])
+                primitive_class.add_primitive_test( primitive_test )
+            primitive_test.add_case( case )
+
+            test_by_primitive_dict[primitive_class.primitive_class_name].import_includes(case.data_dict)
+
+        for primitiveClassTest, tsf in test_by_primitive_dict.items():
+            if primitiveClassTest in tests:
                 tsf.add_code(
                     config.get_template("expansions::unit_test").render(
                         {
                             "tsl_namespace": config.lib_namespace,
                             "known_extensions": lib.extension_set.known_extensions,
                             "known_ctypes": lib.primitive_class_set.known_ctypes,
-                            "tests": [test.as_dict() for test in tests[prim]],
+                            "tests": [tests[primitiveClassTest].as_dict()],
                             "nested_namespaces": [unit_test_config["namespace"]]
                         }
                     )
