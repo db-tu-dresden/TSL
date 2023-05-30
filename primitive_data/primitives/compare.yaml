@@ -1174,3 +1174,84 @@ definitions:
     lscpu_flags: [ ]
     implementation: return (vec == val);
 ...
+---
+primitive_name: "less_than"
+brief_description: "Checks if the values of a vector are less than the values of another vector."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec_a"
+     description: "Data vector."
+   - ctype: "const typename Vec::register_type"
+     name: "vec_b"
+     description: "Comparison vector."
+returns:
+    ctype: "typename Vec::mask_type"
+    description: "Vector mask type indicating whether the data is less than the comparison vector."
+definitions:
+#SCALAR
+    - target_extension: "scalar"
+      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+      lscpu_flags: []
+      implementation: "return (vec_a < vec_b);"
+...
+---
+primitive_name: "less_than_or_equal"
+brief_description: "Checks if the values of a vector are less than or equal to the values of another vector."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec_a"
+     description: "Data vector."
+   - ctype: "const typename Vec::register_type"
+     name: "vec_b"
+     description: "Comparison vector."
+returns:
+    ctype: "typename Vec::mask_type"
+    description: "Vector mask type indicating whether the data is less than or equal to the comparison vector."
+definitions:
+#SCALAR
+    - target_extension: "scalar"
+      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+      lscpu_flags: []
+      implementation: "return (vec_a <= vec_b);"
+...
+---
+primitive_name: "greater_than"
+brief_description: "Checks if the values of a vector are greater than the values of another vector."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec_a"
+     description: "Data vector."
+   - ctype: "const typename Vec::register_type"
+     name: "vec_b"
+     description: "Comparison vector."
+returns:
+    ctype: "typename Vec::mask_type"
+    description: "Vector mask type indicating whether the data is greater than the comparison vector."
+definitions:
+#SCALAR
+    - target_extension: "scalar"
+      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+      lscpu_flags: []
+      implementation: "return (vec_a > vec_b);"
+...
+---
+primitive_name: "greater_than_or_equal"
+brief_description: "Checks if the values of a vector are greater than or equal to the values of another vector."
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "vec_a"
+     description: "Data vector."
+   - ctype: "const typename Vec::register_type"
+     name: "vec_b"
+     description: "Comparison vector."
+returns:
+    ctype: "typename Vec::mask_type"
+    description: "Vector mask type indicating whether the data is greater than or equal to the comparison vector."
+definitions:
+#SCALAR
+    - target_extension: "scalar"
+      ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+      lscpu_flags: []
+      implementation: "return (vec_a >= vec_b);"
+...
+

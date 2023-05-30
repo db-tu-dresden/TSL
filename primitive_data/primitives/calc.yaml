@@ -1019,3 +1019,123 @@ definitions:
     implementation: return vec_a / vec_b;
 #INTEL - FPGA
 ...
+---
+primitive_name: 'sub'
+brief_description: 'Subtraction one vector from another.'
+parameters:
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_a'
+    description: 'First vector.'
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_b'
+    description: 'Second vector.'
+returns:
+  ctype: 'typename Vec::register_type'
+  description: 'Vector containing subtraction result.'
+definitions:
+#SCALAR
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double' ]
+    lscpu_flags: [ ]
+    implementation: 'return vec_a - vec_b;'
+...
+---
+primitive_name: 'div'
+brief_description: 'Division one vector by another.'
+parameters:
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_a'
+    description: 'First vector.'
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_b'
+    description: 'Second vector.'
+returns:
+  ctype: 'typename Vec::register_type'
+  description: 'Vector containing division result.'
+definitions:
+#SCALAR
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double' ]
+    lscpu_flags: [ ]
+    implementation: 'return vec_a / vec_b;'
+...
+---
+primitive_name: 'mod'
+brief_description: 'Modulo of one vector by another.'
+parameters:
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_a'
+    description: 'First vector.'
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_b'
+    description: 'Second vector.'
+returns:
+  ctype: 'typename Vec::register_type'
+  description: 'Vector containing modulo result.'
+definitions:
+#SCALAR
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t' ]
+    lscpu_flags: [ ]
+    implementation: 'return vec_a % vec_b;'
+...
+---
+primitive_name: 'pow'
+brief_description: 'Power of one vector by another.'
+parameters:
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_a'
+    description: 'First vector.'
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_b'
+    description: 'Second vector.'
+returns:
+  ctype: 'typename Vec::register_type'
+  description: 'Vector containing power result.'
+definitions:
+#SCALAR
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t' ]
+    lscpu_flags: [ ]
+    implementation: 'return std::pow(vec_a, vec_b);'
+...
+---
+primitive_name: 'min'
+brief_description: 'Minimum of one vector by another.'
+parameters:
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_a'
+    description: 'First vector.'
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_b'
+    description: 'Second vector.'
+returns:
+  ctype: 'typename Vec::register_type'
+  description: 'Vector containing minimum result.'
+definitions:
+#SCALAR
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double' ]
+    lscpu_flags: [ ]
+    implementation: 'return std::min(vec_a, vec_b);'
+...
+---
+primitive_name: 'max'
+brief_description: 'Maximum of one vector by another.'
+parameters:
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_a'
+    description: 'First vector.'
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_b'
+    description: 'Second vector.'
+returns:
+  ctype: 'typename Vec::register_type'
+  description: 'Vector containing maximum result.'
+definitions:
+#SCALAR
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double' ]
+    lscpu_flags: [ ]
+    implementation: 'return std::max(vec_a, vec_b);'
+...
