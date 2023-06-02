@@ -28,16 +28,11 @@ definitions:
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
     implementation: |
       using T = typename Vec::base_type;
-      using BigIntT = ac_int<Vec::vector_size_b(), std::is_signed_v<T>>;
+      using BigIntT = ac_int<Vec::vector_size_b(), false>;//std::is_signed_v<T>>;
       BigIntT intermediate_results[Vec::vector_element_count()];
-      //BigIntT const all_zero_but_effective_bits{ (1ULL<<bitwidth) - 1 };
       #pragma unroll
       for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        //intermediate_results[i] = (all_zero_but_effective_bits & BigIntT{data[i]}) << (bitwidth*i);
         intermediate_results[i] = (BigIntT{data[i]}) << (bitwidth*i);
-        //BigIntT data;
-        //bit_fill<BigIntT>((T [1]){data[i]});
-        ////data.set_val<AC_VAL_0>();
       }
       BigIntT tmp_result{0};
       #pragma unroll
@@ -52,8 +47,7 @@ definitions:
       return result;
 ...
 ---
-primitive_name: "pack_bits_linear"
-functor_name: "pack_bits_linear_merge"
+primitive_name: "pack_bits_linear_merge"
 brief_description: ""
 detailed_description: |
   Packs elements from two vector registers together using a fixed bitwidth. The bitwidth
@@ -89,7 +83,7 @@ definitions:
     includes: ["<tuple>", "<sycl/ext/intel/ac_types/ac_int.hpp>"]
     implementation: |
       auto packed_data = tsl::pack_bits_linear<Vec>(data, bitwidth);
-      //return std::make_tuple(packed_data, -2, data);
+      return std::make_tuple(packed_data, -2, data);
       using T = typename Vec::base_type;
       using BigIntT = ac_int<Vec::vector_size_b(), std::is_signed_v<T>>;
       int src_array[Vec::vector_size_B() / sizeof(int)];
