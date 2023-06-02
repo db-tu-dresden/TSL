@@ -29,15 +29,10 @@ definitions:
     implementation: |
       using T = typename Vec::base_type;
       using BigIntT = ac_int<Vec::vector_size_b(), false>;//std::is_signed_v<T>>;
-      BigIntT intermediate_results[Vec::vector_element_count()];
-      #pragma unroll
-      for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        intermediate_results[i] = (BigIntT{data[i]}) << (bitwidth*i);
-      }
       BigIntT tmp_result{0};
       #pragma unroll
-      for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        tmp_result |=  intermediate_results[i];
+      for (unsigned i = 0; i < Vec::vector_element_count(); ++i) {
+        tmp_result |=  (BigIntT{data[i]}) << (bitwidth*i);
       }
       typename Vec::register_type result{};
       #pragma unroll
@@ -82,36 +77,30 @@ definitions:
     vector_length_agnostic: True
     includes: ["<tuple>", "<sycl/ext/intel/ac_types/ac_int.hpp>"]
     implementation: |
-      auto packed_data = tsl::pack_bits_linear<Vec>(data, bitwidth);
-      return std::make_tuple(packed_data, -2, data);
       using T = typename Vec::base_type;
-      using BigIntT = ac_int<Vec::vector_size_b(), std::is_signed_v<T>>;
-      int src_array[Vec::vector_size_B() / sizeof(int)];
-      int const * const src_ptr = reinterpret_cast<int const * const>(src.data());
-      int packed_data_array[Vec::vector_size_B() / sizeof(int)];
-      int const * const packed_data_ptr = reinterpret_cast<int const * const>(packed_data.data());
+      using UnsignedT = std::make_unsigned_t<T>;
+      using BigIntT = ac_int<Vec::vector_size_b(), false>;
+
+      BigIntT packed_data{0};
       #pragma unroll
-      for (std::size_t i = 0; i < Vec::vector_size_B() / sizeof(int); ++i) {
-        src_array[i] = src_ptr[i];
-        packed_data_array[i] = packed_data_ptr[i];
+      for (unsigned i = 0; i < Vec::vector_element_count(); ++i) {
+        packed_data |=  (BigIntT{(UnsignedT)data[i]}) << (bitwidth*i);
       }
-      BigIntT src_int = ac::bit_fill<BigIntT>(src_array, false);
-      BigIntT packed_data_int = ac::bit_fill<BigIntT>(packed_data_array, false);
-      src_int |= (packed_data_int << bit_offset);
+      BigIntT packed_data_shifted = packed_data << bit_offset;
       typename Vec::register_type result{};
       #pragma unroll
       for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        result[i] = src_int.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
+        result[i] = src[i] | (T)(packed_data_shifted.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT))));
       }
       // check for overflow
       auto new_bitwidth = (bit_offset + bitwidth * Vec::vector_element_count());
       if (new_bitwidth >= Vec::vector_size_b()) {
         new_bitwidth -= Vec::vector_size_b();
-        packed_data_int >>= (bitwidth * Vec::vector_element_count() - new_bitwidth);
+        packed_data >>= (bitwidth * Vec::vector_element_count() - new_bitwidth);
         typename Vec::register_type overflow_result{};
         #pragma unroll
         for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-          overflow_result[i] = packed_data_int.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
+          overflow_result[i] = packed_data.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
         }
         return std::make_tuple(result, new_bitwidth, overflow_result);
       }
