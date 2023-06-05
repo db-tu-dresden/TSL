@@ -1218,7 +1218,7 @@ primitive_name: "hmax"
 brief_description: "Reduces the elements to the maximum value."
 parameters:
   - ctype: "const typename Vec::register_type"
-    name: "value"
+    name: "data"
     description: "Input vector."
 returns:
   ctype: "typename Vec::base_type"
@@ -1256,7 +1256,7 @@ primitive_name: "hmin"
 brief_description: "Reduces the elements to the maximum value."
 parameters:
   - ctype: "const typename Vec::register_type"
-    name: "value"
+    name: "data"
     description: "Input vector."
 returns:
   ctype: "typename Vec::base_type"
