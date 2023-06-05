@@ -1128,22 +1128,22 @@ definitions:
     additional_simd_template_base_type: ["int32_t"]
     ctype: ["float"]
     lscpu_flags: ["avx512f"]
-    implementation: return _mm512_cvtps_epi32(vec);
+    implementation: return _mm512_cvtps_epi32(_mm512_roundscale_ps(vec, _MM_FROUND_TO_ZERO));
   - target_extension: "avx512"
     additional_simd_template_base_type: ["uint32_t"]
     ctype: ["float"]
     lscpu_flags: ["avx512f"]
-    implementation: return _mm512_cvtps_epu32(vec);
+    implementation: return _mm512_cvtps_epu32(_mm512_roundscale_ps(vec, _MM_FROUND_TO_ZERO));
   - target_extension: "avx512"
     additional_simd_template_base_type: ["int64_t"]
     ctype: ["double"]
     lscpu_flags: ["avx512f"]
-    implementation: return _mm512_cvtpd_epi64(vec);
+    implementation: return _mm512_cvtpd_epi64(_mm512_roundscale_pd(vec, _MM_FROUND_TO_ZERO));
   - target_extension: "avx512"
     additional_simd_template_base_type: ["uint64_t"]
     ctype: ["double"]
     lscpu_flags: ["avx512f"]
-    implementation: return _mm512_cvtpd_epu64(vec);
+    implementation: return  _mm512_cvtpd_epu64(_mm512_roundscale_pd(vec, _MM_FROUND_TO_ZERO));
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     additional_simd_template_base_type_mapping_dict: {
@@ -1177,14 +1177,14 @@ definitions:
       return result;
   - target_extension: "avx2"
     ctype: ["double"]
-    lscpu_flags: ["avx", "sse"]
+    lscpu_flags: ["avx2", "sse"]
     additional_simd_template_base_type: ["int64_t"]
     implementation: |
       __m128i temp = _mm_cvtps_epi32(_mm_round_ps(_mm256_cvtpd_ps(vec), _MM_FROUND_TO_ZERO));
       return _mm256_cvtepi32_epi64(temp);
   - target_extension: "avx2"
     ctype: ["double"]
-    lscpu_flags: ["avx", "sse"]
+    lscpu_flags: ["avx2", "sse"]
     additional_simd_template_base_type: ["uint64_t"]
     implementation: |
       __m128i temp_128 = _mm_cvtps_epi32(_mm_round_ps(_mm256_cvtpd_ps(vec), _MM_FROUND_TO_ZERO));
