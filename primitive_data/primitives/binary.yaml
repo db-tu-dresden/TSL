@@ -999,7 +999,7 @@ returns:
    ctype: "typename Vec::offset_base_register_type"
    description: "Vector containing leading zeros number."
 definitions:
-  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+  - target_extension: ["oneAPIfpgaRTL"]
     ctype: ["uint32_t", "int32_t", "float"]
     lscpu_flags: ["oneAPIfpgaDev"]
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
@@ -1029,14 +1029,14 @@ definitions:
       using base_t = typename Vec::base_type;
       // as the current version of oneAPI does not properly implement ac_int::leading_sign() we "reimplemented" it
       // /glob/development-tools/versions/oneapi/2023.0.1/oneapi/compiler/2023.0.0/linux/lib/oclfpga/include/sycl/ext/intel/ac_types/ac_int.hpp
-      using bitInt = ac_int<(sizeof(base_t)*CHAR_BIT), std::is_signed_v<base_t>>;
+      using bitInt = ac_int<(sizeof(base_t)*CHAR_BIT), false>;
       #pragma unroll
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         bitInt val(data[idx]);
-        int k;
+        int k = (sizeof(base_t)*CHAR_BIT)-1;
         #pragma unroll
-        for(k = (sizeof(base_t)*CHAR_BIT)-1; k >= 0 && val[k] == 0; k--) {}
-        result[idx] = (sizeof(base_t)*CHAR_BIT) + ~k;
+        for(; k >= 0 && val[k] == 0; k--) {}
+        result[idx] = (sizeof(base_t)*CHAR_BIT-1) - k;
       }
       return result;
 ...
@@ -1258,6 +1258,29 @@ definitions:
     implementation: "return vec;"
 #ARM - NEON
 #INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      typename Vec::register_type result_vec{};
+      #pragma unroll
+      for (size_t i = 0; i < (Vec::vector_element_count()>>1); ++i) {
+        result_vec[i] = vec[i<<1] | vec[(i<<1)+1];
+      }
+      unsigned current_result_position = Vec::vector_element_count()>>1;
+      unsigned previous_stage_start_idx = 0;
+      #pragma unroll cilog2((Vec::vector_element_count()>>1))
+      for(size_t current_upper_idx = (Vec::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
+        #pragma unroll
+        for(size_t i = 0; i < current_upper_idx; ++i) {
+          result_vec[current_result_position + i] = 
+            result_vec[previous_stage_start_idx + (i<<1)] | result_vec[previous_stage_start_idx + (i<<1)+1];
+        }
+        current_result_position += current_upper_idx;
+        previous_stage_start_idx += current_upper_idx<<1;
+      }
+      return result_vec[Vec::vector_element_count()-1];
 ...
 ---
 primitive_name: "inv"
