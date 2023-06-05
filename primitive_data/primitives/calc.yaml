@@ -1056,7 +1056,7 @@ definitions:
         current_result_position += current_upper_idx;
         previous_stage_start_idx += current_upper_idx<<1;
       }
-      return result_vec[Vec::vector_element_count()-1];
+      return result_vec[Vec::vector_element_count()-2];
 ...
 ---
 primitive_name: "hmin"
@@ -1094,5 +1094,5 @@ definitions:
         current_result_position += current_upper_idx;
         previous_stage_start_idx += current_upper_idx<<1;
       }
-      return result_vec[Vec::vector_element_count()-1];
+      return result_vec[Vec::vector_element_count()-2];
 ...
