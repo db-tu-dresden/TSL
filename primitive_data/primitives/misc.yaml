@@ -84,31 +84,31 @@ definitions:
       
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       //we are wasting some space here, but it is easier to implement (and maybe even more efficient)
-      BigIntT twos_results[2*Vec::vector_element_count()-1];
+      BigIntT tmp_result[Vec::vector_element_count()];
       #pragma unroll
       for (unsigned int i = 0; i < Vec::vector_element_count(); ++i) {
-        twos_results[i] = BigIntT{(UnsignedT)data[i]};
+        tmp_result[i] = BigIntT{(UnsignedT)data[(i<<1)]} | (BigIntT{(UnsignedT)data[(i<<1)+1]} << bitwidth);
       }
       
-      unsigned current_result_position = Vec::vector_element_count();
+      unsigned current_result_position = Vec::vector_element_count()>>1;
       unsigned previous_stage_start_idx = 0;
-      unsigned current_stage = 0;
-      #pragma unroll cilog2(Vec::vector_element_count())
-      for(size_t current_upper_idx = (Vec::vector_element_count()>>1); current_upper_idx >= 1; current_upper_idx>>=1) {
+      unsigned current_stage = 1;
+      #pragma unroll cilog2((Vec::vector_element_count()>>1))
+      for(size_t current_upper_idx = (Vec::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
           #pragma unroll
           for(size_t i = 0; i < current_upper_idx; ++i) {            
-            twos_results[current_result_position + i] =
-                twos_results[previous_stage_start_idx + (i<<1)] | (twos_results[previous_stage_start_idx + (i<<1)+1] << (bitwidth<<current_stage));
+            tmp_result[current_result_position + i] =
+                tmp_result[previous_stage_start_idx + (i<<1)] | (tmp_result[previous_stage_start_idx + (i<<1)+1] << (bitwidth<<current_stage));
           }
           current_result_position += current_upper_idx;
           previous_stage_start_idx += current_upper_idx<<1;
           ++current_stage;
       }
-      BigIntT tmp_result = twos_results[2*Vec::vector_element_count()-2];
+      BigIntT tmp_result_int = tmp_result[Vec::vector_element_count()-2];
       typename Vec::register_type result{};
       #pragma unroll
       for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        result[i] = tmp_result.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
+        result[i] = tmp_result_int.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
       }
       return result;
 ...
@@ -218,27 +218,27 @@ definitions:
       
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       //we are wasting some space here, but it is easier to implement (and maybe even more efficient)
-      BigIntT twos_results[2*Vec::vector_element_count()-1];
+      BigIntT tmp_result[Vec::vector_element_count()];
       #pragma unroll
       for (unsigned int i = 0; i < Vec::vector_element_count(); ++i) {
-        twos_results[i] = BigIntT{(UnsignedT)data[i]};
+        tmp_result[i] = BigIntT{(UnsignedT)data[(i<<1)]} | (BigIntT{(UnsignedT)data[(i<<1)+1]} << bitwidth);
       }
       
-      unsigned current_result_position = Vec::vector_element_count();
+      unsigned current_result_position = Vec::vector_element_count()>>1;
       unsigned previous_stage_start_idx = 0;
-      unsigned current_stage = 0;
-      #pragma unroll cilog2(Vec::vector_element_count())
-      for(size_t current_upper_idx = (Vec::vector_element_count()>>1); current_upper_idx >= 1; current_upper_idx>>=1) {
+      unsigned current_stage = 1;
+      #pragma unroll cilog2((Vec::vector_element_count()>>1))
+      for(size_t current_upper_idx = (Vec::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
           #pragma unroll
           for(size_t i = 0; i < current_upper_idx; ++i) {            
-            twos_results[current_result_position + i] =
-                twos_results[previous_stage_start_idx + (i<<1)] | (twos_results[previous_stage_start_idx + (i<<1)+1] << (bitwidth<<current_stage));
+            tmp_result[current_result_position + i] =
+                tmp_result[previous_stage_start_idx + (i<<1)] | (tmp_result[previous_stage_start_idx + (i<<1)+1] << (bitwidth<<current_stage));
           }
           current_result_position += current_upper_idx;
           previous_stage_start_idx += current_upper_idx<<1;
           ++current_stage;
       }
-      BigIntT packed_data = twos_results[2*Vec::vector_element_count()-2];
+      BigIntT packed_data = tmp_result[Vec::vector_element_count()-2];
       BigIntT packed_data_shifted = packed_data << bit_offset;
 
       typename Vec::register_type result{};
