@@ -115,7 +115,7 @@ class TSLFileGenerator:
                         definition_copy["additional_simd_template_base_type"] = additional_simd_template_base_type
                         decl_and_def_combined_data = { **extension_set.get_extension_by_name(
                             definition.target_extension).data, **declaration_data, **definition_copy }
-                        decl_and_def_combined_data["implementation"] = Template(
+                        decl_and_def_combined_data["implementation"] = config.create_template(
                             definition_copy["implementation"]).render(
                             decl_and_def_combined_data)
                         definition_file.add_code(
