@@ -1018,3 +1018,213 @@ definitions:
     implementation: return vec_a / vec_b;
 #INTEL - FPGA
 ...
+---
+primitive_name: 'mod'
+brief_description: 'Operates the modulo operation on one datavector modulo one input value.'
+parameters:
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec'
+    description: 'Input Vector'
+  - ctype: 'const typename Vec::base_type'
+    name: 'val'
+    description: 'Modulo value'
+returns:
+    ctype: 'typename Vec::register_type'
+    description: 'Resulting Vector'
+testing:
+  - test_name: "with_modulo_one"
+    requires: ["loadu", "storeu", "set1"]
+    includes: [ ]
+    implementation: |
+      using T = typename Vec::base_type;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(0);
+      storeu<Vec>(reference_result_ptr, vec);
+      storeu<Vec>(test_result_ptr, mod<Vec>(vec, 1));
+      test_helper.synchronize();
+      return test_helper.validate();
+  - test_name: "with_check_barrett_reduction_constraint"
+    requires: ["loadu", "storeu", "set1"]
+    includes: [ "<iostream>" ]
+    implementation: |
+      using T = typename Vec::base_type;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(73);
+      storeu<Vec>(reference_result_ptr, set1<Vec>(1));
+      auto result_vec = mod<Vec>(vec, 8);
+      storeu<Vec>(test_result_ptr, result_vec);
+      test_helper.synchronize();
+      return test_helper.validate();
+  - test_name: "with_modulo_rand"
+    requires: ["loadu", "storeu", "set1"]
+    includes: [ ]
+    implementation: |
+      using T = typename Vec::base_type;
+      using IntType = std::conditional_t<std::is_same_v<T, float>, int32_t, std::conditional_t<std::is_same_v<T, double>, int64_t, T>>;
+      std::size_t element_count = 1024 + (1024 / Vec::vector_element_count());
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init_no_zero<T>};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto offset = 1024;
+      for(std::size_t i = 0; i < (element_count - offset); i +=Vec::vector_element_count()){
+        std::size_t tester_idx = 0;
+        T data[Vec::vector_element_count()];
+        for(std::size_t j = i; j < i + Vec::vector_element_count(); j++){
+          data[tester_idx] = reference_data_ptr[j] % reference_data_ptr[offset];
+          reference_result_ptr[tester_idx++] = reference_data_ptr[j] % reference_data_ptr[offset];
+        }
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto val = test_data_ptr[offset];
+        auto vec_result = mod<Vec>(vec, val);
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+definitions:
+# INTEL - AVX512
+  - target_extension: 'avx512'
+    ctype: [ 'uint8_t', 'int8_t', 'uint16_t', 'int16_t' ]
+    lscpu_flags: [ "avx512f" ]
+    includes: [ "<array>", "<cstddef>", "<cmath>" ]
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
+      _mm512_store_si512(reinterpret_cast<__m512i*>(buffer.data()), vec);
+      for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        buffer[i] = buffer[i] % val;
+      }
+      return _mm512_load_si512(reinterpret_cast<__m512i const*>(buffer.data()));
+  - target_extension: 'avx512'
+    ctype: [ 'int32_t', "uint32_t" ]
+    lscpu_flags: [ "avx512f" ]
+    includes: []
+    implementation: |
+      using T = float;
+
+      __m512 vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec);
+      __m512 val_d = _mm512_set1_ps(static_cast<T>(val));
+
+      __m512 temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm512_roundscale_ps(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm512_mul_ps(temp, val_d);
+      temp = _mm512_sub_ps(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+  - target_extension: 'avx512'
+    ctype: [ 'int64_t', "uint64_t" ]
+    lscpu_flags: [ "avx512f" ]
+    includes: []
+    implementation: |
+      using T = double;
+
+      __m512d vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec);
+      __m512d val_d = _mm512_set1_pd(static_cast<T>(val));
+
+      __m512d temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm512_roundscale_pd(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm512_mul_pd(temp, val_d);
+      temp = _mm512_sub_pd(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+# INTEL - AVX2
+  - target_extension: 'avx2'
+    ctype: [ 'uint8_t', 'int8_t', "uint16_t", "int16_t" ]
+    lscpu_flags: [ "avx2" ]
+    includes: ["<array>", "<cstddef>", "<cmath>"]
+    is_native: false
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
+      _mm256_store_si256(reinterpret_cast<__m256i*>(buffer.data()), vec);
+      for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        buffer[i] = buffer[i] % val;
+      }
+      return _mm256_load_si256(reinterpret_cast<__m256i const*>(buffer.data()));
+  - target_extension: 'avx2'
+    ctype: [ 'uint32_t', 'int32_t' ]
+    lscpu_flags: [ "avx2" ]
+    includes: [ ]
+    implementation: |
+      using T = float;
+
+      __m256 vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec);
+      __m256 val_d = _mm256_set1_ps(static_cast<T>(val));
+
+      __m256 temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm256_round_ps(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm256_mul_ps(temp, val_d);
+      temp = _mm256_sub_ps(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+  - target_extension: 'avx2'
+    ctype: [ 'uint64_t', 'int64_t' ]
+    lscpu_flags: [ "avx2" ]
+    includes: [ ]
+    implementation: |
+      using T = double;
+
+      __m256d vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec);
+      __m256d val_d = _mm256_set1_pd(static_cast<T>(val));
+
+      __m256d temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm256_round_pd(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm256_mul_pd(temp, val_d);
+      temp = _mm256_sub_pd(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+# INTEL - SSE
+  - target_extension: 'sse'
+    ctype: [ 'uint8_t', 'int8_t', 'uint16_t', 'int16_t']
+    lscpu_flags: [ "sse2" ]
+    includes: ["<array>", "<cstddef>", "<cmath>"]
+    is_native: false
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer;
+      _mm_store_si128(reinterpret_cast<__m128i*>(buffer.data()), vec);
+      for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        buffer[i] = buffer[i] % val;
+      }
+      return _mm_load_si128(reinterpret_cast<__m128i const*>(buffer.data()));
+  - target_extension: 'sse'
+    ctype: [ 'int32_t', "uint32_t" ]
+    lscpu_flags: [ "sse2" ]
+    includes: []
+    implementation: |
+      using T = float;
+      __m128 vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec);
+      __m128 val_d = _mm_set1_ps(static_cast<T>(val));
+
+      __m128 temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm_round_ps(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm_mul_ps(temp, val_d);
+      temp = _mm_sub_ps(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+  - target_extension: 'sse'
+    ctype: [ 'int64_t', "uint64_t" ]
+    lscpu_flags: [ "sse2" ]
+    includes: []
+    implementation: |
+      using T = double;
+
+      __m128d vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec);
+      __m128d val_d = _mm_set1_pd(static_cast<T>(val));
+
+      __m128d temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm_round_pd(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm_mul_pd(temp, val_d);
+      temp = _mm_sub_pd(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+# SCALAR
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t' ]
+    lscpu_flags: [ ]
+    implementation: return vec % val;
+...
