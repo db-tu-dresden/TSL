@@ -86,7 +86,7 @@ definitions:
       //we are wasting some space here, but it is easier to implement (and maybe even more efficient)
       BigIntT tmp_result[Vec::vector_element_count()];
       #pragma unroll
-      for (unsigned int i = 0; i < Vec::vector_element_count(); ++i) {
+      for (unsigned int i = 0; i < (Vec::vector_element_count()>>1); ++i) {
         tmp_result[i] = BigIntT{(UnsignedT)data[(i<<1)]} | (BigIntT{(UnsignedT)data[(i<<1)+1]} << bitwidth);
       }
       
@@ -220,7 +220,7 @@ definitions:
       //we are wasting some space here, but it is easier to implement (and maybe even more efficient)
       BigIntT tmp_result[Vec::vector_element_count()];
       #pragma unroll
-      for (unsigned int i = 0; i < Vec::vector_element_count(); ++i) {
+      for (unsigned int i = 0; i < (Vec::vector_element_count()>>1); ++i) {
         tmp_result[i] = BigIntT{(UnsignedT)data[(i<<1)]} | (BigIntT{(UnsignedT)data[(i<<1)+1]} << bitwidth);
       }
       
