@@ -133,7 +133,7 @@ definitions:
     specialization_comment: "Benchmark what to use. Current implementation or: uint64_t c = (*((uint64_t *)&a) & *((uint64_t *)&b)); return *((double *)&c);"
 #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
@@ -244,7 +244,7 @@ definitions:
     implementation: "uint64_t r = *((uint64_t *)&a) | *((uint64_t *)&b); return *(double*)&r;"
 #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
@@ -394,6 +394,19 @@ definitions:
       c1[7] = a1[7] ^ b1[7];
       return c;
     specialization_comment: "Benchmark what to use. Current implementation or: uint64_t c = (*((uint64_t *)&a) ^ *((uint64_t *)&b)); return *((double *)&c);"
+  #INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = a[i] ^ b[i];
+      }
+      return result;
 ...
 ---
 primitive_name: "shift_right"
@@ -493,6 +506,19 @@ definitions:
       uint64_t x = *reinterpret_cast<uint64_t const *>(&data);
       x >>= shift;
       return *reinterpret_cast<double*>(&x);
+  #INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = data[i] >> (typename Vec::base_type) shift;
+      }
+      return result;
 ...
 ---
 primitive_name: "shift_left"
@@ -546,6 +572,19 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
     implementation: "return (shift >= sizeof(typename Vec::register_type) * 8) ? 0 : data << shift;"
+  #INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = data[i] >> (typename Vec::base_type) shift;
+      }
+      return result;
 testing:
   - requires: ["storeu", "loadu"]
     includes: ["<cstddef>"]
@@ -1263,23 +1302,8 @@ definitions:
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
-      typename Vec::register_type result_vec{};
-      #pragma unroll
-      for (size_t i = 0; i < (Vec::vector_element_count()>>1); ++i) {
-        result_vec[i] = vec[i<<1] | vec[(i<<1)+1];
-      }
-      unsigned current_result_position = Vec::vector_element_count()>>1;
-      unsigned previous_stage_start_idx = 0;
-      #pragma unroll cilog2((Vec::vector_element_count()>>2))
-      for(size_t current_upper_idx = (Vec::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
-        #pragma unroll
-        for(size_t i = 0; i < current_upper_idx; ++i) {
-          result_vec[current_result_position + i] = 
-            result_vec[previous_stage_start_idx + (i<<1)] | result_vec[previous_stage_start_idx + (i<<1)+1];
-        }
-        current_result_position += current_upper_idx;
-        previous_stage_start_idx += current_upper_idx<<1;
-      }
+      {% import 'core/definition_macro_helper_oneAPI.template' as helpers %}
+      {{ helpers.tree_like_reduce("Vec", "result_vec", "vec", "|") }}
       return result_vec[Vec::vector_element_count()-2];
 ...
 ---
