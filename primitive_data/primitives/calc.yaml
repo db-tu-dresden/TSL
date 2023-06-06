@@ -1047,7 +1047,7 @@ testing:
       return test_helper.validate();
   - test_name: "with_check_barrett_reduction_constraint"
     requires: ["loadu", "storeu", "set1"]
-    includes: [ "<iostream>" ]
+    includes: [ ]
     implementation: |
       using T = typename Vec::base_type;
       testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
