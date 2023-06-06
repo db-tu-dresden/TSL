@@ -861,7 +861,7 @@ returns:
 testing:
   - test_name: "div_divide_vec_with_itself"
     requires: ["loadu", "storeu", "set1"]
-    includes: ["<cstddef>", "<iostream>", "<algorithm>", "<limits>"]
+    includes: ["<cstddef>", "<algorithm>", "<limits>"]
     implementation: |
       using T = typename Vec::base_type;
       std::size_t element_count = 0;
@@ -879,7 +879,6 @@ testing:
       for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
         auto vec = set1<Vec>(1);
         storeu<Vec>(reference_result_ptr, vec);
-        std::cout << "TestData: " << (size_t)test_data_ptr[i] << "("<< type_name < Vec > () << ")" << "\n";
         auto vec_a = loadu<Vec>(&test_data_ptr[i]);
         vec = div<Vec>(vec_a, vec_a);
         storeu<Vec>(test_result_ptr, vec);
@@ -972,7 +971,7 @@ definitions:
         _mm_store_si128(reinterpret_cast<__m128i*>(buffer_a.data()), vec_a);
         _mm_store_si128(reinterpret_cast<__m128i*>(buffer_b.data()), vec_b);
         for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-           buffer_a[i] /= buffer_b[i];
+          buffer_a[i] /= buffer_b[i];
         }
         return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
 #ARM - NEON - TODO: other bits
