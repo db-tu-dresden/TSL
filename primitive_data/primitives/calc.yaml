@@ -531,16 +531,24 @@ definitions:
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
-      typename Vec::register_type result{};
+      typename Vec::register_type result_vec{};
       #pragma unroll
-      for(size_t i = 0; i < Vec::vector_element_count(); ++i) { result[i] = value[i]; }
-      #pragma unroll cilog2(Vec::vector_element_count())
-      for(size_t current_width = (Vec::vector_element_count()>>1); current_width >= 1; current_width>>=1) {
-          for(size_t i = 0; i < current_width; ++i) {
-              result[i] = result[(i<<1)] + result[(i<<1)+1];
-          }
+      for (size_t i = 0; i < (Vec::vector_element_count()>>1); ++i) {
+        result_vec[i] = value[i<<1] + value[(i<<1)+1];
       }
-      return result[0];
+      unsigned current_result_position = Vec::vector_element_count()>>1;
+      unsigned previous_stage_start_idx = 0;
+      #pragma unroll cilog2((Vec::vector_element_count()>>2))
+      for(size_t current_upper_idx = (Vec::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
+        #pragma unroll
+        for(size_t i = 0; i < current_upper_idx; ++i) {
+          result_vec[current_result_position + i] = 
+            result_vec[previous_stage_start_idx + (i<<1)] + result_vec[previous_stage_start_idx + (i<<1)+1];
+        }
+        current_result_position += current_upper_idx;
+        previous_stage_start_idx += current_upper_idx<<1;
+      }
+      return result_vec[Vec::vector_element_count()-2];
 # using T = typename Vec::base_type;
 # T result = 0; //initialize the result
 # #pragma unroll
