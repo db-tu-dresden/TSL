@@ -531,9 +531,7 @@ definitions:
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
-      {% import 'core/definition_macro_helper_oneAPI.template' as helpers %}
-      {{ helpers.tree_like_reduce("Vec", "result_vec", "value", "+") }}
-      return result_vec[Vec::vector_element_count()-2];
+      return reducer::apply<typename Vec::base_type, Vec::vector_element_count(), functors::add<simd<typename Vec::base_type, scalar>, Idof>>(value);
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint64_t", "int64_t", "double"]
     lscpu_flags: ["oneAPIfpgaDev"]

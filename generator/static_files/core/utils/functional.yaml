@@ -1,0 +1,74 @@
+---
+file_description: "Helper functions."
+includes:
+  - '<cstddef>'
+  - '<type_traits>'
+  - '<typeinfo>'
+  - '<cxxabi.h>'
+  - '<memory>'
+  - '<string>'
+  - '<cstdlib>'
+  - '<limits>'
+  - '<iostream>'
+  - '<tuple>'
+implementations:
+  - |
+    namespace reducer {
+      template<int N, int CurrentStage>
+        constexpr int getReadPos() {
+          if constexpr(CurrentStage == 0) {
+            return 0;
+          } else {
+            return getReadPos<N, CurrentStage-1>() + (N>>CurrentStage);
+          }
+        }
+      template<size_t N, size_t Stage=0>
+        constexpr size_t StageCount() {
+          if constexpr( (N>>(Stage+1)) == 1) {
+            return Stage;
+          } else {
+            return StageCount<N, Stage+1>();
+          }
+        }
+      template<typename T, size_t N>
+        using type = typename generate_tuple_type<T, N-1>::type;
+      template<typename T, size_t N, typename Combiner, size_t WritePos, size_t ReadLeftPos, size_t ReadRightPos>
+        __attribute__((always_inline)) inline static void apply_reduce(type<T,N>& result) {
+          std::get<WritePos>(result) = Combiner::apply(std::get<ReadLeftPos>(result), std::get<ReadRightPos>(result));
+        }
+      template<typename T, size_t N, typename Combiner, size_t Stage, size_t... Idx>
+        __attribute__((always_inline)) inline static void do_reduce_inner_loop(type<T, N>& result, std::index_sequence<Idx...>) {
+          (
+            (apply_reduce<
+              T, N, Combiner,
+              getReadPos<N, Stage>() + Idx, 
+              getReadPos<N, Stage-1>() + 2*Idx, 
+              getReadPos<N, Stage-1>() + 2*Idx+1
+            >(result)
+            ), ...
+          );
+        }
+      template<typename T, size_t N, typename Combiner, size_t... Stage>
+        __attribute__((always_inline)) inline static void do_reduce(type<T, N> & result, std::index_sequence<Stage...>) {
+          (
+            (
+              do_reduce_inner_loop<T, N, Combiner, Stage+1>(result, std::make_index_sequence<(N>>(Stage+2))>{})
+            ), ...
+        );    
+      }
+      template<typename T, size_t N, typename Combiner, size_t... Idx>
+        __attribute__((always_inline)) inline static void do_reduce_init(std::array<T, N> const & data, type<T, N> & result, std::index_sequence<Idx...>) {
+          ((std::get<Idx>(result) = Combiner::apply(data[2*Idx], data[2*Idx+1])),...);
+        }
+      template<typename T, size_t N, typename Combiner>
+        __attribute__((always_inline)) inline static T apply(const std::array<T, N>& data) {
+          type<T, N> result{};
+          do_reduce_init<T, N, Combiner>(data, result, std::make_index_sequence<(N>>1)>{});
+          if constexpr (StageCount<N>() > 0) {
+            do_reduce<T, N, Combiner>(result, std::make_index_sequence<StageCount<N>()>{});
+          }
+          return std::get<N-2>(result);
+        }
+    }
+
+...

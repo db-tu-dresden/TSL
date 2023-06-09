@@ -9,8 +9,8 @@ needs_arch_flags: False
 simdT_default_size_in_bits: 512 #this is just a default value, we can let it out if we want to
 simdT_register_type_compiler_attributes: "__attribute__((register))"
 simdT_mask_type_compiler_attributes: "__attribute__((register))"
-simdT_register_type: "std::array<BaseType, VectorSizeInBits/sizeof(BaseType)>" #this can also be a custom structure or a pointer, but I would *HIGHLY* recommend, using an array
-simdT_mask_type: "std::array<BaseType, VectorSizeInBits/sizeof(BaseType)>" #we can define the mask type as a register type following the general pattern of SSE and AVX
+simdT_register_type: "std::array<BaseType, VectorSizeInBits/(sizeof(BaseType)*CHAR_BIT)>" #this can also be a custom structure or a pointer, but I would *HIGHLY* recommend, using an array
+simdT_mask_type: "std::array<BaseType, VectorSizeInBits/(sizeof(BaseType)*CHAR_BIT)>" #we can define the mask type as a register type following the general pattern of SSE and AVX
 is_generic: False
 required_supplementary_libraries:
   -
