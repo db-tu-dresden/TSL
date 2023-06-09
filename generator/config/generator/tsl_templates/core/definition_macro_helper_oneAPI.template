@@ -26,9 +26,9 @@
   }
   unsigned current_result_position = {{ vector_name }}::vector_element_count()>>1;
   unsigned previous_stage_start_idx = 0;
-  #pragma unroll cilog2(({{ vector_name }}::vector_element_count()>>2))
-  #pragma ivdep
-  for(size_t current_upper_idx = ({{ vector_name }}::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
+  //#pragma unroll cilog2(({{ vector_name }}::vector_element_count()>>2))
+  #pragma unroll
+  [[intel::loop_coalesce({{ vector_name }}::vector_element_count()), intel::ivdep({{ result_name }})]] for(size_t current_upper_idx = ({{ vector_name }}::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
     #pragma unroll
     #pragma ivdep
     for(size_t i = 0; i < current_upper_idx; ++i) {
