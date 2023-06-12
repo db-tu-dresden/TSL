@@ -17,7 +17,7 @@ returns:
   description: "Vector containing result of the addition."
 testing: #optional
   - test_name: "zero_cornercase"
-    requires: ["set1", "loadu"]
+    requires: ["set1", "loadu", "storeu"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -42,7 +42,7 @@ testing: #optional
       }
       return allOk;
   - test_name: "running_sum_w_epsilon"
-    requires: ["set1", "loadu"]
+    requires: [ "loadu", "storeu"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -155,7 +155,7 @@ returns:
   description: "Vector containing result of the subtraction."
 testing: #optional
   - test_name: "zero_cornercase"
-    requires: ["set1", "loadu"]
+    requires: ["set1", "loadu", "storeu"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -180,7 +180,7 @@ testing: #optional
       }
       return allOk;
   - test_name: "running_sum_w_epsilon"
-    requires: ["set1", "loadu"]
+    requires: ["loadu", "store"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -335,7 +335,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing result of the multiplication."
-testing: #optional
+testing:
   - requires: ["loadu", "storeu"]
     includes: ["<cstddef>"]
     implementation: |
@@ -736,7 +736,7 @@ returns:
   description: "Vector containing result of the comparison"
 testing:
   - test_name: "min_general_case"
-    requires: ["set1", "loadu"]
+    requires: ["set1", "loadu", "storeu"]
     includes: ["<cstddef>"]
     implementation: |
         using T = typename Vec::base_type;
@@ -846,7 +846,7 @@ definitions:
 #INTEL - FPGA
 ...
 ---
-primitive_name: "div" #TODO: TestCase without divide by zero case
+primitive_name: "div"
 brief_description: "Divides two vector registers."
 parameters:
   - ctype: "const typename Vec::register_type"
@@ -861,16 +861,10 @@ returns:
 testing:
   - test_name: "div_divide_vec_with_itself"
     requires: ["loadu", "storeu", "set1"]
-    includes: ["<cstddef>", "<algorithm>", "<limits>"]
     implementation: |
       using T = typename Vec::base_type;
-      std::size_t element_count = 0;
-      if constexpr(std::is_integral_v<T>) {
-        element_count = std::clamp<size_t>(std::numeric_limits<T>::max()-1, 1, 1024);
-      } else {
-        element_count = 1024;
-      }
-      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::seq_init<T>, 1};
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init_no_zero<T>};
       bool allOk = true;
       auto reference_data_ptr = test_helper.data_ref();
       auto reference_result_ptr = test_helper.result_ref();
@@ -888,16 +882,10 @@ testing:
       return allOk;
   - test_name: "div_divide_vec_with_one"
     requires: ["loadu", "storeu", "set1"]
-    includes: ["<cstddef>", "<algorithm>", "<limits>"]
     implementation: |
       using T = typename Vec::base_type;
-      std::size_t element_count = 0;
-      if constexpr(std::is_integral_v<T>) {
-        element_count = std::clamp<size_t>(std::numeric_limits<T>::max()-1, 1, 1024);
-      } else {
-        element_count = 1024;
-      }
-      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::seq_init<T>, 1};
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init_no_zero<T>};
       bool allOk = true;
       auto reference_data_ptr = test_helper.data_ref();
       auto reference_result_ptr = test_helper.result_ref();
@@ -974,7 +962,7 @@ definitions:
           buffer_a[i] /= buffer_b[i];
         }
         return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
-#ARM - NEON - TODO: other bits
+#ARM - NEON - TODO: Cant check if Correct
   - target_extension: "neon"
     ctype: ["float", "double"]
     lscpu_flags: [ 'neon' ]
@@ -1033,8 +1021,7 @@ returns:
     description: 'Resulting Vector'
 testing:
   - test_name: "with_modulo_one"
-    requires: ["loadu", "storeu", "set1"]
-    includes: [ ]
+    requires: ["storeu", "set1"]
     implementation: |
       using T = typename Vec::base_type;
       testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
@@ -1046,8 +1033,7 @@ testing:
       test_helper.synchronize();
       return test_helper.validate();
   - test_name: "with_check_barrett_reduction_constraint"
-    requires: ["loadu", "storeu", "set1"]
-    includes: [ ]
+    requires: [ "storeu", "set1"]
     implementation: |
       using T = typename Vec::base_type;
       testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
@@ -1060,8 +1046,7 @@ testing:
       test_helper.synchronize();
       return test_helper.validate();
   - test_name: "with_modulo_rand"
-    requires: ["loadu", "storeu", "set1"]
-    includes: [ ]
+    requires: ["loadu", "storeu"]
     implementation: |
       using T = typename Vec::base_type;
       using IntType = std::conditional_t<std::is_same_v<T, float>, int32_t, std::conditional_t<std::is_same_v<T, double>, int64_t, T>>;
@@ -1075,9 +1060,7 @@ testing:
       auto offset = 1024;
       for(std::size_t i = 0; i < (element_count - offset); i +=Vec::vector_element_count()){
         std::size_t tester_idx = 0;
-        T data[Vec::vector_element_count()];
         for(std::size_t j = i; j < i + Vec::vector_element_count(); j++){
-          data[tester_idx] = reference_data_ptr[j] % reference_data_ptr[offset];
           reference_result_ptr[tester_idx++] = reference_data_ptr[j] % reference_data_ptr[offset];
         }
         auto vec = loadu<Vec>(&test_data_ptr[i]);
