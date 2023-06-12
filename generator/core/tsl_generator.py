@@ -94,12 +94,13 @@ class TSLGenerator:
         slicer = TSLSlicer(relevant_hardware_flags, config.relevant_types)
 
         relevant_extensions_set: TSLExtensionSet = slicer.slice_extensions(self.__tsl_extension_set)
-        for extension in relevant_extensions_set:
-            if extension.has_synonyms:
-                synonym_dict: dict = extension.synonym_flags()
-                for synonym in synonym_dict:
-                    if synonym in relevant_hardware_flags:
-                        relevant_hardware_flags = list(map(lambda x: x.replace(synonym, synonym_dict[synonym]), relevant_hardware_flags))
+        if relevant_hardware_flags is not None:
+            for extension in relevant_extensions_set:
+                if extension.has_synonyms:
+                    synonym_dict: dict = extension.synonym_flags()
+                    for synonym in synonym_dict:
+                        if synonym in relevant_hardware_flags:
+                            relevant_hardware_flags = list(map(lambda x: x.replace(synonym, synonym_dict[synonym]), relevant_hardware_flags))
         slicer.update_relevant_flags( relevant_hardware_flags )
 
         if config.emit_tsl_extensions_to_file:
