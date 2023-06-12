@@ -29,6 +29,13 @@ class TSLExtension:
     def file_name(self) -> Path:
         return self.__file_path
 
+    def synonym_flags(self) -> YamlDataType:
+        return self.__data_dict["synonym_flags"]
+
+    @property
+    def has_synonyms(self) -> YamlDataType:
+        return "synonym_flags" in self.__data_dict
+
     def __deepcopy__(self, memodict={}):
         cls = self.__class__
         result = cls.__new__(cls)
