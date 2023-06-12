@@ -2,7 +2,9 @@
 description: "Definition of the SIMD TargetExtension neon."
 vendor: "arm"
 extension_name: "neon"
-lscpu_flags: ["neon"]
+lscpu_flags: ["neon","asimd"]
+arch_flags: {neon: "arch=native", asimd: "arch=native"}
+synonym_flags: {asimd: "neon"}
 includes: ['<arm_neon.h>']
 simdT_name: "neon"
 simdT_default_size_in_bits: 128
