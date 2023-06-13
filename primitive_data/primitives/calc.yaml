@@ -1187,6 +1187,19 @@ definitions:
     ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t' ]
     lscpu_flags: [ ]
     implementation: return vec % val;
+# FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result; //initialize the result
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = vec[i] - ((vec[i] / val[i]) * val[i]);
+      }
+      return result;
 ...
 
 ---
