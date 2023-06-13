@@ -17,6 +17,9 @@ class TSLSlicer:
         self.__relevant_types: Set[str] = set(relevant_types)
         # self.__relevant_hardware_flags_set: Set[str] = set(relevant_hardware_flags)
 
+    def update_relevant_flags(self, relevant_hardware_flags: List[str]): 
+        self.__relevant_hardware_flags = relevant_hardware_flags
+
     @requirement(data_dict="NotNone")
     def is_extension_relevant(self, data_dict: dict) -> bool:
         """
@@ -53,7 +56,25 @@ class TSLSlicer:
             return True
         if len(data_dict["lscpu_flags"]) == 0:
             return True
-        return (set(data_dict["lscpu_flags"]).issubset(set(self.__relevant_hardware_flags)))
+        if self.has_lscpu_disjunction(data_dict):
+            for group in data_dict["lscpu_flags"]:
+                elements = group.strip("[").strip("]").replace("'","").replace(" ","")
+                parsed_group = elements.split(",")
+                if (set(parsed_group).issubset(set(self.__relevant_hardware_flags))):
+                    data_dict["lscpu_flags"] = set(parsed_group)
+                    return True
+            return False
+        else:
+            return (set(data_dict["lscpu_flags"]).issubset(set(self.__relevant_hardware_flags)))
+
+    def has_lscpu_disjunction(self, data_dict: dict) -> bool:
+        if len(set(data_dict["lscpu_flags"])) <= 1:
+            return False
+        else:
+            for flag in set(data_dict["lscpu_flags"]):
+                if "[" in flag and "]" in flag:
+                    return True
+            return False
 
     @log
     def slice_extensions(self, extension_set: TSLExtensionSet) -> TSLExtensionSet:
