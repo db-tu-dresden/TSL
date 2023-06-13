@@ -139,8 +139,8 @@ definitions:
     implementation: "return data;"
 #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
-    ctype: ["float","double"]
-    additional_simd_template_base_type_mapping_dict: {"float":["int32_t", "uint32_t"],"double":["int64_t", "uint64_t"]}
+    ctype: ["float", "double"]
+    additional_simd_template_base_type_mapping_dict: {"float":["int32_t", "uint32_t"], "double":["int64_t", "uint64_t"]}
     vector_length_agnostic: True
     lscpu_flags: ["oneAPIfpgaDev"]
     implementation: |
@@ -162,6 +162,42 @@ parameters:
 returns:
   ctype: "typename ToType::register_type"
   description: "Casted SIMD register."
+testing:
+  - test_name: "default_int_float_conversion"
+    requires: ["loadu", "storeu"]
+    includes: ["<iostream>"]
+    implementation:
+      using T = typename Vec::base_type;
+      using T_int = typename ToType::base_type;
+
+      if constexpr(std::is_same<typename Vec::target_extension, typename ToType::target_extension>::value){
+        std::size_t element_count = 1024 * 8 * 10000;
+        testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+        testing::test_memory_helper_t<ToType> test_helper_float{element_count, Vec::vector_element_count(), false};
+
+        bool allOk = true;
+        auto reference_data_ptr = test_helper.data_ref();
+        auto reference_result_ptr = test_helper_float.result_ref();
+        auto test_data_ptr = test_helper.data_target();
+        auto test_result_ptr = test_helper_float.result_target();
+
+        for(std::size_t i = 0; i < element_count; i += Vec::vector_element_count()){
+          int idx = 0;
+          for(int j = i; j < i + Vec::vector_element_count(); j++){
+            reference_result_ptr[idx++] = static_cast<T_int>(reference_data_ptr[j]);
+          }
+          auto vec = loadu<Vec>(&test_data_ptr[i]);
+          storeu<ToType>(test_result_ptr, cast<Vec, ToType>(vec));
+
+          test_helper_float.synchronize();
+          allOk &= test_helper_float.validate();
+        }
+        return allOk;
+        }
+      else{
+        std::cout << "\tPlease implement Testcase for primitive cast with Vec:" << tsl::type_name<Vec>() << " and ToType:"<< tsl::type_name<ToType>() <<"\n"<< std::endl;
+        return true;
+      }
 definitions:
   #INTEL - AVX2
   - target_extension: "sse"
@@ -243,124 +279,54 @@ definitions:
       }}{{
         intrin_tp[additional_simd_template_base_type][1]
       }}(data);
+# float -> int - AVX512
   - target_extension: "avx512"
     additional_simd_template_base_type: ["int32_t"]
     ctype: ["float"]
-    lscpu_flags: ["avx512dq"]
+    lscpu_flags: ["avx512f"]
     implementation: return _mm512_cvtps_epi32(_mm512_roundscale_ps(data, _MM_FROUND_TO_ZERO));
   - target_extension: "avx512"
     additional_simd_template_base_type: ["uint32_t"]
     ctype: ["float"]
-    lscpu_flags: ["avx512dq"]
+    lscpu_flags: ["avx512f"]
     implementation: return _mm512_cvtps_epu32(_mm512_roundscale_ps(data, _MM_FROUND_TO_ZERO));
   - target_extension: "avx512"
     additional_simd_template_base_type: ["int64_t"]
     ctype: ["double"]
-    lscpu_flags: ["avx512dq"]
+    lscpu_flags: ["avx512dq", "avx512f"]
     implementation: return _mm512_cvtpd_epi64(_mm512_roundscale_pd(data, _MM_FROUND_TO_ZERO));
   - target_extension: "avx512"
     additional_simd_template_base_type: ["uint64_t"]
     ctype: ["double"]
-    lscpu_flags: ["avx512dq"]
+    lscpu_flags: ["avx512dq", "avx512f"]
     implementation: return  _mm512_cvtpd_epu64(_mm512_roundscale_pd(data, _MM_FROUND_TO_ZERO));
+# float -> int - AVX2
   - target_extension: "avx2"
     ctype: ["float"]
-    additional_simd_template_base_type: ["int32_t"]
+    additional_simd_template_base_type: ["int32_t", "uint32_t"]
     lscpu_flags: ['avx2']
     implementation: return _mm256_cvtps_epi32(_mm256_round_ps(data, _MM_FROUND_TO_ZERO));
   - target_extension: "avx2"
-    ctype: ["float"]
-    additional_simd_template_base_type: ["uint32_t"]
-    lscpu_flags: ['avx2']
-    implementation: |
-      __m256i temp = _mm256_cvtps_epi32(_mm256_round_ps(data, _MM_FROUND_TO_ZERO));
-
-      // Load constants for comparison and conversion
-      __m256 zero = _mm256_set1_ps(0.0f);
-      __m256i add = _mm256_set1_epi32(INT32_MIN);
-
-      // Create mask for negative values
-      __m256 mask = _mm256_cmp_ps(zero, data, _CMP_GT_OS);
-
-      // Convert negatives to positive equivalents in uint32_t
-      __m256i result = _mm256_add_epi32(temp, _mm256_and_si256(add, _mm256_castps_si256(mask)));
-
-      return result;
-  - target_extension: "avx2"
     ctype: ["double"]
     lscpu_flags: ["avx2", "sse"]
-    additional_simd_template_base_type: ["int64_t"]
+    additional_simd_template_base_type: ["int64_t", "uint64_t"]
     implementation: |
-      __m128i temp = _mm_cvtps_epi32(_mm_round_ps(_mm256_cvtpd_ps(data), _MM_FROUND_TO_ZERO));
+      __m128i temp = _mm_cvtps_epi32(_mm_round_ps(_mm256_cvtpd_ps(_mm256_round_pd(data, _MM_FROUND_TO_ZERO)), _MM_FROUND_TO_ZERO));
       return _mm256_cvtepi32_epi64(temp);
-  - target_extension: "avx2"
-    ctype: ["double"]
-    lscpu_flags: ["avx2", "sse"]
-    additional_simd_template_base_type: ["uint64_t"]
-    implementation: |
-      __m128i temp_128 = _mm_cvtps_epi32(_mm_round_ps(_mm256_cvtpd_ps(data), _MM_FROUND_TO_ZERO));
-      __m256i temp = _mm256_cvtepi32_epi64(temp_128);
-
-      // Load constants for comparison and conversion
-      __m256d zero = _mm256_set1_pd(0.0);
-      __m256i add = _mm256_set1_epi64x(INT64_MIN);
-
-      // Create mask for negative values
-      __m256d mask = _mm256_cmp_pd(zero, data, _CMP_GT_OS);
-
-      // Convert negatives to positive equivalents in uint64_t
-      __m256i result = _mm256_add_epi64(temp, _mm256_and_si256(add, _mm256_castpd_si256(mask)));
-
-      return result;
+# float -> int - SSE
   - target_extension: "sse"
     ctype: ["float"]
-    additional_simd_template_base_type: ["int32_t"]
-    lscpu_flags: ['sse']
+    additional_simd_template_base_type: ["int32_t", "uint32_t"]
+    lscpu_flags: ['sse4_1', 'sse2']
     implementation: return _mm_cvtps_epi32(_mm_round_ps(data, _MM_FROUND_TO_ZERO));
-  - target_extension: ["sse"]
-    ctype: ["float"]
-    additional_simd_template_base_type: ["uint32_t"]
-    lscpu_flags: ["sse"]
-    implementation: |
-      __m128i temp = _mm_cvtps_epi32(_mm_round_ps(data, _MM_FROUND_TO_ZERO));
-
-      // Load constants for comparison and conversion
-      __m128 zero = _mm_set1_ps(0.0f);
-      __m128i add = _mm_set1_epi32(INT32_MIN);
-
-      // Create mask for negative values
-      __m128 mask = _mm_cmpgt_ps(zero, data);
-
-      // Convert negatives to positive equivalents in uint32_t
-      __m128i result = _mm_add_epi32(temp, _mm_and_si128(add, _mm_castps_si128(mask)));
-      return result;
   - target_extension: "sse"
     ctype: ["double"]
-    additional_simd_template_base_type: ["int64_t"]
-    lscpu_flags: ['sse4_1', "sse"]
+    additional_simd_template_base_type: ["int64_t", "uint64_t"]
+    lscpu_flags: ['sse4_1', "sse2"]
     implementation: |
-      __m128i temp = _mm_cvtps_epi32(_mm_round_ps(_mm_cvtpd_ps(data), _MM_FROUND_TO_ZERO));
+      __m128i temp = _mm_cvtps_epi32(_mm_round_ps(_mm_cvtpd_ps(_mm_round_pd(data, _MM_FROUND_TO_ZERO)), _MM_FROUND_TO_ZERO));
       return _mm_cvtepi32_epi64(temp);
-  - target_extension: ["sse"]
-    ctype: ["double"]
-    additional_simd_template_base_type: ["uint64_t"]
-    lscpu_flags: ["sse", "sse4_1"]
-    implementation: |
-      // Convert to int64
-      __m128i temp = _mm_cvtps_epi32(_mm_round_ps(_mm_cvtpd_ps(data), _MM_FROUND_TO_ZERO));
-      temp = _mm_cvtepi32_epi64(temp);
-
-      // Load constants for comparison and conversion
-      __m128d zero = _mm_set1_pd(0.0);
-      __m128i add = _mm_set1_epi64x(INT64_MIN);
-
-      // Create mask for negative values
-      __m128d mask = _mm_cmpgt_pd(zero, data);
-
-      // Convert negatives to positive equivalents in uint64_t
-      __m128i result = _mm_add_epi64(temp, _mm_and_si128(add, _mm_castpd_si128(mask)));
-
-      return result;
+# float -> int - SCALAR
   - target_extension: "scalar"
     ctype: [ "float", "double"]
     additional_simd_template_base_type_mapping_dict: {
@@ -374,6 +340,7 @@ definitions:
       using T = int64_t;
       {% endif %}
       return static_cast<T>(data);
+# int -> float - AVX512
   - target_extension: "avx512"
     additional_simd_template_base_type: ["float"]
     ctype: ["uint32_t", "int32_t"]
@@ -384,39 +351,99 @@ definitions:
     ctype: ["uint64_t", "int64_t"]
     lscpu_flags: ["avx512dq"]
     implementation: return _mm512_cvt{{intrin_tp_full[ctype]}}_pd(data);
+# int -> float - AVX2
   - target_extension: "avx2"
-    ctype: ["uint32_t", "int32_t"]
+    ctype: ["int32_t"]
     additional_simd_template_base_type: ["float"]
-    lscpu_flags: ['avx2']
+    lscpu_flags: ['avx']
     implementation: return _mm256_cvtepi32_ps(data);
   - target_extension: "avx2"
-    ctype: ["uint64_t", "int64_t"]
+    ctype: ["uint32_t"]
+    additional_simd_template_base_type: ["float"]
+    lscpu_flags: ['avx', 'avx2']
+    implementation: |
+      __m256 output = _mm256_cvtepi32_ps(data);
+
+      __m256i mask = _mm256_srai_epi32(data, 31);
+      __m256 correction = _mm256_castsi256_ps(_mm256_and_si256(mask, _mm256_set1_epi32((int)0x4f800000)));
+
+      return _mm256_add_ps(output, correction);
+  - target_extension: "avx2"
+    ctype: ["int64_t"]
     is_native: "false"
     additional_simd_template_base_type: ["double"]
-    lscpu_flags: ['avx2']
+    lscpu_flags: ['avx', 'avx2']
     implementation: |
+      // https://stackoverflow.com/a/41223013
       __m256i magic_i_lo   = _mm256_set1_epi64x(0x4330000000000000);                /* 2^52               encoded as floating-point  */
       __m256i magic_i_hi32 = _mm256_set1_epi64x(0x4530000080000000);                /* 2^84 + 2^63        encoded as floating-point  */
       __m256i magic_i_all  = _mm256_set1_epi64x(0x4530000080100000);                /* 2^84 + 2^63 + 2^52 encoded as floating-point  */
       __m256d magic_d_all  = _mm256_castsi256_pd(magic_i_all);
 
-      __m256i v_lo         = _mm256_blend_epi32(magic_i_lo, data, 0b01010101);       /* Blend the 32 lowest significant bits of v with magic_int_lo                            */
-      __m256i v_hi         = _mm256_srli_epi64(data, 32);                            /* Extract the 32 most significant bits of v                                              */
+      __m256i v_lo         = _mm256_blend_epi32(magic_i_lo, data, 0b01010101);      /* Blend the 32 lowest significant bits of v with magic_int_lo                            */
+      __m256i v_hi         = _mm256_srli_epi64(data, 32);                           /* Extract the 32 most significant bits of v                                              */
               v_hi         = _mm256_xor_si256(v_hi, magic_i_hi32);                  /* Flip the msb of v_hi and blend with 0x45300000                                         */
       __m256d v_hi_dbl     = _mm256_sub_pd(_mm256_castsi256_pd(v_hi), magic_d_all); /* Compute in double precision:                                                           */
       return _mm256_add_pd(v_hi_dbl, _mm256_castsi256_pd(v_lo));                    /* (v_hi - magic_d_all) + v_lo  Do not assume associativity of floating point addition !! */
+  - target_extension: "avx2"
+    ctype: ["uint64_t"]
+    is_native: "false"
+    additional_simd_template_base_type: ["double"]
+    lscpu_flags: ['avx', 'avx2']
+    implementation: |
+      // https://stackoverflow.com/a/41223013
+      __m256i magic_i_lo   = _mm256_set1_epi64x(0x4330000000000000);                /* 2^52        encoded as floating-point  */
+      __m256i magic_i_hi32 = _mm256_set1_epi64x(0x4530000000000000);                /* 2^84        encoded as floating-point  */
+      __m256i magic_i_all  = _mm256_set1_epi64x(0x4530000000100000);                /* 2^84 + 2^52 encoded as floating-point  */
+      __m256d magic_d_all  = _mm256_castsi256_pd(magic_i_all);
+
+      __m256i v_lo         = _mm256_blend_epi32(magic_i_lo, data, 0b01010101);      /* Blend the 32 lowest significant bits of v with magic_int_lo                                                   */
+      __m256i v_hi         = _mm256_srli_epi64(data, 32);                           /* Extract the 32 most significant bits of v                                                                     */
+              v_hi         = _mm256_xor_si256(v_hi, magic_i_hi32);                  /* Blend v_hi with 0x45300000                                                                                    */
+      __m256d v_hi_dbl     = _mm256_sub_pd(_mm256_castsi256_pd(v_hi), magic_d_all); /* Compute in double precision:                                                                                  */
+      __m256d result       = _mm256_add_pd(v_hi_dbl, _mm256_castsi256_pd(v_lo));    /* (v_hi - magic_d_all) + v_lo  Do not assume associativity of floating point addition !!                        */
+      return result;
+# int -> float - SSE
   - target_extension: "sse"
-    ctype: [ "uint32_t", "int32_t" ]
+    ctype: [ "int32_t" ]
     additional_simd_template_base_type: ["float"]
     lscpu_flags: ['sse2']
     implementation: return _mm_cvtepi32_ps(data);
   - target_extension: "sse"
-    ctype: [ "uint64_t", "int64_t" ]
-    additional_simd_template_base_type: ["double"]
+    ctype: [ "uint32_t"]
+    additional_simd_template_base_type: ["float"]
     lscpu_flags: ['sse2']
     implementation: |
-      __m128i temp = _mm_shuffle_epi32(data, _MM_SHUFFLE(3, 1, 2, 0));
-      return _mm_cvtepi32_pd(temp);
+      __m128 temp = _mm_cvtepi32_ps(data);
+
+      __m128i mask = _mm_srai_epi32(data, 31);
+      __m128 correction = _mm_castsi128_ps(_mm_and_si128(mask, _mm_set1_epi32((int)0x4f800000)));
+
+      return _mm_add_ps(temp, correction);
+  - target_extension: "sse"
+    ctype: [ "int64_t" ]
+    additional_simd_template_base_type: ["double"]
+    lscpu_flags: ['sse2', 'sse4_1']
+    implementation: |
+      // https://stackoverflow.com/a/41148578
+      __m128i xH = _mm_srai_epi32(data, 16);
+      xH = _mm_blend_epi16(xH, _mm_setzero_si128(), 0x33);
+      xH = _mm_add_epi64(xH, _mm_castpd_si128(_mm_set1_pd(442721857769029238784.)));                //  3*2^67
+      __m128i xL = _mm_blend_epi16(data, _mm_castpd_si128(_mm_set1_pd(0x0010000000000000)), 0x88);  //  2^52
+      __m128d f = _mm_sub_pd(_mm_castsi128_pd(xH), _mm_set1_pd(442726361368656609280.));            //  3*2^67 + 2^52
+      return _mm_add_pd(f, _mm_castsi128_pd(xL));
+  - target_extension: "sse"
+    ctype: [ "uint64_t" ]
+    additional_simd_template_base_type: ["double"]
+    lscpu_flags: ['sse2', 'sse4_1']
+    implementation: |
+      // https://stackoverflow.com/a/41148578
+      __m128i xH = _mm_srli_epi64(data, 32);
+      xH = _mm_or_si128(xH, _mm_castpd_si128(_mm_set1_pd(19342813113834066795298816.)));            //  2^84
+      __m128i xL = _mm_blend_epi16(data, _mm_castpd_si128(_mm_set1_pd(0x0010000000000000)), 0xcc);  //  2^52
+      __m128d f = _mm_sub_pd(_mm_castsi128_pd(xH), _mm_set1_pd(19342813118337666422669312.));       //  2^84 + 2^52
+      return _mm_add_pd(f, _mm_castsi128_pd(xL));
+# int -> float - SCALAR
   - target_extension: "scalar"
     ctype: [ "uint32_t", "uint64_t", "int32_t", "int64_t"]
     additional_simd_template_base_type_mapping_dict: {
@@ -931,7 +958,7 @@ testing:
 definitions:
 #INTEL - AVX2
   - target_extension: "avx2"
-    ctype:  ["int32_t", "uint32_t"]
+    ctype: ["int32_t", "uint32_t"]
     additional_simd_template_base_type: ["int8_t", "uint8_t"]
     lscpu_flags: ["avx2"]
     is_native: False
@@ -1113,278 +1140,4 @@ definitions:
           ),
           0xd8
         );
-...
----
-primitive_name: "cast_to_float"
-brief_description: "Converts int values into the corresponding float type"
-additional_simd_template_parameter:
-  name: "ToType"
-parameters:
-  - ctype: "const typename Vec::register_type"
-    name: "vec"
-    description: "Vector filled with int values"
-returns:
-  ctype: "typename ToType::register_type"
-  description: "Vector filled with converted float values"
-testing:
-  - test_name: "default"
-    requires: ["loadu", "storeu"]
-    implementation:
-      using T = typename Vec::base_type;
-      using T_float = typename ToType::base_type;
-      std::size_t element_count = 1024;
-      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
-      testing::test_memory_helper_t<ToType> test_helper_float{element_count, Vec::vector_element_count(), false};
-
-      bool allOk = true;
-      auto reference_data_ptr = test_helper.data_ref();
-      auto reference_result_ptr = test_helper_float.result_ref();
-      auto test_data_ptr = test_helper.data_target();
-      auto test_result_ptr = test_helper_float.result_target();
-
-      for(std::size_t i = 0; i < element_count; i += Vec::vector_element_count()){
-        int idx = 0;
-        for(int j = i; j < i + Vec::vector_element_count(); j++){
-          T_float float_value = static_cast<T_float>(reference_data_ptr[j]);
-          reference_result_ptr[idx++] = float_value;
-        }
-        auto vec = loadu<Vec>(&test_data_ptr[i]);
-        storeu<ToType>(test_result_ptr, cast_to_float<Vec, ToType>(vec));
-
-        test_helper_float.synchronize();
-        allOk = test_helper_float.validate();
-      }
-      return allOk;
-definitions:
-  - target_extension: "avx512"
-    additional_simd_template_base_type: ["float"]
-    ctype: ["uint32_t", "int32_t"]
-    lscpu_flags: ["avx512f"]
-    implementation: return _mm512_cvt{{intrin_tp_full[ctype]}}_ps(vec);
-  - target_extension: "avx512"
-    additional_simd_template_base_type: ["double"]
-    ctype: ["uint64_t", "int64_t"]
-    lscpu_flags: ["avx512dq"]
-    implementation: return _mm512_cvt{{intrin_tp_full[ctype]}}_pd(vec);
-  - target_extension: "avx2"
-    ctype: ["uint32_t", "int32_t"]
-    additional_simd_template_base_type: ["float"]
-    lscpu_flags: ['avx2']
-    implementation: return _mm256_cvtepi32_ps(vec);
-  - target_extension: "avx2"
-    ctype: ["uint64_t", "int64_t"]
-    is_native: "false"
-    additional_simd_template_base_type: ["double"]
-    lscpu_flags: ['avx2']
-    implementation: |
-      __m256i magic_i_lo   = _mm256_set1_epi64x(0x4330000000000000);                /* 2^52               encoded as floating-point  */
-      __m256i magic_i_hi32 = _mm256_set1_epi64x(0x4530000080000000);                /* 2^84 + 2^63        encoded as floating-point  */
-      __m256i magic_i_all  = _mm256_set1_epi64x(0x4530000080100000);                /* 2^84 + 2^63 + 2^52 encoded as floating-point  */
-      __m256d magic_d_all  = _mm256_castsi256_pd(magic_i_all);
-
-      __m256i v_lo         = _mm256_blend_epi32(magic_i_lo, vec, 0b01010101);       /* Blend the 32 lowest significant bits of v with magic_int_lo                            */
-      __m256i v_hi         = _mm256_srli_epi64(vec, 32);                            /* Extract the 32 most significant bits of v                                              */
-              v_hi         = _mm256_xor_si256(v_hi, magic_i_hi32);                  /* Flip the msb of v_hi and blend with 0x45300000                                         */
-      __m256d v_hi_dbl     = _mm256_sub_pd(_mm256_castsi256_pd(v_hi), magic_d_all); /* Compute in double precision:                                                           */
-      return _mm256_add_pd(v_hi_dbl, _mm256_castsi256_pd(v_lo));                    /* (v_hi - magic_d_all) + v_lo  Do not assume associativity of floating point addition !! */
-  - target_extension: "sse"
-    ctype: [ "uint32_t", "int32_t" ]
-    additional_simd_template_base_type: ["float"]
-    lscpu_flags: ['sse2']
-    implementation: return _mm_cvtepi32_ps(vec);
-  - target_extension: "sse"
-    ctype: [ "uint64_t", "int64_t" ]
-    additional_simd_template_base_type: ["double"]
-    lscpu_flags: ['sse2']
-    implementation: |
-      __m128i temp = _mm_shuffle_epi32(vec, _MM_SHUFFLE(3, 1, 2, 0));
-      return _mm_cvtepi32_pd(temp);
-  - target_extension: "scalar"
-    ctype: [ "uint32_t", "uint64_t", "int32_t", "int64_t"]
-    additional_simd_template_base_type_mapping_dict: {
-      "uint32_t" : ["float"], "int32_t" : ["float"],
-      "uint64_t" : ["double"], "int64_t" : ["double"]
-    }
-    lscpu_flags: []
-    implementation: |
-      {% if ctype == "uint32_t" or ctype == "int32_t" %}
-      using T  = float;
-      {% else %}
-      using T = double;
-      {% endif %}
-      return static_cast<T>(vec);
-...
----
-primitive_name: "cast_to_int"
-brief_description: "Converts float/double values into the corresponding int type"
-additional_simd_template_parameter:
-  name: "ToType"
-parameters:
-  - ctype: "const typename Vec::register_type"
-    name: "vec"
-    description: "Vector filled with float/double values"
-returns:
-  ctype: "typename ToType::register_type"
-  description: "Vector filled with converted int values"
-testing:
-  - test_name: "default"
-    requires: ["loadu", "storeu"]
-    implementation:
-      using T = typename Vec::base_type;
-      using T_int = typename ToType::base_type;
-      std::size_t element_count = 1024;
-      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
-      testing::test_memory_helper_t<ToType> test_helper_float{element_count, Vec::vector_element_count(), false};
-
-      bool allOk = true;
-      auto reference_data_ptr = test_helper.data_ref();
-      auto reference_result_ptr = test_helper_float.result_ref();
-      auto test_data_ptr = test_helper.data_target();
-      auto test_result_ptr = test_helper_float.result_target();
-
-      for(std::size_t i = 0; i < element_count; i += Vec::vector_element_count()){
-        int idx = 0;
-        for(int j = i; j < i + Vec::vector_element_count(); j++){
-          T_int float_value = static_cast<T_int>(reference_data_ptr[j]);
-          reference_result_ptr[idx++] = float_value;
-        }
-        auto vec = loadu<Vec>(&test_data_ptr[i]);
-        storeu<ToType>(test_result_ptr, cast_to_int<Vec, ToType>(vec));
-
-        test_helper_float.synchronize();
-        allOk = test_helper_float.validate();
-      }
-      return allOk;
-definitions:
-  - target_extension: "avx512"
-    additional_simd_template_base_type: ["int32_t"]
-    ctype: ["float"]
-    lscpu_flags: ["avx512dq"]
-    implementation: return _mm512_cvtps_epi32(_mm512_roundscale_ps(vec, _MM_FROUND_TO_ZERO));
-  - target_extension: "avx512"
-    additional_simd_template_base_type: ["uint32_t"]
-    ctype: ["float"]
-    lscpu_flags: ["avx512dq"]
-    implementation: return _mm512_cvtps_epu32(_mm512_roundscale_ps(vec, _MM_FROUND_TO_ZERO));
-  - target_extension: "avx512"
-    additional_simd_template_base_type: ["int64_t"]
-    ctype: ["double"]
-    lscpu_flags: ["avx512dq"]
-    implementation: return _mm512_cvtpd_epi64(_mm512_roundscale_pd(vec, _MM_FROUND_TO_ZERO));
-  - target_extension: "avx512"
-    additional_simd_template_base_type: ["uint64_t"]
-    ctype: ["double"]
-    lscpu_flags: ["avx512dq"]
-    implementation: return  _mm512_cvtpd_epu64(_mm512_roundscale_pd(vec, _MM_FROUND_TO_ZERO));
-  - target_extension: "avx2"
-    ctype: ["float"]
-    additional_simd_template_base_type: ["int32_t"]
-    lscpu_flags: ['avx2']
-    implementation: return _mm256_cvtps_epi32(_mm256_round_ps(vec, _MM_FROUND_TO_ZERO));
-  - target_extension: "avx2"
-    ctype: ["float"]
-    additional_simd_template_base_type: ["uint32_t"]
-    lscpu_flags: ['avx2']
-    implementation: |
-      __m256i temp = _mm256_cvtps_epi32(_mm256_round_ps(vec, _MM_FROUND_TO_ZERO));
-
-      // Load constants for comparison and conversion
-      __m256 zero = _mm256_set1_ps(0.0f);
-      __m256i add = _mm256_set1_epi32(INT32_MIN);
-
-      // Create mask for negative values
-      __m256 mask = _mm256_cmp_ps(zero, vec, _CMP_GT_OS);
-
-      // Convert negatives to positive equivalents in uint32_t
-      __m256i result = _mm256_add_epi32(temp, _mm256_and_si256(add, _mm256_castps_si256(mask)));
-
-      return result;
-  - target_extension: "avx2"
-    ctype: ["double"]
-    lscpu_flags: ["avx2", "sse"]
-    additional_simd_template_base_type: ["int64_t"]
-    implementation: |
-      __m128i temp = _mm_cvtps_epi32(_mm_round_ps(_mm256_cvtpd_ps(vec), _MM_FROUND_TO_ZERO));
-      return _mm256_cvtepi32_epi64(temp);
-  - target_extension: "avx2"
-    ctype: ["double"]
-    lscpu_flags: ["avx2", "sse"]
-    additional_simd_template_base_type: ["uint64_t"]
-    implementation: |
-      __m128i temp_128 = _mm_cvtps_epi32(_mm_round_ps(_mm256_cvtpd_ps(vec), _MM_FROUND_TO_ZERO));
-      __m256i temp = _mm256_cvtepi32_epi64(temp_128);
-
-      // Load constants for comparison and conversion
-      __m256d zero = _mm256_set1_pd(0.0);
-      __m256i add = _mm256_set1_epi64x(INT64_MIN);
-
-      // Create mask for negative values
-      __m256d mask = _mm256_cmp_pd(zero, vec, _CMP_GT_OS);
-
-      // Convert negatives to positive equivalents in uint64_t
-      __m256i result = _mm256_add_epi64(temp, _mm256_and_si256(add, _mm256_castpd_si256(mask)));
-
-      return result;
-  - target_extension: "sse"
-    ctype: ["float"]
-    additional_simd_template_base_type: ["int32_t"]
-    lscpu_flags: ['sse']
-    implementation: return _mm_cvtps_epi32(_mm_round_ps(vec, _MM_FROUND_TO_ZERO));
-  - target_extension: ["sse"]
-    ctype: ["float"]
-    additional_simd_template_base_type: ["uint32_t"]
-    lscpu_flags: ["sse"]
-    implementation: |
-      __m128i temp = _mm_cvtps_epi32(_mm_round_ps(vec, _MM_FROUND_TO_ZERO));
-
-      // Load constants for comparison and conversion
-      __m128 zero = _mm_set1_ps(0.0f);
-      __m128i add = _mm_set1_epi32(INT32_MIN);
-
-      // Create mask for negative values
-      __m128 mask = _mm_cmpgt_ps(zero, vec);
-
-      // Convert negatives to positive equivalents in uint32_t
-      __m128i result = _mm_add_epi32(temp, _mm_and_si128(add, _mm_castps_si128(mask)));
-      return result;
-  - target_extension: "sse"
-    ctype: ["double"]
-    additional_simd_template_base_type: ["int64_t"]
-    lscpu_flags: ['sse4_1', "sse"]
-    implementation: |
-      __m128i temp = _mm_cvtps_epi32(_mm_round_ps(_mm_cvtpd_ps(vec), _MM_FROUND_TO_ZERO));
-      return _mm_cvtepi32_epi64(temp);
-  - target_extension: ["sse"]
-    ctype: ["double"]
-    additional_simd_template_base_type: ["uint64_t"]
-    lscpu_flags: ["sse", "sse4_1"]
-    implementation: |
-      // Convert to int64
-      __m128i temp = _mm_cvtps_epi32(_mm_round_ps(_mm_cvtpd_ps(vec), _MM_FROUND_TO_ZERO));
-      temp = _mm_cvtepi32_epi64(temp);
-
-      // Load constants for comparison and conversion
-      __m128d zero = _mm_set1_pd(0.0);
-      __m128i add = _mm_set1_epi64x(INT64_MIN);
-
-      // Create mask for negative values
-      __m128d mask = _mm_cmpgt_pd(zero, vec);
-
-      // Convert negatives to positive equivalents in uint64_t
-      __m128i result = _mm_add_epi64(temp, _mm_and_si128(add, _mm_castpd_si128(mask)));
-
-      return result;
-  - target_extension: "scalar"
-    ctype: [ "float", "double"]
-    additional_simd_template_base_type_mapping_dict: {
-      "float" : ["int32_t"], "double" : ["int64_t"]
-    }
-    lscpu_flags: []
-    implementation: |
-      {% if ctype == "float" %}
-      using T  = int32_t;
-      {% else %}
-      using T = int64_t;
-      {% endif %}
-      return static_cast<T>(vec);
 ...
