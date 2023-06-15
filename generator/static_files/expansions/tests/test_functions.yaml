@@ -66,6 +66,36 @@ implementations:
       }
   - |
       template<typename T>
+      void alternate_init(T* data, std::size_t element_count) {
+          T max =
+            static_cast<T>(
+                std::clamp<size_t>(
+                  element_count,
+                  static_cast<size_t>(std::numeric_limits<T>::lowest()),
+                  static_cast<size_t>(std::numeric_limits<T>::max())
+                )
+            );
+          T val = (T)1;
+          data[0] = (T)0;
+          size_t pos = 1;
+          for(size_t i = 1; i < element_count/2; ++i) {
+            data[pos++] = val;
+            if constexpr (std::is_signed_v<T>) {
+                data[pos++] = -val;
+                if constexpr (std::is_floating_point_v<T>) {
+                  ++val;
+                } else {
+                  val = (++val%max) == 0 ? 1 : val;
+                }
+            } else {
+                val = (++val%max) == 0 ? 1 : val;
+                data[pos++] = val;
+                val = (++val%max) == 0 ? 1 : val;
+            }
+          }
+      }
+  - |
+      template<typename T>
       void seq_init_start_0(T* data, std::size_t element_count) {
           for(std::size_t i = 0; i < element_count; ++i) {
             data[i] = i;

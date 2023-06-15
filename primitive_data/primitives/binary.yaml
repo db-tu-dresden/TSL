@@ -664,57 +664,55 @@ definitions:
   #     x >>= shift;
   #     return *reinterpret_cast<double*>(&x);
 testing:
-  - requires: ["storeu", "loadu"]
-    includes: ["<cstddef>", "<type_traits>"]
+  - test_name: "shift_right_arithmetic"
+    requires: ["storeu", "loadu", "set1"]
+    includes: ["<cstddef>", "<type_traits>", "<climits>"]
     implementation: |
       using T = typename Vec::base_type;
       std::size_t element_count = 1024;
-      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::seq_init_start_0<T>};
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init<T>};
       bool allOk = true;
+      auto ref_data = test_helper.data_ref();
       auto expected_result = test_helper.result_ref();
+
       auto test_data = test_helper.data_target();
-      auto result = test_helper.result_target();
-      for (std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
-          std::size_t tester_idx = 0;
-          unsigned int shift;
-          testing::rnd_init(&shift, 1);
-          shift %= 2 * 8 * sizeof(T) ;
-          for (size_t j = i; j < i + Vec::vector_element_count(); ++j) {
-              auto data = test_data[j];
-              expected_result[tester_idx++] = (shift >= sizeof(T) * 8)
-                  ? ((data >> (sizeof(T) * 8 - 1)) ? (std::is_unsigned_v<T> ? 0 : -1) : 0)
-                  : data >> shift;
+      auto test_result = test_helper.result_target();
+      for (size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        for (unsigned shift = 0; shift < sizeof(typename Vec::base_type)*CHAR_BIT; ++shift) {
+          for (size_t j = 0; j < Vec::vector_element_count(); ++j) {
+            expected_result[j] = ref_data[i+j] >> shift;
           }
           auto vec = loadu<Vec>(&test_data[i]);
-          storeu<Vec>(result, shift_right<Vec>(vec, shift));
+          storeu<Vec>(test_result, shift_right<Vec, true>(vec, (typename Vec::base_type)shift));
           test_helper.synchronize();
           allOk &= test_helper.validate();
+        }
       }
       return allOk;
-  - requires: ["storeu", "loadu"]
-    includes: ["<cstddef>", "<type_traits>"]
+  - test_name: "shift_right_ignore_sign"
+    requires: ["storeu", "loadu", "set1"]
+    includes: ["<cstddef>", "<type_traits>", "<climits>"]
     implementation: |
       using T = typename Vec::base_type;
-      using TU = typename std::make_unsigned<typename Vec::base_type>::type;
+      using UT = typename std::make_unsigned_t<T>;
       std::size_t element_count = 1024;
-      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init<T>};
       bool allOk = true;
+      auto ref_data = test_helper.data_ref();
       auto expected_result = test_helper.result_ref();
+
       auto test_data = test_helper.data_target();
-      auto result = test_helper.result_target();
-      for (std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
-          std::size_t tester_idx = 0;
-          unsigned int shift;
-          testing::rnd_init(&shift, 1);
-          shift %= 2 * 8 * sizeof(T) ;
-          for (size_t j = i; j < i + Vec::vector_element_count(); ++j) {
-              auto data = static_cast<TU>(test_data[j]);
-              expected_result[tester_idx++] = (shift >= sizeof(T) * 8) ? 0 : static_cast<T>(data >> shift);
+      auto test_result = test_helper.result_target();
+      for (size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        for (unsigned shift = 0; shift < sizeof(typename Vec::base_type)*CHAR_BIT; ++shift) {
+          for (size_t j = 0; j < Vec::vector_element_count(); ++j) {
+            expected_result[j] = static_cast<UT>(ref_data[i+j]) >> shift;
           }
           auto vec = loadu<Vec>(&test_data[i]);
-          storeu<Vec>(result, shift_right_logical<Vec>(vec, shift));
+          storeu<Vec>(test_result, shift_right<Vec, false>(vec, (typename Vec::base_type)shift));
           test_helper.synchronize();
           allOk &= test_helper.validate();
+        }
       }
       return allOk;
 ...
