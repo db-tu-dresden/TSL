@@ -460,6 +460,23 @@ definitions:
     lscpu_flags: ["avx512dq", "avx512vl"]
     specialization_comment: "Signed multiplication."
     implementation: "return _mm_mullo_epi64(vec_a, vec_b);"
+  - target_extension: ["sse"]
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      __m128i aHigh = _mm_shuffle_epi32(vec_a, _MM_SHUFFLE(3, 2, 3, 2));
+      __m128i aLow = _mm_shuffle_epi32(vec_a, _MM_SHUFFLE(1, 0, 1, 0));
+      __m128i bHigh = _mm_shuffle_epi32(vec_b, _MM_SHUFFLE(3, 2, 3, 2));
+      __m128i bLow = _mm_shuffle_epi32(vec_b, _MM_SHUFFLE(1, 0, 1, 0));
+
+      // Multiply 32-bit parts
+      __m128i prodLow = _mm_mul_epu32(aLow, bLow);
+      __m128i prodHigh = _mm_mul_epu32(aHigh, bHigh);
+
+      // Combine results
+      __m128i result = _mm_set_epi64x(_mm_cvtsi128_si64(prodHigh), _mm_cvtsi128_si64(prodLow));
+
+      return result;
   - target_extension: "sse"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["sse2"]
@@ -1208,6 +1225,269 @@ definitions:
 # SCALAR
   - target_extension: 'scalar'
     ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t' ]
+    lscpu_flags: [ ]
+    implementation: return vec % val;
+...
+---
+primitive_name: 'mod_barrett'
+brief_description: |
+  If the barrett condition holds (with a mod n => a < n²) 
+  this Primitive correctly operates the modulo operation on one datavector modulo one input value.
+  Note: Barrett Reduction is definied for unsigned values.
+parameters:
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec'
+    description: 'Input Vector'
+  - ctype: 'const typename Vec::base_type'
+    name: 'val'
+    description: 'Modulo value'
+returns:
+  ctype: 'typename Vec::register_type'
+  description: 'Resulting Vector'
+testing:
+  - test_name: "with_modulo_one"
+    requires: ["storeu", "set1"]
+    implementation: |
+      using T = typename Vec::base_type;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(0);
+      storeu<Vec>(reference_result_ptr, vec);
+      storeu<Vec>(test_result_ptr, mod_barrett<Vec>(vec, 1));
+      test_helper.synchronize();
+      return test_helper.validate();
+  - test_name: "with_modulo_rand"
+    requires: ["loadu", "storeu"]
+    includes: ["<iostream>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t offset = 1024 * 80000 * 2;
+      std::size_t element_count = offset + (offset / Vec::vector_element_count());
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init_no_zero<T>};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      int test = 0;
+      for(std::size_t i = 0; i < (element_count - offset); i += Vec::vector_element_count()){
+        std::size_t tester_idx = 0;
+        for(std::size_t j = i; j < i + Vec::vector_element_count(); j++){
+          reference_result_ptr[tester_idx++] = reference_data_ptr[j] % reference_data_ptr[offset];
+        }
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto val = test_data_ptr[offset];
+        auto vec_result = mod_barrett<Vec>(vec, val);
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        bool a = test_helper.validate();
+        allOk &= a;
+        if(!a){
+          bool b = true;
+          for(std::size_t j = i; j < i + Vec::vector_element_count(); j++){
+            if(!(reference_data_ptr[j] < (reference_data_ptr[offset] * reference_data_ptr[offset]))){
+              //std::cout << "Barrett Condition does not hold! " << std::endl;
+              b = false;
+              break;
+            }
+          }
+          if(b && test < 10){
+            T data [Vec::vector_element_count()];
+            storeu<Vec>(data, vec_result);
+            std::cout << "\nExpected Result:[";
+            for(std::size_t j = 0; j < Vec::vector_element_count(); j++) std::cout << (int)reference_result_ptr[j] << ", ";
+            std::cout <<"]\nGiven Result:\t\t[";
+            for(std::size_t j = 0; j < Vec::vector_element_count(); j++) std::cout << (int)data[j] << ", ";
+            std::cout << "]\nMod: " << (int)reference_data_ptr[offset] << "\tInputData: [";
+            for(int j = i; j < i + Vec::vector_element_count(); j++) std::cout << (int)reference_data_ptr[j] << ", ";
+            std::cout << "]\n---------------------------------------------------------" << std::endl;
+            test++;
+          }
+        }
+        offset++;
+      }
+      return allOk;
+definitions:
+# INTEL - AVX2
+
+# INTEL - SSE
+  - target_extension: ["sse"]
+    ctype: ["uint8_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      using T = uint16_t;
+      __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
+     
+      // Compute Barrett constants
+      T mu = (1 << 8) / val;
+      mu_vec = _mm_set1_epi16(mu);
+      val_vec = _mm_set1_epi16(val);
+      
+      vec_lo = _mm_cvtepu8_epi16(vec);
+      vec_hi = _mm_cvtepu8_epi16(_mm_srli_si128(vec, 8));
+
+      // Barrett reduction
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(vec_lo, mu_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(vec_hi, mu_vec);
+
+      temp_lo = _mm_srli_epi16(temp_lo, 8);
+      temp_hi = _mm_srli_epi16(temp_hi, 8);
+
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(temp_lo, val_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(temp_hi, val_vec);
+      
+      // Calculate the remainder
+      vec_lo = _mm_sub_epi16(vec_lo, temp_lo);
+      vec_hi = _mm_sub_epi16(vec_hi, temp_hi);
+      
+      // Handle remainders greater than the input value
+      temp_lo = _mm_or_si128(_mm_cmpgt_epi16(vec_lo, val_vec), _mm_cmpeq_epi16(vec_lo, val_vec));
+      temp_hi = _mm_or_si128(_mm_cmpgt_epi16(vec_hi, val_vec), _mm_cmpeq_epi16(vec_hi, val_vec));
+
+      vec_lo = _mm_sub_epi16(vec_lo, _mm_and_si128(temp_lo, val_vec));
+      vec_hi = _mm_sub_epi16(vec_hi, _mm_and_si128(temp_hi, val_vec));
+
+      // Put back into 8-bit
+      mask = _mm_set1_epi16(0xFF);
+      
+      vec_lo = _mm_and_si128(vec_lo, mask);
+      vec_hi = _mm_and_si128(vec_hi, mask);
+
+      // Shuffle 8 bits to the right place
+      vec_lo = _mm_shuffle_epi8(vec_lo, _mm_setr_epi8(0, 2, 4, 6, 8, 10, 12, 14, -1, -1, -1, -1, -1, -1, -1, -1));
+      vec_hi = _mm_shuffle_epi8(vec_hi, _mm_setr_epi8(-1, -1, -1, -1, -1, -1, -1, -1, 0, 2, 4, 6, 8, 10, 12, 14));
+
+      return _mm_or_si128(vec_lo, vec_hi);
+  - target_extension: ["sse"]
+    ctype: [ "uint16_t" ]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      using T = uint32_t;
+      __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
+     
+      // Compute Barrett constants
+      T mu = (1 << 16) / val;
+      mu_vec = _mm_set1_epi32(mu);
+      val_vec = _mm_set1_epi32(val);
+      
+      vec_lo = _mm_cvtepu16_epi32(vec);
+      vec_hi = _mm_cvtepu16_epi32(_mm_srli_si128(vec, 8));
+
+      // Barrett reduction
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(vec_lo, mu_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(vec_hi, mu_vec);
+
+      temp_lo = _mm_srli_epi32(temp_lo, 16);
+      temp_hi = _mm_srli_epi32(temp_hi, 16);
+
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(temp_lo, val_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(temp_hi, val_vec);
+      
+      // Calculate the remainder
+      vec_lo = _mm_sub_epi32(vec_lo, temp_lo);
+      vec_hi = _mm_sub_epi32(vec_hi, temp_hi);
+      
+      // Handle remainders greater than the input value
+      temp_lo = _mm_or_si128(_mm_cmpgt_epi32(vec_lo, val_vec), _mm_cmpeq_epi32(vec_lo, val_vec));
+      temp_hi = _mm_or_si128(_mm_cmpgt_epi32(vec_hi, val_vec), _mm_cmpeq_epi32(vec_hi, val_vec));
+
+      vec_lo = _mm_sub_epi32(vec_lo, _mm_and_si128(temp_lo, val_vec));
+      vec_hi = _mm_sub_epi32(vec_hi, _mm_and_si128(temp_hi, val_vec));
+
+      // Put back into 16-bit
+      mask = _mm_set1_epi32(0xFFFF);
+      
+      vec_lo = _mm_and_si128(vec_lo, mask);
+      vec_hi = _mm_and_si128(vec_hi, mask);
+
+      // Shuffle lower 16 bits to the right place
+      vec_lo = _mm_shuffle_epi8(vec_lo, _mm_setr_epi8(0, 1, 4, 5, 8, 9, 12, 13, -1, -1, -1, -1, -1, -1, -1, -1));
+      vec_hi = _mm_shuffle_epi8(vec_hi, _mm_setr_epi8(-1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 4, 5, 8, 9, 12, 13));
+      return _mm_or_si128(vec_lo, vec_hi);
+  - target_extension: 'sse'
+    ctype: [ 'uint32_t' ]
+    lscpu_flags: [ 'sse2' ]
+    implementation: |
+      using T = uint64_t;
+      __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
+     
+      // Compute Barrett constants
+      T mu = (1 << 32) / val;
+      mu_vec = _mm_set1_epi64x(mu);
+      val_vec = _mm_set1_epi64x(val);
+      
+      vec_lo = _mm_cvtepu32_epi64(vec);
+      vec_hi = _mm_cvtepu32_epi64(_mm_srli_si128(vec, 8));
+
+      // Barrett reduction
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(vec_lo, mu_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(vec_hi, mu_vec);
+
+      temp_lo = _mm_srli_epi64(temp_lo, 32);
+      temp_hi = _mm_srli_epi64(temp_hi, 32);
+
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(temp_lo, val_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(temp_hi, val_vec);
+      
+      // Calculate the remainder
+      vec_lo = _mm_sub_epi64(vec_lo, temp_lo);
+      vec_hi = _mm_sub_epi64(vec_hi, temp_hi);
+      
+      // Handle remainders greater than the input value
+      temp_lo = _mm_or_si128(_mm_cmpgt_epi64(vec_lo, val_vec), _mm_cmpeq_epi64(vec_lo, val_vec));
+      temp_hi = _mm_or_si128(_mm_cmpgt_epi64(vec_hi, val_vec), _mm_cmpeq_epi64(vec_hi, val_vec));
+
+      vec_lo = _mm_sub_epi64(vec_lo, _mm_and_si128(temp_lo, val_vec));
+      vec_hi = _mm_sub_epi64(vec_hi, _mm_and_si128(temp_hi, val_vec));
+
+      // Put back into 32-bit
+      mask = _mm_set1_epi64x(0xFFFFFFFF);
+      vec_lo = _mm_and_si128(vec_lo, mask);
+      vec_hi = _mm_and_si128(vec_hi, mask);
+
+      // Pack the lower 32-bits of each 64-bit integer back into the lower half of the vectors
+      vec_lo = _mm_shuffle_epi32(vec_lo, _MM_SHUFFLE(2, 0, 2, 0));
+      vec_hi = _mm_shuffle_epi32(vec_hi, _MM_SHUFFLE(2, 0, 2, 0));
+
+      // Blend the vectors back together
+      return _mm_blend_epi16(vec_lo, vec_hi, 0b11110000);
+  - target_extension: 'sse'
+    ctype: [ 'uint64_t' ]
+    lscpu_flags: [ 'sse2', 'sse4_1' ]
+    implementation: |
+      __m128i mu_vec, val_vec, q1, q2, q3, r1, r2, r3, r, cmp;
+      
+      val_vec = _mm_set1_epi64x(val);
+
+      // Compute Barrett Constant
+      uint64_t mu = ((1ULL << 64) + val - 1) / val;
+      mu_vec = _mm_set1_epi64x(mu);
+
+      q1 = _mm_srli_si128(vec, 32);
+      q1 = tsl::mul<Vec>(q1, mu_vec);
+      q1 = _mm_srli_si128(q1, 32);
+      q2 = tsl::mul<Vec>(q1, val_vec);
+
+      r1 = _mm_and_si128(vec, _mm_set1_epi64x(0xFFFFFFFF));
+      r2 = tsl::mul<Vec>(mu_vec,r1);
+      q3 = _mm_srli_si128(r2, 32);
+      
+      r3 = tsl::mul<Vec>(q3, val_vec);
+      r3 = _mm_sub_epi64(r1, r3);
+
+      r = _mm_srli_si128(r3, 63);
+      r = _mm_and_si128(r, val_vec);
+      r = _mm_add_epi64(r, r3);
+
+      // Handle remainders greater than the input value
+      cmp = _mm_or_si128(_mm_cmpgt_epi64(r, val_vec), _mm_cmpeq_epi64(r, val_vec));
+      r = _mm_sub_epi64(r, _mm_and_si128(cmp, val_vec));
+
+      return r;
+# SCALAR
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t']
     lscpu_flags: [ ]
     implementation: return vec % val;
 ...
