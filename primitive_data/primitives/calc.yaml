@@ -1259,10 +1259,9 @@ testing:
       return test_helper.validate();
   - test_name: "with_modulo_rand"
     requires: ["loadu", "storeu"]
-    includes: ["<iostream>"]
     implementation: |
       using T = typename Vec::base_type;
-      std::size_t offset = 1024 * 80000 * 2;
+      std::size_t offset = 1024;
       std::size_t element_count = offset + (offset / Vec::vector_element_count());
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init_no_zero<T>};
       bool allOk = true;
@@ -1283,31 +1282,172 @@ testing:
         test_helper.synchronize();
         bool a = test_helper.validate();
         allOk &= a;
+
+        // Check if the barrett condition did not hold.
         if(!a){
-          bool b = true;
           for(std::size_t j = i; j < i + Vec::vector_element_count(); j++){
             if(!(reference_data_ptr[j] < (reference_data_ptr[offset] * reference_data_ptr[offset]))){
-              b = false;
               allOk = true;
             }
-          }
-          if(b && test < 10){
-            T data [Vec::vector_element_count()];
-            storeu<Vec>(data, vec_result);
-            std::cout << "\nExpected Result:[";
-            for(std::size_t j = 0; j < Vec::vector_element_count(); j++) std::cout << (int)reference_result_ptr[j] << ", ";
-            std::cout <<"]\nGiven Result:\t\t[";
-            for(std::size_t j = 0; j < Vec::vector_element_count(); j++) std::cout << (int)data[j] << ", ";
-            std::cout << "]\nMod: " << (int)reference_data_ptr[offset] << "\tInputData: [";
-            for(int j = i; j < i + Vec::vector_element_count(); j++) std::cout << (int)reference_data_ptr[j] << ", ";
-            std::cout << "]\n---------------------------------------------------------" << std::endl;
-            test++;
           }
         }
         offset++;
       }
       return allOk;
 definitions:
+# INTEL - AVX512
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: |
+      using T = uint16_t;
+      __m512i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
+
+      // Compute Barrett constants
+      T mu = (1 << 8) / val;
+      mu_vec = _mm512_set1_epi16(mu);
+      val_vec = _mm512_set1_epi16(val);
+
+      // Zero extend and split vector
+      __mmask32 mask_split = 0xFFFFFFFF;
+      vec_lo = _mm512_maskz_cvtepu8_epi16(mask_split, _mm512_extracti64x4_epi64(vec, 0));
+      vec_hi = _mm512_maskz_cvtepu8_epi16(mask_split, _mm512_extracti64x4_epi64(vec, 1)); 
+      
+      // Barrett reduction
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(vec_lo, mu_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(vec_hi, mu_vec);
+
+      temp_lo = _mm512_srli_epi16(temp_lo, 8);
+      temp_hi = _mm512_srli_epi16(temp_hi, 8);
+
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(temp_lo, val_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(temp_hi, val_vec);
+
+      // Calculate the remainder
+      vec_lo = _mm512_sub_epi16(vec_lo, temp_lo);
+      vec_hi = _mm512_sub_epi16(vec_hi, temp_hi);
+
+      // Handle remainders greater than the input value
+      __mmask32 cmp_lo = _mm512_cmpge_epi16_mask(vec_lo, val_vec);
+      __mmask32 cmp_hi = _mm512_cmpge_epi16_mask(vec_hi, val_vec);
+  
+      vec_lo = _mm512_sub_epi16(vec_lo, _mm512_maskz_mov_epi16(cmp_lo, val_vec));
+      vec_hi = _mm512_sub_epi16(vec_hi, _mm512_maskz_mov_epi16(cmp_hi, val_vec));
+
+      // Convert back to 8-Bit values and put together
+      return _mm512_inserti64x4(_mm512_castsi256_si512(_mm512_cvtepi16_epi8(vec_lo)), _mm512_cvtepi16_epi8(vec_hi),1);
+  - target_extension: ["avx512"]
+    ctype: ["uint16_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: |
+      using T = uint32_t;
+      __m512i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
+
+      // Compute Barrett constants
+      T mu = (1 << 16) / val;
+      mu_vec = _mm512_set1_epi32(mu);
+      val_vec = _mm512_set1_epi32(val);
+
+      // Zero extend and split vector
+      __mmask16 mask_split = 0xFFFF;
+      vec_lo = _mm512_maskz_cvtepu16_epi32(mask_split, _mm512_extracti64x4_epi64(vec, 0));
+      vec_hi = _mm512_maskz_cvtepu16_epi32(mask_split, _mm512_extracti64x4_epi64(vec, 1)); 
+
+      // Barrett reduction
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(vec_lo, mu_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(vec_hi, mu_vec);
+
+      temp_lo = _mm512_srli_epi32(temp_lo, 16);
+      temp_hi = _mm512_srli_epi32(temp_hi, 16);
+
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(temp_lo, val_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(temp_hi, val_vec);
+
+      // Calculate the remainder
+      vec_lo = _mm512_sub_epi32(vec_lo, temp_lo);
+      vec_hi = _mm512_sub_epi32(vec_hi, temp_hi);
+
+      // Handle remainders greater than the input value
+      __mmask16 cmp_lo = _mm512_cmpge_epi32_mask(vec_lo, val_vec);
+      __mmask16 cmp_hi = _mm512_cmpge_epi32_mask(vec_hi, val_vec);
+  
+      vec_lo = _mm512_sub_epi32(vec_lo, _mm512_maskz_mov_epi32(cmp_lo, val_vec));
+      vec_hi = _mm512_sub_epi32(vec_hi, _mm512_maskz_mov_epi32(cmp_hi, val_vec));
+
+      // Convert back to 8-Bit values and put together
+      return _mm512_inserti64x4(_mm512_castsi256_si512(_mm512_cvtepi32_epi16(vec_lo)), _mm512_cvtepi32_epi16(vec_hi),1);
+  - target_extension: ["avx512"]
+    ctype: ["uint32_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: |
+      using T = uint64_t;
+      __m512i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
+
+      // Compute Barrett constants
+      T mu = (1 << 32) / val;
+      mu_vec = _mm512_set1_epi64(mu);
+      val_vec = _mm512_set1_epi64(val);
+
+      // Zero extend and split vector
+      __mmask8 mask_split = 0xFF;
+      vec_lo = _mm512_maskz_cvtepu32_epi64(mask_split, _mm512_extracti64x4_epi64(vec, 0));
+      vec_hi = _mm512_maskz_cvtepu32_epi64(mask_split, _mm512_extracti64x4_epi64(vec, 1)); 
+
+      // Barrett reduction
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(vec_lo, mu_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(vec_hi, mu_vec);
+
+      temp_lo = _mm512_srli_epi32(temp_lo, 32);
+      temp_hi = _mm512_srli_epi32(temp_hi, 32);
+
+      temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(temp_lo, val_vec);
+      temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(temp_hi, val_vec);
+
+      // Calculate the remainder
+      vec_lo = _mm512_sub_epi64(vec_lo, temp_lo);
+      vec_hi = _mm512_sub_epi64(vec_hi, temp_hi);
+
+      // Handle remainders greater than the input value
+      __mmask8 cmp_lo = _mm512_cmpge_epi64_mask(vec_lo, val_vec);
+      __mmask8 cmp_hi = _mm512_cmpge_epi64_mask(vec_hi, val_vec);
+  
+      vec_lo = _mm512_sub_epi64(vec_lo, _mm512_maskz_mov_epi64(cmp_lo, val_vec));
+      vec_hi = _mm512_sub_epi64(vec_hi, _mm512_maskz_mov_epi64(cmp_hi, val_vec));
+
+      // Convert back to 8-Bit values and put together
+      return _mm512_inserti64x4(_mm512_castsi256_si512(_mm512_cvtepi64_epi32(vec_lo)), _mm512_cvtepi64_epi32(vec_hi),1);
+  - target_extension: ["avx512"]
+    ctype: ["uint64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: |
+      __m512i mu_vec, val_vec, q1, q2, q3, r1, r2, r3, r;
+
+      val_vec = _mm512_set1_epi64(val);
+
+      // Compute Barrett Constant
+      uint64_t mu = ((1ULL << 64) + val - 1) / val;
+      mu_vec = _mm512_set1_epi64(mu);
+
+      q1 = _mm512_srli_epi64(vec, 32);
+      q1 = tsl::mul<Vec>(q1, mu_vec);
+      q1 = _mm512_srli_epi64(q1, 32);
+      q2 = tsl::mul<Vec>(q1, val_vec);
+
+      r1 = _mm512_and_epi64(vec, _mm512_set1_epi64(0xFFFFFFFF));
+      r2 = tsl::mul<Vec>(mu_vec, r1);
+      q3 = _mm512_srli_epi64(r2, 32);
+
+      r3 = tsl::mul<Vec>(q3, val_vec);
+      r3 = _mm512_sub_epi64(r1, r3);
+
+      r = _mm512_srli_epi64(r3, 63);
+      r = _mm512_and_epi64(r, val_vec);
+      r = _mm512_add_epi64(r, r3);
+
+      // Handle remainders greater than the input value
+      __mmask8 cmp = _mm512_cmpge_epi64_mask(r, val_vec);
+      r = _mm512_sub_epi64(r, _mm512_maskz_mov_epi64(cmp, val_vec));
+      return r;
 # INTEL - AVX2
   - target_extension: ["avx2"]
     ctype: ["uint8_t"]
