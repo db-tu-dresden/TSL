@@ -1231,7 +1231,7 @@ definitions:
 ---
 primitive_name: 'mod_barrett'
 brief_description: |
-  If the barrett condition holds (with a mod n => a < n²) 
+  If the barrett condition holds (with a mod n => a < n²)
   this Primitive correctly operates the modulo operation on one datavector modulo one input value.
   Note: Barrett Reduction is definied for unsigned values.
 parameters:
@@ -1311,8 +1311,8 @@ definitions:
       // Zero extend and split vector
       __mmask32 mask_split = 0xFFFFFFFF;
       vec_lo = _mm512_maskz_cvtepu8_epi16(mask_split, _mm512_extracti64x4_epi64(vec, 0));
-      vec_hi = _mm512_maskz_cvtepu8_epi16(mask_split, _mm512_extracti64x4_epi64(vec, 1)); 
-      
+      vec_hi = _mm512_maskz_cvtepu8_epi16(mask_split, _mm512_extracti64x4_epi64(vec, 1));
+
       // Barrett reduction
       temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(vec_lo, mu_vec);
       temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(vec_hi, mu_vec);
@@ -1330,7 +1330,7 @@ definitions:
       // Handle remainders greater than the input value
       __mmask32 cmp_lo = _mm512_cmpge_epi16_mask(vec_lo, val_vec);
       __mmask32 cmp_hi = _mm512_cmpge_epi16_mask(vec_hi, val_vec);
-  
+
       vec_lo = _mm512_sub_epi16(vec_lo, _mm512_maskz_mov_epi16(cmp_lo, val_vec));
       vec_hi = _mm512_sub_epi16(vec_hi, _mm512_maskz_mov_epi16(cmp_hi, val_vec));
 
@@ -1351,7 +1351,7 @@ definitions:
       // Zero extend and split vector
       __mmask16 mask_split = 0xFFFF;
       vec_lo = _mm512_maskz_cvtepu16_epi32(mask_split, _mm512_extracti64x4_epi64(vec, 0));
-      vec_hi = _mm512_maskz_cvtepu16_epi32(mask_split, _mm512_extracti64x4_epi64(vec, 1)); 
+      vec_hi = _mm512_maskz_cvtepu16_epi32(mask_split, _mm512_extracti64x4_epi64(vec, 1));
 
       // Barrett reduction
       temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(vec_lo, mu_vec);
@@ -1370,7 +1370,7 @@ definitions:
       // Handle remainders greater than the input value
       __mmask16 cmp_lo = _mm512_cmpge_epi32_mask(vec_lo, val_vec);
       __mmask16 cmp_hi = _mm512_cmpge_epi32_mask(vec_hi, val_vec);
-  
+
       vec_lo = _mm512_sub_epi32(vec_lo, _mm512_maskz_mov_epi32(cmp_lo, val_vec));
       vec_hi = _mm512_sub_epi32(vec_hi, _mm512_maskz_mov_epi32(cmp_hi, val_vec));
 
@@ -1391,7 +1391,7 @@ definitions:
       // Zero extend and split vector
       __mmask8 mask_split = 0xFF;
       vec_lo = _mm512_maskz_cvtepu32_epi64(mask_split, _mm512_extracti64x4_epi64(vec, 0));
-      vec_hi = _mm512_maskz_cvtepu32_epi64(mask_split, _mm512_extracti64x4_epi64(vec, 1)); 
+      vec_hi = _mm512_maskz_cvtepu32_epi64(mask_split, _mm512_extracti64x4_epi64(vec, 1));
 
       // Barrett reduction
       temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(vec_lo, mu_vec);
@@ -1410,7 +1410,7 @@ definitions:
       // Handle remainders greater than the input value
       __mmask8 cmp_lo = _mm512_cmpge_epi64_mask(vec_lo, val_vec);
       __mmask8 cmp_hi = _mm512_cmpge_epi64_mask(vec_hi, val_vec);
-  
+
       vec_lo = _mm512_sub_epi64(vec_lo, _mm512_maskz_mov_epi64(cmp_lo, val_vec));
       vec_hi = _mm512_sub_epi64(vec_hi, _mm512_maskz_mov_epi64(cmp_hi, val_vec));
 
@@ -1491,11 +1491,11 @@ definitions:
       // Put back into 8-Bit values
       vec_lo = _mm256_packus_epi16(vec_lo, _mm256_setzero_si256());
       vec_hi = _mm256_packus_epi16(vec_hi, _mm256_setzero_si256());
-        
+
       // Shuffle values to the right place
       vec_lo = _mm256_permute4x64_epi64(vec_lo, _MM_SHUFFLE(3,1,2,0));
       vec_hi = _mm256_permute4x64_epi64(vec_hi, _MM_SHUFFLE(2,0,3,1));
-    
+
       return _mm256_or_si256(vec_lo, vec_hi);
   - target_extension: ["avx2"]
     ctype: ["uint16_t"]
@@ -1536,11 +1536,11 @@ definitions:
       // Put back into 16-Bit values
       vec_lo = _mm256_packus_epi32(vec_lo, _mm256_setzero_si256());
       vec_hi = _mm256_packus_epi32(vec_hi, _mm256_setzero_si256());
-        
+
       // Shuffle values to the right place
       vec_lo = _mm256_permute4x64_epi64(vec_lo, _MM_SHUFFLE(3,1,2,0));
       vec_hi = _mm256_permute4x64_epi64(vec_hi, _MM_SHUFFLE(2,0,3,1));
-    
+
       return _mm256_or_si256(vec_lo, vec_hi);
   - target_extension: ["avx2"]
     ctype: ["uint32_t"]
@@ -1581,7 +1581,7 @@ definitions:
       // Shuffle values to the right place
       vec_lo = _mm256_permutevar8x32_epi32(vec_lo, _mm256_set_epi32(7, 5, 3, 1, 6, 4, 2, 0));
       vec_hi = _mm256_permutevar8x32_epi32(vec_hi, _mm256_set_epi32(6, 4, 2, 0, 7, 5, 3, 1));
-    
+
       return _mm256_or_si256(vec_lo, vec_hi);
   - target_extension: ["avx2"]
     ctype: ["uint64_t"]
@@ -1624,12 +1624,12 @@ definitions:
     implementation: |
       using T = uint16_t;
       __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
-     
+
       // Compute Barrett constants
       T mu = (1 << 8) / val;
       mu_vec = _mm_set1_epi16(mu);
       val_vec = _mm_set1_epi16(val);
-      
+
       vec_lo = _mm_cvtepu8_epi16(vec);
       vec_hi = _mm_cvtepu8_epi16(_mm_srli_si128(vec, 8));
 
@@ -1642,11 +1642,11 @@ definitions:
 
       temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(temp_lo, val_vec);
       temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(temp_hi, val_vec);
-      
+
       // Calculate the remainder
       vec_lo = _mm_sub_epi16(vec_lo, temp_lo);
       vec_hi = _mm_sub_epi16(vec_hi, temp_hi);
-      
+
       // Handle remainders greater than the input value
       temp_lo = _mm_or_si128(_mm_cmpgt_epi16(vec_lo, val_vec), _mm_cmpeq_epi16(vec_lo, val_vec));
       temp_hi = _mm_or_si128(_mm_cmpgt_epi16(vec_hi, val_vec), _mm_cmpeq_epi16(vec_hi, val_vec));
@@ -1665,12 +1665,12 @@ definitions:
     implementation: |
       using T = uint32_t;
       __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
-     
+
       // Compute Barrett constants
       T mu = (1 << 16) / val;
       mu_vec = _mm_set1_epi32(mu);
       val_vec = _mm_set1_epi32(val);
-      
+
       vec_lo = _mm_cvtepu16_epi32(vec);
       vec_hi = _mm_cvtepu16_epi32(_mm_srli_si128(vec, 8));
 
@@ -1683,11 +1683,11 @@ definitions:
 
       temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(temp_lo, val_vec);
       temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(temp_hi, val_vec);
-      
+
       // Calculate the remainder
       vec_lo = _mm_sub_epi32(vec_lo, temp_lo);
       vec_hi = _mm_sub_epi32(vec_hi, temp_hi);
-      
+
       // Handle remainders greater than the input value
       temp_lo = _mm_or_si128(_mm_cmpgt_epi32(vec_lo, val_vec), _mm_cmpeq_epi32(vec_lo, val_vec));
       temp_hi = _mm_or_si128(_mm_cmpgt_epi32(vec_hi, val_vec), _mm_cmpeq_epi32(vec_hi, val_vec));
@@ -1705,12 +1705,12 @@ definitions:
     implementation: |
       using T = uint64_t;
       __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
-     
+
       // Compute Barrett constants
       T mu = (1 << 32) / val;
       mu_vec = _mm_set1_epi64x(mu);
       val_vec = _mm_set1_epi64x(val);
-      
+
       vec_lo = _mm_cvtepu32_epi64(vec);
       vec_hi = _mm_cvtepu32_epi64(_mm_srli_si128(vec, 8));
 
@@ -1723,11 +1723,11 @@ definitions:
 
       temp_lo = tsl::mul<typename Vec::template transform_extension<T>>(temp_lo, val_vec);
       temp_hi = tsl::mul<typename Vec::template transform_extension<T>>(temp_hi, val_vec);
-      
+
       // Calculate the remainder
       vec_lo = _mm_sub_epi64(vec_lo, temp_lo);
       vec_hi = _mm_sub_epi64(vec_hi, temp_hi);
-      
+
       // Handle remainders greater than the input value
       temp_lo = _mm_or_si128(_mm_cmpgt_epi64(vec_lo, val_vec), _mm_cmpeq_epi64(vec_lo, val_vec));
       temp_hi = _mm_or_si128(_mm_cmpgt_epi64(vec_hi, val_vec), _mm_cmpeq_epi64(vec_hi, val_vec));
@@ -1746,7 +1746,7 @@ definitions:
     lscpu_flags: [ 'sse2', 'sse4_1' ]
     implementation: |
       __m128i mu_vec, val_vec, q1, q2, q3, r1, r2, r3, r, cmp;
-      
+
       val_vec = _mm_set1_epi64x(val);
 
       // Compute Barrett Constant
@@ -1761,7 +1761,7 @@ definitions:
       r1 = _mm_and_si128(vec, _mm_set1_epi64x(0xFFFFFFFF));
       r2 = tsl::mul<Vec>(mu_vec,r1);
       q3 = _mm_srli_si128(r2, 32);
-      
+
       r3 = tsl::mul<Vec>(q3, val_vec);
       r3 = _mm_sub_epi64(r1, r3);
 
