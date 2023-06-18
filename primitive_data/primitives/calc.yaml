@@ -1620,7 +1620,7 @@ definitions:
 # INTEL - SSE
   - target_extension: ["sse"]
     ctype: ["uint8_t"]
-    lscpu_flags: ["sse2"]
+    lscpu_flags: ["sse2", "sse3", "sse4_1"]
     implementation: |
       using T = uint16_t;
       __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
@@ -1661,7 +1661,7 @@ definitions:
       return _mm_or_si128(vec_lo, vec_hi);
   - target_extension: ["sse"]
     ctype: [ "uint16_t" ]
-    lscpu_flags: ["sse2"]
+    lscpu_flags: ["sse2", "sse3"]
     implementation: |
       using T = uint32_t;
       __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
@@ -1701,7 +1701,7 @@ definitions:
       return _mm_or_si128(vec_lo, vec_hi);
   - target_extension: 'sse'
     ctype: [ 'uint32_t' ]
-    lscpu_flags: [ 'sse2' ]
+    lscpu_flags: [ 'sse2', 'sse4_2', 'sse4_1' ]
     implementation: |
       using T = uint64_t;
       __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
@@ -1743,7 +1743,7 @@ definitions:
       return _mm_blend_epi16(vec_lo, vec_hi, 0b11110000);
   - target_extension: 'sse'
     ctype: [ 'uint64_t' ]
-    lscpu_flags: [ 'sse2', 'sse4_1' ]
+    lscpu_flags: [ 'sse2', 'sse4_1', 'sse4_2' ]
     implementation: |
       __m128i mu_vec, val_vec, q1, q2, q3, r1, r2, r3, r, cmp;
 
