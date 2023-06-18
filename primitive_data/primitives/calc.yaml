@@ -1344,7 +1344,7 @@ definitions:
       __m512i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
 
       // Compute Barrett constants
-      T mu = (1 << 16) / val;
+      T mu = ((1 << 8) << 8) / val;
       mu_vec = _mm512_set1_epi32(mu);
       val_vec = _mm512_set1_epi32(val);
 
@@ -1384,7 +1384,7 @@ definitions:
       __m512i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
 
       // Compute Barrett constants
-      T mu = (1 << 32) / val;
+      T mu = ((1UL << 16) << 16) / val;
       mu_vec = _mm512_set1_epi64(mu);
       val_vec = _mm512_set1_epi64(val);
 
@@ -1425,7 +1425,7 @@ definitions:
       val_vec = _mm512_set1_epi64(val);
 
       // Compute Barrett Constant
-      uint64_t mu = ((1ULL << 64) + val - 1) / val;
+      uint64_t mu = (((1ULL << 32) << 32) + val - 1) / val;
       mu_vec = _mm512_set1_epi64(mu);
 
       q1 = _mm512_srli_epi64(vec, 32);
@@ -1505,7 +1505,7 @@ definitions:
       __m256i mu_vec, val_vec, vec_lo, vec_hi, temp_lo, temp_hi, mask;
 
       // Compute Barrett constants
-      T mu = (1 << 16) / val;
+      T mu = ((1 << 8) << 8) / val;
       mu_vec = _mm256_set1_epi32(mu);
       val_vec = _mm256_set1_epi32(val);
 
@@ -1550,7 +1550,7 @@ definitions:
       __m256i mu_vec, val_vec, vec_lo, vec_hi, temp_lo, temp_hi, mask;
 
       // Compute Barrett constants
-      T mu = (1 << 32) / val;
+      T mu = ((1UL << 16) << 16) / val;
       mu_vec = _mm256_set1_epi64x(mu);
       val_vec = _mm256_set1_epi64x(val);
 
@@ -1592,7 +1592,7 @@ definitions:
       val_vec = _mm256_set1_epi64x(val);
 
       // Compute Barrett Constant
-      uint64_t mu = ((1ULL << 64) + val - 1) / val;
+      uint64_t mu = (((1ULL << 32) << 32) + val - 1) / val;
       mu_vec = _mm256_set1_epi64x(mu);
 
       q1 = _mm256_srli_si256(vec, 32);
@@ -1667,7 +1667,7 @@ definitions:
       __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
 
       // Compute Barrett constants
-      T mu = (1 << 16) / val;
+      T mu = ((1 << 8) << 8) / val;
       mu_vec = _mm_set1_epi32(mu);
       val_vec = _mm_set1_epi32(val);
 
@@ -1707,7 +1707,7 @@ definitions:
       __m128i mu_vec, q, val_vec, r, cmp, vec_lo, vec_hi, temp_lo, temp_hi, mask;
 
       // Compute Barrett constants
-      T mu = (1 << 32) / val;
+      T mu = ((1UL << 16) << 16) / val;
       mu_vec = _mm_set1_epi64x(mu);
       val_vec = _mm_set1_epi64x(val);
 
@@ -1750,7 +1750,7 @@ definitions:
       val_vec = _mm_set1_epi64x(val);
 
       // Compute Barrett Constant
-      uint64_t mu = ((1ULL << 64) + val - 1) / val;
+      uint64_t mu = (((1ULL << 32) << 32) + val - 1) / val;
       mu_vec = _mm_set1_epi64x(mu);
 
       q1 = _mm_srli_si128(vec, 32);
@@ -1779,11 +1779,11 @@ definitions:
     ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t']
     lscpu_flags: [ ]
     implementation: |
-      Vec::base_type q, a, mu;
-      mu = (1 << {{intrin_tp[ctype][1]}}) / val;
+      {{ctype}} q, a, mu;
+      mu = (({{ctype}}(1) << ({{intrin_tp[ctype][1]}}/2)) << ({{intrin_tp[ctype][1]}}/2)) / val;
       a = vec;
 
-      q = (a * mu) >> {{intrin_tp[ctype][1]}};
+      q = ((a * mu) >> ({{intrin_tp[ctype][1]}}/2)) >> ({{intrin_tp[ctype][1]}}/2);
       a -= q * val;
       if (val <= a){
         a -= val;
