@@ -533,7 +533,7 @@ returns:
   description: "Array containing the upconverted simd registers."
 testing:
   - test_name: "default"
-    requires: ["loadu", "equal", "to_integral", "add"]
+    requires: ["equal", "to_integral", "add"]
     includes: ["<limits>", "<cstdint>", "<algorithm>"]
     implementation: |
       using lower_type = typename Vec::base_type;

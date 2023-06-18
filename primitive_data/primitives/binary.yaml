@@ -1047,7 +1047,7 @@ returns:
   description: "Result of the horizontal OR"
 testing:
   - test_name: "with_only_zero"
-    requires: ["set1", "loadu", "storeu"]
+    requires: ["set1"]
     includes: ["<cstddef>"]
     implementation: |
         using T = typename Vec::base_type;
@@ -1060,7 +1060,7 @@ testing:
         test_helper.synchronize();
         return test_helper.validate();
   - test_name: "with_only_one"
-    requires: ["set1", "loadu", "storeu"]
+    requires: ["set1"]
     includes: ["<cstddef>"]
     implementation: |
         using T = typename Vec::base_type;
@@ -1073,7 +1073,7 @@ testing:
         test_helper.synchronize();
         return test_helper.validate();
   - test_name: "with_rand_values"
-    requires: ["loadu", "storeu"]
+    requires: ["loadu"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -1266,7 +1266,7 @@ returns:
   description: "Result of the invertion."
 testing:
   - test_name: "with_only_zero"
-    requires: ["set1", "loadu", "storeu"]
+    requires: ["set1", "storeu"]
     includes: ["<cstddef>", "<algorithm>", "<limits>"]
     implementation: |
         using T = typename Vec::base_type;
@@ -1304,7 +1304,7 @@ testing:
           return test_helper.validate();
         }
   - test_name: "with_only_ones"
-    requires: ["set1", "loadu", "storeu"]
+    requires: ["set1", "storeu"]
     includes: ["<cstddef>", "<algorithm>", "<limits>"]
     implementation: |
         using T = typename Vec::base_type;

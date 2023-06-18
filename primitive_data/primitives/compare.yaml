@@ -865,7 +865,7 @@ returns:
   description: "Result indicating if the vector register contains at least one value unequal to zero."
 testing:
   - test_name: "with_only_zero"
-    requires: ["set1", "loadu", "storeu"]
+    requires: ["set1"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -878,7 +878,7 @@ testing:
       test_helper.synchronize();
       return test_helper.validate();
   - test_name: "with_only_one"
-    requires: ["set1", "loadu", "storeu"]
+    requires: ["set1"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -891,7 +891,7 @@ testing:
       test_helper.synchronize();
       return test_helper.validate();
   - test_name: "with_sequence"
-    requires: ["sequence", "loadu", "storeu"]
+    requires: ["sequence"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
