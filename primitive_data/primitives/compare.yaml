@@ -130,6 +130,26 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (vec_a == vec_b);"
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      // Create a value with all bits set to 1, regardless of underlying type
+      {% if ctype in ["float", "double"] %}
+      memset((void*)&checker, 0xff, sizeof(checker));
+      {% else %}
+      typename Vec::base_type checker = ~0;
+      {% endif %}
+      //
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = (vec_a[i] == vec_b[i]) ? checker : 0;
+      }
+      return result;
 ...
 ---
 primitive_name: "equal"
@@ -268,6 +288,26 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (vec_a != vec_b);"
+  #INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      // Create a value with all bits set to 1, regardless of underlying type
+      {% if ctype in ["float", "double"] %}
+      memset((void*)&checker, 0xff, sizeof(checker));
+      {% else %}
+      typename Vec::base_type checker = ~0;
+      {% endif %}
+      //
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = (vec_a[i] == vec_b[i]) ? 0 : checker;
+      }
+      return result;
 ...
 ---
 primitive_name: "between_inclusive"
@@ -327,19 +367,22 @@ definitions:
     implementation: "return vandq_u64( vcgeq_s64( vec_data, vec_min ), vcleq_s64( vec_data, vec_max ) );"
 #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
       using T = typename Vec::register_type;
       T result{};
       // Create a value with all bits set to 1, regardless of underlying type
-      typename Vec::base_type checker;
+      {% if ctype in ["float", "double"] %}
       memset((void*)&checker, 0xff, sizeof(checker));
-
+      {% else %}
+      typename Vec::base_type checker = ~0;
+      {% endif %}
+      //
       #pragma unroll
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-          result[i] = ((vec_data[i] >= vec_min[i]) && (vec_data[i] <= vec_max[i])) ? checker : 0;
+        result[i] = ((vec_data[i] >= vec_min[i]) && (vec_data[i] <= vec_max[i])) ? checker : 0;
       }
       return result;
 ...
@@ -466,6 +509,26 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (vec_a < vec_b);"
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      // Create a value with all bits set to 1, regardless of underlying type
+      {% if ctype in ["float", "double"] %}
+      memset((void*)&checker, 0xff, sizeof(checker));
+      {% else %}
+      typename Vec::base_type checker = ~0;
+      {% endif %}
+      //
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = (vec_a[i] < vec_b[i]) ? checker : 0;
+      }
+      return result;
 ...
 ---
 primitive_name: "greater_than"
@@ -587,6 +650,26 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (vec_a > vec_b);"
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      // Create a value with all bits set to 1, regardless of underlying type
+      {% if ctype in ["float", "double"] %}
+      memset((void*)&checker, 0xff, sizeof(checker));
+      {% else %}
+      typename Vec::base_type checker = ~0;
+      {% endif %}
+      //
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = (vec_a[i] > vec_b[i]) ? checker : 0;
+      }
+      return result;
 ...
 ---
 primitive_name: "less_than_or_equal"
@@ -719,6 +802,26 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (vec_a <= vec_b);"
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      // Create a value with all bits set to 1, regardless of underlying type
+      {% if ctype in ["float", "double"] %}
+      memset((void*)&checker, 0xff, sizeof(checker));
+      {% else %}
+      typename Vec::base_type checker = ~0;
+      {% endif %}
+      //
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = (vec_a[i] <= vec_b[i]) ? checker : 0;
+      }
+      return result;
 ...
 ---
 primitive_name: "greater_than_or_equal"
@@ -852,6 +955,26 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (vec_a >= vec_b);"
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      // Create a value with all bits set to 1, regardless of underlying type
+      {% if ctype in ["float", "double"] %}
+      memset((void*)&checker, 0xff, sizeof(checker));
+      {% else %}
+      typename Vec::base_type checker = ~0;
+      {% endif %}
+      //
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = (vec_a[i] >= vec_b[i]) ? checker : 0;
+      }
+      return result;
 ...
 ---
 primitive_name: "unequal_zero"

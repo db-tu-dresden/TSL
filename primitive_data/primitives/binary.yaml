@@ -1004,7 +1004,7 @@ definitions:
       T result{};
       #pragma unroll
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-          result[i] = data[i] >> shift[i];
+        result[i] = data[i] >> shift[i];
       }
       return result;
 testing:
