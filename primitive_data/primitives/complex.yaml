@@ -81,7 +81,6 @@ definitions:
     implementation: |
       using T = typename Vec::base_type;
       using UnsignedT = std::make_unsigned_t<T>;
-      
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       //we are wasting some space here, but it is easier to implement (and maybe even more efficient)
       BigIntT tmp_result[Vec::vector_element_count()];
@@ -89,14 +88,13 @@ definitions:
       for (unsigned int i = 0; i < (Vec::vector_element_count()>>1); ++i) {
         tmp_result[i] = BigIntT{(UnsignedT)data[(i<<1)]} | (BigIntT{(UnsignedT)data[(i<<1)+1]} << bitwidth);
       }
-      
       unsigned current_result_position = Vec::vector_element_count()>>1;
       unsigned previous_stage_start_idx = 0;
       unsigned current_stage = 1;
       #pragma unroll cilog2((Vec::vector_element_count()>>1))
       for(size_t current_upper_idx = (Vec::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
           #pragma unroll
-          for(size_t i = 0; i < current_upper_idx; ++i) {            
+          for(size_t i = 0; i < current_upper_idx; ++i) {
             tmp_result[current_result_position + i] =
                 tmp_result[previous_stage_start_idx + (i<<1)] | (tmp_result[previous_stage_start_idx + (i<<1)+1] << (bitwidth<<current_stage));
           }
@@ -215,7 +213,6 @@ definitions:
     implementation: |
       using T = typename Vec::base_type;
       using UnsignedT = std::make_unsigned_t<T>;
-      
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       //we are wasting some space here, but it is easier to implement (and maybe even more efficient)
       BigIntT tmp_result[Vec::vector_element_count()];
@@ -223,14 +220,13 @@ definitions:
       for (unsigned int i = 0; i < (Vec::vector_element_count()>>1); ++i) {
         tmp_result[i] = BigIntT{(UnsignedT)data[(i<<1)]} | (BigIntT{(UnsignedT)data[(i<<1)+1]} << bitwidth);
       }
-      
       unsigned current_result_position = Vec::vector_element_count()>>1;
       unsigned previous_stage_start_idx = 0;
       unsigned current_stage = 1;
       #pragma unroll cilog2((Vec::vector_element_count()>>1))
       for(size_t current_upper_idx = (Vec::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
           #pragma unroll
-          for(size_t i = 0; i < current_upper_idx; ++i) {            
+          for(size_t i = 0; i < current_upper_idx; ++i) {
             tmp_result[current_result_position + i] =
                 tmp_result[previous_stage_start_idx + (i<<1)] | (tmp_result[previous_stage_start_idx + (i<<1)+1] << (bitwidth<<current_stage));
           }

@@ -555,6 +555,19 @@ definitions:
     implementation: |
       return data << shift;
     # "return (shift >= sizeof(typename Vec::register_type) * 8) ? 0 : data << shift;"
+  #FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = data[i] << shift[i];
+      }
+      return result;
 testing:
   - requires: ["storeu", "loadu", "set1"]
     includes: ["<cstddef>", "<climits>"]
@@ -593,7 +606,7 @@ detailed_description: |
   For unsigned data type, the PreserveSign parameter and the most significant bit does not have any effect on the value of the bits shifted in (always shifts in 0).
   For signed data types, the PreserveSign parameter and the most significant bit determine the value of the shift in.
   If PreserveSign is set to false, 0 is shifted in, otherwise the most significant bit is shifted in.
-  Note: The value of shift is __not__ checked for validity to omit branching and unnecessary instructions. Consequently, if shift is larger than the number 
+  Note: The value of shift is __not__ checked for validity to omit branching and unnecessary instructions. Consequently, if shift is larger than the number
   of bits in the data type, the result will likely differ between the scalar and the SIMD implementations:
   Scalar: value >> (shift % (sizeof(typename Vec::base_type) * CHAR_BIT))
   SIMD: 0.
@@ -716,9 +729,9 @@ definitions:
         if constexpr (PreserveSign) {
           return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);
         } else {
-          return vshrq_n_u{{ intrin_tp[ctype][1] }}(vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data), shift);  
+          return vshrq_n_u{{ intrin_tp[ctype][1] }}(vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data), shift);
         }
-      } else {  
+      } else {
         return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);
       }
   # - target_extension: "neon"
@@ -931,7 +944,7 @@ definitions:
         return _mm_srav_epi{{ intrin_tp[ctype][1] }}(data, shift);
       } else {
         return _mm_srlv_epi{{ intrin_tp[ctype][1] }}(data, shift);
-      }  
+      }
   - target_extension: "sse"
     ctype: ["int64_t"]
     lscpu_flags: ["sse2", "avx2"]
@@ -969,7 +982,7 @@ definitions:
       for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
         tmp[i] >>= shift;
       }
-      return vld1q_{{ intrin_tp_full[ctype] }}(tmp.data());     
+      return vld1q_{{ intrin_tp_full[ctype] }}(tmp.data());
   #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"]
@@ -1520,4 +1533,17 @@ definitions:
       u.val = vec;
       u.i_val = ~u.i_val;
       return u.val;
+  #FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      #pragma unroll
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          result[i] = ~data[i];
+      }
+      return result;
 ...
