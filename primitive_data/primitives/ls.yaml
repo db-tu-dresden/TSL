@@ -1326,6 +1326,12 @@ definitions:
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
     implementation: "_mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: [ ]
+    implementation: |
+      if(mask) *memory = data ;
 ...
 ---
 primitive_name: "expand_load"
