@@ -28,6 +28,7 @@ definitions:
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
     implementation: |
       using T = typename Vec::base_type;
+      // we must not use std::is_signed_v<T> for the ac_int, since we don't want the sign bit to be populated.
       using BigIntT = ac_int<Vec::vector_size_b(), false>;//std::is_signed_v<T>>;
       BigIntT tmp_result{0};
       #pragma unroll
