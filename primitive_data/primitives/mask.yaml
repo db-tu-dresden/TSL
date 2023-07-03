@@ -853,6 +853,11 @@ definitions:
       #else
       static_assert(false, "No known implementation for popcount");
       #endif
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return mask ? 1 : 0;"
 ...
 ---
 primitive_name: "integral_all_true"
