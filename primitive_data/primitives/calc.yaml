@@ -495,6 +495,7 @@ definitions:
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ ]
     implementation: "return vec_a * vec_b;"
+...
 ---
 primitive_name: "hadd"
 brief_description: "Reduces the elements to a sum."
@@ -525,65 +526,41 @@ testing:
       return allOk;
 definitions:
 #INTEL - FPGA
-  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+  - target_extension: "oneAPIfpga"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
-      typename Vec::register_type result{};
-      #pragma unroll
-      for(size_t i = 0; i < Vec::vector_element_count(); ++i) { result[i] = value[i]; }
-      #pragma unroll cilog2(Vec::vector_element_count())
-      for(size_t current_width = (Vec::vector_element_count()>>1); current_width >= 1; current_width>>=1) {
-          for(size_t i = 0; i < current_width; ++i) {
-              result[i] = result[(i<<1)] + result[(i<<1)+1];
-          }
-      }
-      return result[0];
-# using T = typename Vec::base_type;
-# T result = 0; //initialize the result
-# #pragma unroll
-# for(int i = 0; i < Vec::vector_element_count(); i+=16) {
-#   T add_1_1 = value[ 0] + value[ 1];
-#   T add_1_2 = value[ 2] + value[ 3];
-#   T add_1_3 = value[ 4] + value[ 5];
-#   T add_1_4 = value[ 6] + value[ 7];
-#   T add_1_5 = value[ 8] + value[ 9];
-#   T add_1_6 = value[10] + value[11];
-#   T add_1_7 = value[12] + value[13];
-#   T add_1_8 = value[14] + value[15];
-
-#   T add_2_1 = add_1_1 + add_1_2;
-#   T add_2_2 = add_1_3 + add_1_4;
-#   T add_2_3 = add_1_5 + add_1_6;
-#   T add_2_4 = add_1_7 + add_1_8;
-
-#   T add_3_1 = add_2_1 + add_2_2;
-#   T add_3_2 = add_2_3 + add_2_4;
-
-#   result += add_3_1 + add_3_2;
-# }
-# return result;
-  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
-    ctype: ["uint64_t", "int64_t", "double"]
+      return reducer::apply<typename Vec::base_type, Vec::vector_element_count(), functors::add<simd<typename Vec::base_type, scalar>, Idof>>(value);
+  - target_extension: "oneAPIfpgaRTL"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
+    specialization_comment: "This is for testing reasons only and does *not* use any RTL codes."
     implementation: |
-      using T = typename Vec::base_type;
-      T result = 0; //initialize the result
-      #pragma unroll
-      for(int i = 0; i < Vec::vector_element_count(); i+=16) {
-        T add_1_1 = value[i  ] + value[i+1];
-        T add_1_2 = value[i+2] + value[i+3];
-        T add_1_3 = value[i+4] + value[i+5];
-        T add_1_4 = value[i+6] + value[i+7];
+      {% import 'core/definition_macro_helper_oneAPI.template' as helpers %}
+      {{ helpers.tree_like_reduce("Vec", "result_vec", "value", "+") }}
+      return result_vec[Vec::vector_element_count()-2];
+  # - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+  #   ctype: ["uint64_t", "int64_t", "double"]
+  #   lscpu_flags: ["oneAPIfpgaDev"]
+  #   vector_length_agnostic: True
+  #   implementation: |
+  #     using T = typename Vec::base_type;
+  #     T result = 0; //initialize the result
+  #     #pragma unroll
+  #     for(int i = 0; i < Vec::vector_element_count(); i+=16) {
+  #       T add_1_1 = value[i  ] + value[i+1];
+  #       T add_1_2 = value[i+2] + value[i+3];
+  #       T add_1_3 = value[i+4] + value[i+5];
+  #       T add_1_4 = value[i+6] + value[i+7];
 
-        T add_2_1 = add_1_1 + add_1_2;
-        T add_2_2 = add_1_3 + add_1_4;
+  #       T add_2_1 = add_1_1 + add_1_2;
+  #       T add_2_2 = add_1_3 + add_1_4;
 
-        result += add_2_1 + add_2_2;
-      }
-      return result;
+  #       result += add_2_1 + add_2_2;
+  #     }
+  #     return result;
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["float", "double"]
@@ -1210,4 +1187,60 @@ definitions:
     ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t' ]
     lscpu_flags: [ ]
     implementation: return vec % val;
+# FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result; //initialize the result
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = vec[i] - ((vec[i] / val[i]) * val[i]);
+      }
+      return result;
+...
+
+---
+primitive_name: "hmax"
+brief_description: "Reduces the elements to the maximum value."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Input vector."
+returns:
+  ctype: "typename Vec::base_type"
+  description: "Scalar value after adding all elements in the vector."
+definitions:
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      {% import 'core/definition_macro_helper_oneAPI.template' as helpers %}
+      {{ helpers.tree_like_reduce_ternary_auto("Vec", "result_vec", "data", ">") }}
+      return result_vec[Vec::vector_element_count()-2];
+...
+---
+primitive_name: "hmin"
+brief_description: "Reduces the elements to the maximum value."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Input vector."
+returns:
+  ctype: "typename Vec::base_type"
+  description: "Scalar value after adding all elements in the vector."
+definitions:
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      {% import 'core/definition_macro_helper_oneAPI.template' as helpers %}
+      {{ helpers.tree_like_reduce_ternary_auto("Vec", "result_vec", "data", "<") }}
+      return result_vec[Vec::vector_element_count()-2];
 ...
