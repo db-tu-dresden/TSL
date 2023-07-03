@@ -11,6 +11,7 @@ includes:
   - '<limits>'
   - '<iostream>'
   - '<tuple>'
+  - '<cstdint>'
 implementations:
   - |
     enum class modifier {

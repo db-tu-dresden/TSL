@@ -24,7 +24,7 @@ configuration:
    expansions:
       cmake:
          enabled:                 True
-         minimum_version:         "3.10"
+         minimum_version:         "3.13"
          verbose_make_files:      True
          tsl_lib_name:            "tsl"
       unit_tests:
