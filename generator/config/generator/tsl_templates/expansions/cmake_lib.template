@@ -1,0 +1,46 @@
+cmake_minimum_required(VERSION {{ minimum_version }})
+{% if verbose_make_files %}
+set(CMAKE_VERBOSE_MAKEFILE ON)
+{% else %}
+set(CMAKE_VERBOSE_MAKEFILE OFF)
+{% endif %}
+add_library({{ tsl_lib_name }} INTERFACE)
+{% if use_concepts %}
+#set_target_properties({{ tsl_lib_name }} PROPERTIES CXX_STANDARD 20)
+target_compile_features({{ tsl_lib_name }} INTERFACE cxx_std_20)
+{% else %}
+target_compile_features({{ tsl_lib_name }} INTERFACE cxx_std_17)
+{% endif %}
+
+target_sources({{ tsl_lib_name }}
+{% for file in header_files %}
+   INTERFACE {{ file }}
+{% endfor %}
+)
+target_include_directories({{ tsl_lib_name }} INTERFACE {{ library_root_path }})
+target_compile_options({{ tsl_lib_name }} INTERFACE {{ tsl_target_compile_options }})
+{% if use_concepts %}
+target_compile_definitions({{ tsl_lib_name }} INTERFACE TSL_USE_CONCEPTS)
+{% endif %}
+if (DEFINED TSL_LINK_OPTIONS)
+   target_link_options({{ tsl_lib_name}} INTERFACE ${TSL_LINK_OPTIONS})
+endif()
+{% for dir in subdirectories %}
+add_subdirectory({{ dir }})
+{% endfor %}
+
+# Add subdirectories containing supplementary libraries
+{% for supplementary_lib in tsl_required_supplementary_libraries %}
+add_subdirectory({{ supplementary_lib["cmakelists_path"] }})
+{% endfor %}
+# Add includes if present
+{% for supplementary_lib in tsl_required_supplementary_libraries %}
+{% if "include_path" in supplementary_lib %}
+#target_include_directories({{ tsl_lib_name}} INTERFACE {{ supplementary_lib["include_path"] }}/)
+target_include_directories({{ tsl_lib_name }} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/{{ supplementary_lib["include_path"] }}> $<INSTALL_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/{{ supplementary_lib["include_path"] }} )
+{% endif %}
+{% endfor %}
+# Add custom targets for supplementary libraries
+{% for supplementary_lib in tsl_required_supplementary_libraries %}
+add_dependencies({{ tsl_lib_name}} {{ supplementary_lib["name"] }})
+{% endfor %}

@@ -1,9 +1,0 @@
----
-file_description: "General header which should be included to use the TVL."
-includes: ['"static/tvl_static.hpp"', '"generated/tvl_generated.hpp"']
-implementations:
-   - |
-      #ifndef TVL_GIT_VERSION_STR
-         #   define TVL_GIT_VERSION_STR "{{ git_version_str }}"
-         #endif
-...

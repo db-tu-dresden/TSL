@@ -1,0 +1,13 @@
+---
+description: "Definition of the SIMD TargetExtension sse."
+vendor: ""
+extension_name: "scalar"
+lscpu_flags: []
+includes: []
+simdT_name: "scalar"
+simdT_register_type: "BaseType"
+simdT_mask_type: "bool"
+simdT_integral_mask_type: "uint8_t"
+intrin_tp: {uint8_t: ["uint", 8, "_t"], uint16_t: ["uint", 16, "_t"], uint32_t: ["uint", 32, "_t"], uint64_t: ["uint", 64, "_t"], int8_t: ["int", 8, "_t"], int16_t: ["int", 16, "_t"], int32_t: ["int", 32, "_t"], int64_t: ["int", 64, "_t"], float: ["float", ""], double: ["double", ""]}
+intrin_tp_full: {uint8_t: "uint8_t", uint16_t: "uint16_t", uint32_t: "uint32_t", uint64_t: "uint64_t", int8_t: "int8_t", int16_t: "int16_t", int32_t: "int32_t", int64_t: "int64_t", float: "float", double: "double"}
+...

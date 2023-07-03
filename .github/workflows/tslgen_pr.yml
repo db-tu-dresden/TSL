@@ -1,0 +1,252 @@
+name: 'tsl-validate-pr'
+
+on:
+  pull_request:
+    branches: ['main']
+    types: ['opened', 'reopened', 'synchronize']
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      -
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - 
+        name: 'Lint with ruff'
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          set -x
+          PYTHONV="py${{ matrix.python-version }}"
+          CURRENT_VERSION=$(echo $PYTHONV | sed 's/\.//')
+          echo $CURRENT_VERSION
+          ruff --format=github --select=E9,F63,F7,F82 --target-version="${CURRENT_VERSION}" -v .
+      -
+        name: 'Install python dependencies for primitive data'
+        run: pip install yamllint
+      -
+        name: 'Lint primitive data'
+        run: yamllint -d relaxed ./primitive_data
+  generate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      -
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}        
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - 
+        name: Try generating the whole TSL with python ${{ matrix.python-version }}
+        run: |
+          python main.py -o tmp
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: ["clang++", "g++"]
+    needs: [lint, generate]
+    steps:
+      -
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+      -
+        name: 'Install packages for generated code'
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential cmake g++ clang
+      -
+        name: 'Run CMake'
+        # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          cmake -S . -B tsl
+      -
+        name: 'Upload generated TSL as artifact'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tsl_${{ github.event.pull_request.head.sha }}
+          path: ./tsl
+          retention-days: 2
+      -
+        name: 'Build TSL'
+        run: make -j -C tsl
+      -
+        name: 'Run Tests'
+        run: ./tsl/generator_output/build/src/test/tsl_test
+
+  validate-lscpu-flags:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target_flags: 
+          - "sse"
+          - "sse;sse2"
+          - "sse;sse2;ssse3"
+          - "sse;sse2;ssse3;sse4_1"
+          - "sse;sse2;ssse3;sse4_1;sse4_2"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f"
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f;avx512cd;avx512er;avx512pf" #avx3.1
+          - "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f;avx512cd;avx512bw;avx512dq;avx512vl" #avx3.2
+    needs: [lint, generate]
+    steps:
+      -
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+      -
+        name: 'Install packages for generated code'
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential cmake g++ clang
+      -
+        name: 'Run CMake'
+        id: cmake
+        run: |
+          HW_LIST=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ';')
+          IFS=";" read -ra TARGET_FLAGS <<< "${{ matrix.target_flags }}"
+          IFS=";" read -ra HW_FLAGS <<< "${HW_LIST}"
+          ANY_TARGET_FLAG_FOUND=0
+          for i in "${TARGET_FLAGS[@]}"; do
+            if [[ " ${HW_FLAGS[*]} " =~ " ${i} " ]]; then
+              echo "Seems to be an intel CPU sinc ${i} is supported."
+              ANY_TARGET_FLAG_FOUND=1
+              break
+            fi
+          done
+          if [ $ANY_TARGET_FLAG_FOUND -eq 1 ]; then
+            cmake -S . -B tsl -DTARGETS_FLAGS="${{ matrix.target_flags }}"
+          else
+            echo "GENERATED=SKIPPED" >> $GITHUB_OUTPUT
+          fi
+      -
+        name: 'Build TSL'
+        if: steps.cmake.outputs.GENERATED != 'SKIPPED'
+        run: make -j -C tsl
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: [validate-lscpu-flags, build-and-test, generate]
+    steps:
+      -
+        name: Checkout main
+        uses: actions/checkout@v3
+      - 
+        name: Checkout PR and merge
+        uses: check-spelling/checkout-merge@v0.0.3
+      -
+        name: 'Install packages for generator'
+        if: env.MERGE_FAILED != '1'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python 3.10
+        if: env.MERGE_FAILED != '1'
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      -
+        name: 'Install python dependencies for generator'
+        if: env.MERGE_FAILED != '1'
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+      -
+        name: 'Install packages for generated code'
+        if: env.MERGE_FAILED != '1'
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential cmake g++ clang
+      -
+        name: 'Run CMake'
+        if: env.MERGE_FAILED != '1'
+        # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: cmake -S . -B tsl
+      -
+        name: 'Build TSL'
+        if: env.MERGE_FAILED != '1'
+        run: make -j -C tsl
+      -
+        name: 'Run Tests'
+        if: env.MERGE_FAILED != '1'
+        run: ./tsl/generator_output/build/src/test/tsl_test

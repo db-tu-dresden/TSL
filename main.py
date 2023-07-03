@@ -1,18 +1,20 @@
 import time
 
-from core.tvl_config import config, parse_args
-import sys, os
+from generator.core.tsl_config import config, parse_args
+import os
+import sys
+import json
 from pathlib import Path
 
-from core.tvl_generator import TVLGenerator
-from expansions.tvl_readme_md import create_readme
-from utils.dict_utils import dict_update
-from utils.yaml_utils import yaml_load
+from generator.core.tsl_generator import TSLGenerator
+from generator.utils.dict_utils import dict_update
+from generator.utils.yaml_utils import yaml_load
+from generator.utils.file_utils import remove_path
 
 def get_config(config_path: Path) -> dict:
     return yaml_load(config_path)
 
-def tvl_setup(file_config, additional_config=None) -> None:
+def tsl_setup(file_config, additional_config=None) -> None:
     if additional_config is None:
         additional_config = dict()
     # overwrite / extend config file entries with additional config dict entries
@@ -23,12 +25,43 @@ def tvl_setup(file_config, additional_config=None) -> None:
 if __name__ == '__main__':
     st = time.time()
     os.chdir(Path(os.path.realpath(__file__)).parent)
-    file_config = get_config(Path("config/default_conf.yaml"))
+    file_config = get_config(Path("generator/config/default_conf.yaml"))
     args_dict = parse_args(known_types = file_config["configuration"]["relevant_types"])
-    tvl_setup(file_config, args_dict)
-    gen = TVLGenerator()
-    gen.generate(args_dict["targets"])
+    tsl_setup(file_config, args_dict)
+    gen = TSLGenerator()
 
+    if config.get_config_entry("clean"):
+        remove_path(config.generation_out_path)
 
-    print("----%.2f----" % (time.time() - st))
+    if config.get_config_entry("daemon"):
+        try:
+            while True:
+                print("Ready", end='')
+                sys.stdout.flush()
+                for input in sys.stdin:
+                    targetDict = {}
+                    flags = None
+                    primitives = []
+                    try:
+                        targetDict = json.loads(input)
+                    except json.JSONDecodeError as err:
+                        print(f"Wrong parameter: {err.msg}", file=sys.stderr, end='')
+                        sys.stderr.flush()
+                        continue
+                    if "lscpu_flags" in targetDict:
+                        flags = targetDict["lscpu_flags"]
+                    if "primitives" in targetDict:
+                        primitives = targetDict["primitives"]
+                    remove_path(config.generation_out_path)
+                    gen.generate(flags, primitives)
+                    print("Done", end='')
+                    sys.stdout.flush()
+        except KeyboardInterrupt:
+            sys.stdout.flush()
+            exit(0)
+    else:
+        gen.generate(args_dict["targets"])
+
+    print("Generation needed %.2f seconds." % (time.time() - st))
+
 

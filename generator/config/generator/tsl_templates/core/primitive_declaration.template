@@ -1,0 +1,106 @@
+{% set ns = namespace(
+   contains_template_parameter=False,
+   contains_parameter_pack=False,
+   parameter_pack_typenames_str='',
+   full_qualified_parameters_str='',
+   parameters_str='',
+   additional_template_type_name='',
+   additional_template_params_with_defaults='',
+   additional_template_name=''
+   ) %}
+{% for param in parameters %}
+   {% if not loop.last %}
+      {% set comma = ', ' %}
+   {% else %}
+      {% set comma = '' %}
+   {% endif %}
+   {% if 'is_parameter_pack' in param and param['is_parameter_pack'] %}
+      {% set ns.contains_parameter_pack = True %}
+      {% set ns.parameter_pack_typenames_str = ns.parameter_pack_typenames_str ~ 'typename... ' ~ param['ctype'] ~ comma %}
+      {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ param['ctype'] ~ '... ' ~ param['name'] ~ comma %}
+      {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ '...' ~ comma %}
+   {% else %}
+      {% if 'default_value' in param and param['default_value'] != "" %}
+  		{% set dv = '=' ~ param['default_value'] %}
+	  {% else %}
+        {% set dv = '' %}
+      {% endif %}
+      {% if 'declaration_attributes' in param and param['declaration_attributes'] != ""%}
+          {% set decl_attribs = param['declaration_attributes'] ~ ' ' %}
+      {% else %}
+          {% set decl_attribs = '' %}
+      {% endif %}
+      {% if 'attributes' in param and param['attributes'] != "" %}
+	     {% set attribs = ' ' ~ param['attributes'] ~ ' ' %}
+      {% else %}
+         {% set attribs = ' ' %}
+      {% endif %}
+      {% set ns.full_qualified_parameters_str = ns.full_qualified_parameters_str ~ decl_attribs ~ param['ctype'] ~ attribs ~ param['name'] ~ dv ~ comma %}
+      {% set ns.parameters_str = ns.parameters_str ~ param['name'] ~ comma %}
+   {% endif %}
+{% endfor %}
+{% if ns.contains_parameter_pack %}
+{% set ns.parameter_pack_typenames_str = ', ' ~ ns.parameter_pack_typenames_str %}
+{% endif %}
+{% if additional_simd_template_parameter["name"] != "" %}
+{% set ns.additional_template_type_name = 'typename ' ~ additional_simd_template_parameter["name"] ~ ', ' %}
+{% set ns.additional_template_params_with_defaults = 'typename ' ~ additional_simd_template_parameter["name"] %}
+{% if additional_simd_template_parameter["default_value"] != "" %}
+{% set ns.additional_template_params_with_defaults = ns.additional_template_params_with_defaults ~ " = " ~ additional_simd_template_parameter["default_value"] ~ ", "%}
+{% else %}
+{% set ns.additional_template_params_with_defaults = ns.additional_template_params_with_defaults ~ ", "%}
+{% endif %}
+{% set ns.additional_template_name =  additional_simd_template_parameter["name"] ~ ', '%}
+{% endif %}
+{% if additional_non_specialized_template_parameters|length > 0 %}
+{% set rtp_ns = namespace(types='', params='', params_with_defaults='') %}
+{% for parameter_dict in additional_non_specialized_template_parameters %}
+{% set loop_comma = '' if loop.first else ', ' %}
+{% set rtp_ns.params = rtp_ns.params ~ loop_comma ~ parameter_dict["name"] %}
+{% set rtp_ns.types = rtp_ns.types ~ loop_comma ~ parameter_dict["ctype"] ~ ' ' ~ parameter_dict["name"] %}
+{% set rtp_ns.params_with_defaults = rtp_ns.params_with_defaults ~ loop_comma ~ parameter_dict["ctype"] ~ ' ' ~ parameter_dict["name"] %}
+{% if parameter_dict["default_value"] != "" %}
+{% set rtp_ns.params_with_defaults = rtp_ns.params_with_defaults ~ ' = ' ~ parameter_dict["default_value"] %}
+{% endif %}
+{% endfor %}
+{% set ns.additional_template_type_name = ns.additional_template_type_name ~ rtp_ns.types ~ ", "%}
+{% set ns.additional_template_params_with_defaults = ns.additional_template_params_with_defaults ~ rtp_ns.params_with_defaults ~ ", "%}
+{% set ns.additional_template_name = ns.additional_template_name ~ rtp_ns.params ~ ", "%}
+{% endif %}
+{# Every implementation is in the (nested) namespace "functors" #}
+namespace {{ tsl_implementation_namespace }} {
+{# This is the forward declaration of the actual primitive implementation struct #}
+    // Definition of a preprocessor variable to detect overload ambiguity.
+    #define {{ tsl_namespace|upper ~ '_' ~ tsl_implementation_namespace|upper ~ '_' ~ functor_name|upper ~ '_STRUCT_DEFINED'}}
+    // Forward declaration of implementation struct for TSL-primitive "{{ functor_name }}".
+    template<VectorProcessingStyle {{ vector_name }}, {{ ns.additional_template_type_name}}ImplementationDegreeOfFreedom {{ idof_name }}>
+    struct {{ functor_name }}{};
+}
+
+{{ tsl_function_doxygen }}
+{# This is the templated free function for the primitive which is called by the user of TSL. #}
+template<
+    VectorProcessingStyle {{ vector_name }},
+    {{ ns.additional_template_params_with_defaults}}ImplementationDegreeOfFreedom {{ idof_name }} = workaround{{ ns.parameter_pack_typenames_str }}
+    {% if functor_name != primitive_name %}
+    #ifdef {{ tsl_namespace|upper ~ '_' ~ tsl_implementation_namespace|upper ~ '_' ~ primitive_name|upper ~ '_STRUCT_DEFINED'}}
+    , typename std::enable_if_t<
+        !std::is_same_v<
+            typename {{ tsl_implementation_namespace }}::{{ primitive_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>::param_tuple_t,
+            typename {{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>::param_tuple_t
+        >,
+        std::nullptr_t
+    > = nullptr
+    #endif
+    {% endif %}
+>
+{# If the primitive returns something, the caller has to capture the result. #}
+{{ '[[nodiscard]] ' if returns['ctype'] != 'void' else '' }}{# If force_inline is set to True, we use TSL_FORCE_INLINE. #}{{ 'TSL_FORCE_INLINE ' if force_inline else '' }}{{ returns['ctype'] }} {{ primitive_name }}(
+    {{ ns.full_qualified_parameters_str }}
+) {
+    {# If the function primitive implementation returns something we have to return it, otherwise we just call it. #}
+    {# Call the actual implementation with all parameters. #}
+    {{ 'return ' if returns['ctype'] != 'void' else '' }}{{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>::apply(
+        {{ ns.parameters_str }}
+    );
+}

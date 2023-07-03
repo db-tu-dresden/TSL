@@ -1,0 +1,43 @@
+{% macro tree_like_reduce(vector_name, result_name, data_name, binary_operator) %}
+  [[intel::fpga_register]] typename {{ vector_name }}::base_type {{ result_name }}[{{ vector_name }}::vector_element_count()];
+  #pragma unroll
+  for (size_t i = 0; i < ({{ vector_name }}::vector_element_count()>>1); ++i) {
+    {{ result_name }}[i] = {{ data_name }}[i<<1] {{ binary_operator }} {{ data_name }}[(i<<1)+1];
+  }
+  unsigned current_result_position = {{ vector_name }}::vector_element_count()>>1;
+  [[intel::fpga_register]] int previous_stage_start_idx = 0;
+  //#pragma unroll cilog2(({{ vector_name }}::vector_element_count()>>2))
+  #pragma unroll 
+  [[intel::loop_coalesce({{ vector_name }}::vector_element_count()), intel::ivdep({{ result_name }})]] for(size_t current_upper_idx = ({{ vector_name }}::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
+    for(size_t i = 0; i < current_upper_idx; ++i) {
+      {{ result_name }}[current_result_position + i] = 
+        {{ result_name }}[previous_stage_start_idx + (i<<1)] {{ binary_operator }} {{ result_name }}[previous_stage_start_idx + (i<<1)+1];
+    }
+    current_result_position += current_upper_idx;
+    previous_stage_start_idx += current_upper_idx<<1;
+  }
+{% endmacro %}
+
+{% macro tree_like_reduce_ternary_auto(vector_name, result_name, data_name, comparator) %}
+  [[intel::fpga_register]] typename {{ vector_name }}::base_type {{ result_name }}[{{ vector_name }}::vector_element_count()];
+  #pragma unroll
+  for (size_t i = 0; i < ({{ vector_name }}::vector_element_count()>>1); ++i) {
+    {{ result_name }}[i] = {{ data_name }}[i<<1] {{ comparator }} {{ data_name }}[(i<<1)+1] ? {{ data_name }}[i<<1] : {{ data_name }}[(i<<1)+1];
+  }
+  unsigned current_result_position = {{ vector_name }}::vector_element_count()>>1;
+  unsigned previous_stage_start_idx = 0;
+  //#pragma unroll cilog2(({{ vector_name }}::vector_element_count()>>2))
+  #pragma unroll
+  [[intel::loop_coalesce({{ vector_name }}::vector_element_count()), intel::ivdep({{ result_name }})]] for(size_t current_upper_idx = ({{ vector_name }}::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
+    #pragma unroll
+    #pragma ivdep
+    for(size_t i = 0; i < current_upper_idx; ++i) {
+      {{ result_name }}[current_result_position + i] = 
+        {{ result_name }}[previous_stage_start_idx + (i<<1)] {{ comparator }} {{ result_name }}[previous_stage_start_idx + (i<<1)+1]
+        ? {{ result_name }}[previous_stage_start_idx + (i<<1)]
+        : {{ result_name }}[previous_stage_start_idx + (i<<1)+1];
+    }
+    current_result_position += current_upper_idx;
+    previous_stage_start_idx += current_upper_idx<<1;
+  }
+{% endmacro %}

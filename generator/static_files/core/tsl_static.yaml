@@ -1,0 +1,11 @@
+---
+file_description: "Internal static header which includes all static headers."
+includes:
+    - '"utils/preprocessor.hpp"'
+    - '"utils/type_helper.hpp"'
+    - '"utils/type_concepts.hpp"'
+    - '"utils/functional.hpp"'
+    - '"simd/simd_type_concepts.hpp"'
+    - '"simd/simd_type.hpp"'
+    - '"simd/simd_primitive_concepts.hpp"'
+...
