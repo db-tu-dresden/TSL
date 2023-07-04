@@ -1004,7 +1004,7 @@ definitions:
       T result{};
       #pragma unroll
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        result[i] = data[i] >> shift[i];
+          result[i] = data[i] >> shift[i];
       }
       return result;
 testing:
@@ -1068,8 +1068,8 @@ parameters:
     name: "data"
     description: "First vector."
 returns:
-   ctype: "typename Vec::offset_base_register_type"
-   description: "Vector containing leading zeros number."
+  ctype: "typename Vec::offset_base_register_type"
+  description: "Vector containing leading zeros number."
 definitions:
   - target_extension: ["oneAPIfpgaRTL"]
     ctype: ["uint32_t", "int32_t", "float"]
@@ -1111,6 +1111,289 @@ definitions:
         result[idx] = (sizeof(base_t)*CHAR_BIT-1) - k;
       }
       return result;
+...
+---
+primitive_name: "lzc"
+functor_name: "lzc_scalar"
+parameters:
+  - ctype: "const typename Vec::base_type"
+    name: "data"
+    description: "Value."
+returns:
+  ctype: "typename Vec::offset_base_type"
+  description: "Number of leading zeros."
+testing:
+  - test_name: "test_zero"
+    includes: ["<cstddef>", "<climits>", "<iostream>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      T data = 0;
+      std::cout << "test_zero" << std::endl;
+      std::cout << lzc<Vec>(data) << std::endl;
+      return lzc<Vec>(data) == (sizeof(T)*CHAR_BIT);
+  # - test_name: "test_one"
+  #   includes: ["<cstddef>", "<climits>"]
+  #   implementation: |
+  #     using T = typename Vec::base_type;
+  #     T data = 0;
+  #     return lzc<Vec>(data) == (sizeof(T)*CHAR_BIT-1);
+  # - test_name: "test_msb"
+  #   includes: ["<cstddef>", "<climits>"]
+  #   implementation: |
+  #     using T = typename Vec::base_type;
+  #     T data = -1;
+  #     return lzc<Vec>(data) == 0;
+definitions:
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: |
+      using T = typename Vec::base_type;
+      static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+      if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      }
+  - target_extension: ["avx512"]
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: |
+      using T = typename Vec::base_type;
+      static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+      if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      }
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      using T = typename Vec::base_type;
+      static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+      if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      }
+  - target_extension: ["avx2"]
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      using T = typename Vec::base_type;
+      static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+      if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      }
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      using T = typename Vec::base_type;
+      static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+      if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      }
+  - target_extension: ["sse"]
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      using T = typename Vec::base_type;
+      static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+      if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      }
+  - target_extension: ["neon"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ["neon"]
+    implementation: |
+      using T = typename Vec::base_type;
+      static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+      if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      }
+  - target_extension: ["neon"]
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["neon"]
+    implementation: |
+      using T = typename Vec::base_type;
+      static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+      if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      }
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    lscpu_flags: []
+    implementation: |
+      using T = typename Vec::base_type;
+      static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+      if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      }
+  - target_extension: ["scalar"]
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: |
+      using T = typename Vec::base_type;
+      static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+      if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+        #if __cplusplus >= 202002L
+          return std::countl_zero(value);
+        #else
+          return data == 0 ? std::numeric_limits<T>::digits+1 : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+        #endif
+      }
 ...
 ---
 primitive_name: "hor"
@@ -1543,7 +1826,7 @@ definitions:
       T result{};
       #pragma unroll
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-          result[i] = ~data[i];
+          result[i] = ~vec[i];
       }
       return result;
 ...
