@@ -1128,47 +1128,45 @@ testing:
     implementation: |
       using T = typename Vec::base_type;
       T data = 0;
-      std::cout << "test_zero" << std::endl;
-      std::cout << lzc<Vec>(data) << std::endl;
       return lzc<Vec>(data) == (sizeof(T)*CHAR_BIT);
-  # - test_name: "test_one"
-  #   includes: ["<cstddef>", "<climits>"]
-  #   implementation: |
-  #     using T = typename Vec::base_type;
-  #     T data = 0;
-  #     return lzc<Vec>(data) == (sizeof(T)*CHAR_BIT-1);
-  # - test_name: "test_msb"
-  #   includes: ["<cstddef>", "<climits>"]
-  #   implementation: |
-  #     using T = typename Vec::base_type;
-  #     T data = -1;
-  #     return lzc<Vec>(data) == 0;
+  - test_name: "test_one"
+    includes: ["<cstddef>", "<climits>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      T data = 1;
+      return lzc<Vec>(data) == (sizeof(T)*CHAR_BIT-1);
+  - test_name: "test_msb"
+    includes: ["<cstddef>", "<climits>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      T data = (T)1 << ((T)sizeof(T)*CHAR_BIT-1);
+      return lzc<Vec>(data) == 0;
 definitions:
   - target_extension: ["avx512"]
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f"]
     implementation: |
-      return details::clz<typename Vec::base_type>(data);
+      return details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data);
   - target_extension: ["avx2"]
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx"]
     implementation: |
-      return details::clz<typename Vec::base_type>(data);
+      return details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data);
   - target_extension: ["sse"]
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["sse"]
     implementation: |
-      return details::clz<typename Vec::base_type>(data);
+      return details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data);
   - target_extension: ["neon"]
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["neon"]
     implementation: |
-      return details::clz<typename Vec::base_type>(data);
+      return details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data);
   - target_extension: ["scalar"]
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
     implementation: |
-      return details::clz<typename Vec::base_type>(data);
+      return details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data);
 ...
 ---
 primitive_name: "hor"
