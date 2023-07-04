@@ -13,6 +13,10 @@ includes:
   - '<tuple>'
 implementations:
   - |
+    #if __cplusplus >= 202002L
+    #include <bit>
+    #endif
+  - |
     namespace reducer {
       template<int N, int CurrentStage>
         constexpr int getReadPos() {
