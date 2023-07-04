@@ -11,10 +11,41 @@ includes:
   - '<limits>'
   - '<iostream>'
   - '<tuple>'
+  - '<climits>'
 implementations:
   - |
-    #if __cplusplus >= 202002L
+    #if ((__cplusplus >= 202002L) && (__has_include(<bit>)))
     #include <bit>
+    namespace details {
+      template<typename T>
+        constexpr int clz(T data) {
+          return std::countl_zero(data);
+        }
+    }
+    #else
+    namespace details {
+      template <typename T>
+        auto clz(T data) {
+          static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+          if constexpr(std::is_unsigned_v<T>) {
+            if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+              return data == 0 ? std::numeric_limits<T>::digits : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+              return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+              return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            }
+          } else {
+            if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+              return data == 0 ? std::numeric_limits<T>::digits + 1 : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+              return data == 0 ? std::numeric_limits<T>::digits + 1 : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+              return data == 0 ? std::numeric_limits<T>::digits + 1: __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            }
+          }
+        }
+    }
     #endif
   - |
     namespace reducer {
