@@ -8,7 +8,7 @@
 
 
 namespace tsl {
-  namespace oneAPIfpga {
+  namespace oneAPIfpgaFun {
     namespace details {
       template<typename Vec, size_t Upper, size_t... Rest>
         __attribute__((always_inline)) inline typename Vec::base_type conflictReduceImpl(typename Vec::register_type const & data, std::index_sequence<Rest...>) {

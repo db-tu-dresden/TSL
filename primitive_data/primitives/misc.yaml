@@ -112,7 +112,7 @@ definitions:
     vector_length_agnostic: True
     implementation: |
       typename Vec::register_type result{};
-      tsl::oneAPIfpga::details::conflictReduce<Vec>(result, data, std::make_index_sequence<Vec::vector_element_count()-1>{});
+      tsl::oneAPIfpgaFun::details::conflictReduce<Vec>(result, data, std::make_index_sequence<Vec::vector_element_count()-1>{});
       result[0] = 0;
       return result;
 ...
