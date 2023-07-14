@@ -3,7 +3,7 @@ description: "Definition of the SIMD TargetExtension fpga for Intel fpga using o
 vendor: "intel"
 extension_name: "oneAPIfpga"
 lscpu_flags: ["oneAPIfpgaDev"]
-includes: ["<array>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>", "<climits>"]
+includes: ["<array>", "<CL/sycl.hpp>", "<sycl/ext/intel/fpga_extensions.hpp>", "<dpc_common.hpp>", "<climits>", "<tslOneAPIfpgaHelper.hpp>"]
 simdT_name: "oneAPIfpga"
 needs_arch_flags: False
 simdT_default_size_in_bits: 512 #this is just a default value, we can let it out if we want to

@@ -105,6 +105,16 @@ definitions:
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: []
     implementation: "return 0;"
+  #FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      typename Vec::register_type result{};
+      tsl::oneAPIfpga::details::conflictReduce<Vec>(result, data, std::make_index_sequence<Vec::vector_element_count()-1>{});
+      result[0] = 0;
+      return result;
 ...
 ---
 primitive_name: "conflict_free"
