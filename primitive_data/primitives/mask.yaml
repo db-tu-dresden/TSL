@@ -56,6 +56,46 @@ testing: #optional
         allOk &= (matches == i);
       }
       return allOk;
+  - test_name: "mask_match_alternate"
+    requires: ["loadu", "set1", "storeu"]
+    includes: ["<cstddef>", "<array>", "<iostream>", "<bitset>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      bool allOk = true;
+      if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
+        std::cerr << "implement me" << std::endl;
+        return true;
+      } else if constexpr (std::is_same_v<typename Vec::mask_type, typename Vec::imask_type>) {
+        //we don't need to do anything here since it is a NOP.
+        return true;
+      } else {
+          //e.g., SSE, AVX2, ...
+          auto data_create_lambda = [](T* data, std::size_t element_count) {
+            for (size_t i = 0; i < element_count; ++i) {
+              data[i] = i % 2 == 0 ? -1 : 0;
+            }
+          };
+          testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), Vec::vector_element_count(), false, data_create_lambda};
+          tsl::storeu<Vec>(test_helper.result_target(), tsl::set1<Vec>(0));
+          auto reference_result_ptr = reinterpret_cast<typename Vec::imask_type*>(test_helper.result_ref());
+          typename Vec::imask_type expected_result = 0;
+          for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
+            expected_result |= i % 2 == 0 ? 0b1 << i : 0;
+          }
+          *reference_result_ptr = expected_result;
+          auto test_data_ptr = test_helper.data_target();
+          auto test_result_ptr = reinterpret_cast<typename Vec::imask_type*>(test_helper.result_target());
+          auto vec_mask = loadu<Vec>(test_data_ptr);
+          auto mask_integral = to_integral<Vec>(vec_mask);
+          *test_result_ptr = mask_integral;
+          test_helper.synchronize();
+          /*std::cerr << tsl::type_name<Vec>() << std::endl;
+          std::cerr << "expected_result: " << std::bitset<64>{(unsigned long long)expected_result} << std::endl;
+          std::cerr << "test_result: " << std::bitset<64>{(unsigned long long)mask_integral} << std::endl;
+          std::cerr << "Same values? " << ((expected_result == mask_integral) ? "True" : "False")<< std::endl;
+          std::cerr << "Same values? " << ((test_helper.validate()) ? "True" : "False")<< std::endl;*/
+          return test_helper.validate();
+      }
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
@@ -920,6 +960,31 @@ definitions:
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: []
     implementation: return false;
+...
+---
+primitive_name: "load_mask"
+brief_description: "Loads data from memory to a mask."
+parameters:
+  - ctype: "typename Vec::imask_type const*"
+    name: "memory"
+    description: "Memory where the mask data should be loaded from."
+returns:
+  ctype: "typename Vec::mask_type"
+  name: "result"
+  description: "Mask containing the loaded data."
+definitions:
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return *memory;"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return tsl::to_mask<Vec>(*memory);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse"]
+    implementation: "return tsl::to_mask<Vec>(*memory);"
 ...
 #---
 #primitive_name: "mask_reduce"

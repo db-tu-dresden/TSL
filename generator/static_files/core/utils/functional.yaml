@@ -21,6 +21,42 @@ implementations:
         constexpr RetT clz(T data) {
           return std::countl_zero<std::make_unsigned_t<T>>(data);
         }
+
+      template<typename T, typename RetT>
+        struct clz_recursive;
+      template<typename RetT>
+        struct clz_recursive<uint8_t, RetT> {
+          __attribute__((always_inline)) inline static auto apply(uint8_t x) -> RetT {
+            static constexpr uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+            auto upper = x >> 4;
+            auto lower = x & 0x0F;
+            return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
+          }
+        };
+      template<typename RetT>
+        struct clz_recursive<uint16_t, RetT> {
+          __attribute__((always_inline)) inline static auto apply(uint16_t x) -> RetT {
+            auto upper = uint8_t(x >> 8);
+            auto lower = uint8_t(x & 0xFF);
+            return upper ? clz_recursive<uint8_t, RetT>::apply(upper) : 8 + clz_recursive<uint8_t, RetT>::apply(lower);
+          }
+        };
+      template<typename RetT>
+        struct clz_recursive<uint32_t, RetT> {
+          __attribute__((always_inline)) inline static auto apply(uint32_t x) -> RetT  {
+            auto upper = uint16_t(x >> 16);
+            auto lower = uint16_t(x & 0xFFFF);
+            return upper ? clz_recursive<uint16_t, RetT>::apply(upper) : 16 + clz_recursive<uint16_t, RetT>::apply(lower);
+          }
+        };
+      template<typename RetT>
+        struct clz_recursive<uint64_t, RetT> {
+          __attribute__((always_inline)) inline static auto apply(uint64_t x) -> RetT  {
+            auto upper = uint32_t(x >> 32);
+            auto lower = uint32_t(x & 0xFFFFFFFF);
+            return upper ? clz_recursive<uint32_t, RetT>::apply(upper) : 32 + clz_recursive<uint32_t, RetT>::apply(lower);
+          }
+        };
     }
     #else
     namespace details {
@@ -47,6 +83,7 @@ implementations:
           }
         }
     }
+
     #endif
   - |
     namespace reducer {

@@ -1167,6 +1167,13 @@ definitions:
     lscpu_flags: []
     implementation: |
       return details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data);
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      return details::clz_recursive<typename Vec::base_type, typename Vec::offset_base_type>::apply(data);
 ...
 ---
 primitive_name: "hor"
