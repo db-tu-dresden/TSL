@@ -86,6 +86,7 @@ definitions:
       T reg; //initialize the result
       auto mem = assume_aligned<Vec::vector_alignment()>(memory);
       #pragma unroll
+      [[intel::ivdep(reg)]]
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         reg[idx] = mem[idx];
       }
@@ -174,6 +175,7 @@ definitions:
       using T = typename Vec::register_type;
       T reg; //initialize the result
       #pragma unroll
+      [[intel::ivdep(reg)]]
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         reg[idx] = memory[idx];
       }
@@ -260,6 +262,7 @@ definitions:
     vector_length_agnostic: True
     implementation: |
       #pragma unroll
+      [[intel::ivdep(data)]]
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         memory[idx] = data[idx];
       }
@@ -343,6 +346,7 @@ definitions:
     vector_length_agnostic: True
     implementation: |
       #pragma unroll
+      [[intel::ivdep(data)]]
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         memory[idx] = data[idx];
       }
