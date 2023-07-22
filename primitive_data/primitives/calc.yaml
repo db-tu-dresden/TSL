@@ -1234,7 +1234,7 @@ definitions:
       T result; //initialize the result
       #pragma unroll
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
-        result[i] = vec[i] - ((vec[i] / val[i]) * val[i]);
+        result[i] = vec[i] - ((vec[i] / val) * val);
       }
       return result;
 ...
