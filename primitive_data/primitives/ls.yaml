@@ -1326,6 +1326,28 @@ definitions:
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
     implementation: "_mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+  #INTEL - SSE
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    is_native: False
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const data_array = tsl::to_array<Vec>(data);
+
+      for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
+        if((mask >> i) & 1){
+          *memory = data_array[i];
+          memory ++;
+        }
+      }
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: |
+      if(mask){
+        *memory = tsl::extract_value<Vec, 0>(data);
+      }
 ...
 ---
 primitive_name: "expand_load"
