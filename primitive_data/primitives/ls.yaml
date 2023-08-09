@@ -347,6 +347,34 @@ parameters:
 returns:
   ctype: "__attribute__((__aligned__(Vec::vector_alignment()))) std::array<typename Vec::base_type, Vec::vector_element_count()>"
   description: "Array containing the values from data."
+testing:
+  - test_name: "default"
+    requires: ["loadu"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        *reference_result_ptr = Vec::vector_element_count();
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto result_arr = to_array<Vec>(vec);
+
+        std::size_t hit = 0;
+        for(std::size_t j = 0, k = i; j < Vec::vector_element_count(); j++, k++){
+          if(result_arr[j] == reference_data_ptr[k]){
+            hit ++;
+          }
+        }
+        *test_result_ptr = hit;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -372,6 +400,14 @@ definitions:
       alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
       tsl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
       return tmp;
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: |
+      std::array<typename Vec::base_type, Vec::vector_element_count()> temp;
+      temp.fill(data);
+      return temp;
 ---
 primitive_name: "set1"
 brief_description: "Broadcasts a single value into all lanes of a vector register."
@@ -476,6 +512,13 @@ brief_description: "Set all lanes to zero."
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing 0 in all lanes."
+testing:
+  - test_name: "default"
+    requires: ["hor"]
+    implementation: |
+      auto zero_vec = set_zero<Vec>();
+      auto result = hor<Vec>(zero_vec);
+      return !((bool) result);
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -585,10 +628,22 @@ definitions:
 ...
 ---
 primitive_name: "sequence"
-brief_description: "Creates a sequence [0..SIMD-Reg-Element-Count]."
+brief_description: "Creates a sequence [0..SIMD-Reg-Element-Count]." #Isnt the Sequence [Element_count, ..., 0] ?
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector register containing the sequence."
+testing:
+  - test_name: "default"
+    requires: ["to_array"]
+    implementation: |
+      using T = typename Vec::base_type;
+      auto vec = sequence<Vec>();
+      auto vec_arr = to_array<Vec>(vec);
+      bool allOk = true;
+      for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
+        allOk &= (i == vec_arr[i]);
+      }
+      return allOk;
 definitions:
 #  INTEL - AVX512
   - target_extension: "avx512"
@@ -657,6 +712,29 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector register containing the sequence."
+testing:
+  - test_name: "default"
+    requires: ["to_array"]
+    includes: ["<iostream>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      auto config = test_helper.data_ref();
+
+      bool allOk = true;
+      for(std::size_t i = 0; i < element_count; i++) {
+        auto vec = custom_sequence<Vec>(config[i], config[i+1]);
+        auto vec_arr = to_array<Vec>(vec);
+        //std::cout << "Initial: " << (double)config[i] << "\tStep: " << (double)config[i+1] << std::endl;
+        for(T k = 0, j = config[i]; k < Vec::vector_element_count(); k++, j+= config[i+1]){
+          bool temp = (j == vec_arr[k]);
+          //if(!temp) std::cout << "j: " << (double)j <<", arr: " << (double)vec_arr[k] << "\t|\t";
+          allOk &= temp;
+        }
+        //std::cout << "\n------------------------------------------------------------------------------" << std::endl;
+      }
+      return allOk;
 definitions:
   #  INTEL - AVX512
   - target_extension: "avx512"
@@ -1263,6 +1341,28 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
     description: "Data"
+testing:
+  - test_name: "full_mask"
+    requires: ["loadu"]
+    implementation: |
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      typename Vec::imask_type mask = -1;
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        auto vec_a = loadu<Vec>(&reference_data_ptr[i]);
+        storeu<Vec>(reference_result_ptr, vec_a);
+
+        auto vec_b = loadu<Vec>(&test_data_ptr[i]);
+        compress_store<Vec>(mask, test_result_ptr, vec_b);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -1326,6 +1426,28 @@ definitions:
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
     implementation: "_mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+  #INTEL - SSE
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    is_native: False
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const data_array = tsl::to_array<Vec>(data);
+
+      for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
+        if((mask >> i) & 1){
+          *memory = data_array[i];
+          memory ++;
+        }
+      }
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: |
+      if(mask){
+        *memory = tsl::extract_value<Vec, 0>(data);
+      }
 ...
 ---
 primitive_name: "expand_load"
