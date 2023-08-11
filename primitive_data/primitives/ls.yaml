@@ -628,7 +628,7 @@ definitions:
 ...
 ---
 primitive_name: "sequence"
-brief_description: "Creates a sequence [0..SIMD-Reg-Element-Count]." #Isnt the Sequence [Element_count, ..., 0] ?
+brief_description: "Creates a sequence [0..SIMD-Reg-Element-Count]."
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector register containing the sequence."
