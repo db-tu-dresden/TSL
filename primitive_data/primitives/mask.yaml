@@ -750,6 +750,31 @@ parameters:
 returns:
   ctype: "unsigned int"
   description: "Numer of bits set to 1."
+testing:
+  - test_name: "default"
+    includes: ["<random>", "<limits>"]
+    implementation: |
+      using mask_t = typename Vec::imask_type;
+      std::size_t element_count = 1024;
+
+      // Generate random Mask
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_int_distribution<mask_t> dist(std::numeric_limits<mask_t>::min(), std::numeric_limits<mask_t>::max());
+      mask_t mask = dist(gen);
+      bool allOk = true;
+
+      for(std::size_t i = 0; i < element_count; i++){
+        std::size_t count = 0;
+        for(std::size_t j = 0; j < sizeof(mask_t)*8; j++){
+          if((mask >> j) & 0b1){
+            count++;
+          }
+        }
+        auto result = mask_population_count<Vec>(mask);
+        allOk &= (result == count);
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"

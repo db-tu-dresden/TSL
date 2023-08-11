@@ -1547,14 +1547,14 @@ testing:
       std::uniform_int_distribution<mask_t> dist(std::numeric_limits<mask_t>::min(), std::numeric_limits<mask_t>::max());
       mask_t mask = dist(gen);
       
-      std::size_t element_count = 64;
+      std::size_t element_count = 2048;
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
       bool allOk = true;
       auto reference_data_ptr = test_helper.data_ref();
       auto reference_result_ptr = test_helper.result_ref();
       auto test_data_ptr = test_helper.data_target();
       auto test_result_ptr = test_helper.result_target();
-      auto offset = 32;
+      auto offset = 1024;
       for(std::size_t i = 0; i < (element_count/2) - Vec::vector_element_count(); i += Vec::vector_element_count()){
         typename Vec::base_type data[Vec::vector_element_count()];
         for(std::size_t j = 0, k = i, l = i; j < Vec::vector_element_count(); j++, k++){
