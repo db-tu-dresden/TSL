@@ -1363,6 +1363,27 @@ testing:
         allOk &= test_helper.validate();
       }
       return allOk;
+  - test_name: "no_mask"
+    requires: ["storeu", "set1"]
+    implementation: |
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      typename Vec::imask_type mask = 0;
+      auto zero_vec = set1<Vec>(0);
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        storeu<Vec>(reference_result_ptr, zero_vec);
+        storeu<Vec>(test_result_ptr, zero_vec);
+
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        compress_store<Vec>(mask, test_result_ptr, vec);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -1465,6 +1486,88 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing the elements."
+testing:
+  - test_name: "full_mask"
+    requires: ["storeu", "set1"]
+    includes: ["<iostream>"]
+    implementation: |
+      std::size_t element_count = 2048;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto offset = 1024;
+      typename Vec::imask_type mask = -1;
+      auto zero_vec = set1<Vec>(0);
+      for(std::size_t i = 0; i < (element_count/2) - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        auto mem_ref = loadu<Vec>(&reference_data_ptr[i + offset]);
+        storeu<Vec>(reference_result_ptr, mem_ref);
+        auto src_test = loadu<Vec>(&test_data_ptr[i]);
+        auto result = expand_load<Vec>(mask, src_test, &test_data_ptr[i+offset]);
+        storeu<Vec>(test_result_ptr, result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "no_mask"
+    requires: ["storeu", "set1"]
+    includes: ["<iostream>"]
+    implementation: |
+      std::size_t element_count = 2048;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto offset = 1024;
+      typename Vec::imask_type mask = 0;
+      auto zero_vec = set1<Vec>(0);
+      for(std::size_t i = 0; i < (element_count/2) - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        auto mem_ref = loadu<Vec>(&reference_data_ptr[i]);
+        storeu<Vec>(reference_result_ptr, mem_ref);
+        auto src_test = loadu<Vec>(&test_data_ptr[i]);
+        auto result = expand_load<Vec>(mask, src_test, &test_data_ptr[i+offset]);
+        storeu<Vec>(test_result_ptr, result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "default"
+    requires: ["storeu", "loadu"]
+    includes: ["<random>", "<limits>"]
+    implementation: |
+      using mask_t = typename Vec::imask_type;
+      
+      // Generate random Mask
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_int_distribution<mask_t> dist(std::numeric_limits<mask_t>::min(), std::numeric_limits<mask_t>::max());
+      mask_t mask = dist(gen);
+      
+      std::size_t element_count = 64;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto offset = 32;
+      for(std::size_t i = 0; i < (element_count/2) - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        typename Vec::base_type data[Vec::vector_element_count()];
+        for(std::size_t j = 0, k = i, l = i; j < Vec::vector_element_count(); j++, k++){
+          ((mask >> j) & 0b1)? data[j] = reference_data_ptr[offset + l++] : data[j] = reference_data_ptr[k];
+        }
+        auto temp = loadu<Vec>(data);
+        storeu<Vec>(reference_result_ptr, temp);
+        auto result = expand_load<Vec>(mask, loadu<Vec>(&test_data_ptr[i]), &test_data_ptr[i + offset]);
+        storeu<Vec>(test_result_ptr, result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"

@@ -932,7 +932,7 @@ definitions:
 primitive_name: "integral_all_false"
 returns:
   ctype: "typename Vec::imask_type"
-  description: "Integral value where all values are set to 1."
+  description: "Integral value where all values are set to 0."
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
