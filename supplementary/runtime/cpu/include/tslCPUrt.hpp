@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <type_traits>
-
+#include <climits>
 
 namespace tsl {
   namespace runtime {
@@ -60,13 +60,13 @@ namespace tsl {
           decltype(auto) submit(Args... args) {
             if constexpr(VectorLength == 1) {
               return Fun<simd<BaseT, scalar>, Args...>::apply(args...);
-            } else if constexpr(sizeof(BaseT)*8*VectorLength == 128) {
-              return Fun<simd<BaseT, sse>, Args...>::apply(args...);
-            } else if constexpr(sizeof(BaseT)*8*VectorLength == 256) {
-              return Fun<simd<BaseT, avx2>, Args...>::apply(args...);
-            } else if constexpr(sizeof(BaseT)*8*VectorLength == 512) {
-              return Fun<simd<BaseT, avx512>, Args...>::apply(args...);
-            } else {
+            } 
+            {% for avail_extension_type_size in avail_extension_types_dict %}
+            else if constexpr(sizeof(BaseT)*CHAR_BIT*VectorLength == {{ avail_extension_type_size }}) {
+              return Fun<simd<BaseT, {{ avail_extension_types_dict[avail_extension_type_size] }}>, Args...>::apply(args...);
+            }
+            {% endfor %}
+            else {
               std::cerr << "ERROR: unsupported vector length" << std::endl;
               std::terminate();
             }

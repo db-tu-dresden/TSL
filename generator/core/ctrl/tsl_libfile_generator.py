@@ -129,7 +129,7 @@ class TSLFileGenerator:
             self.__primitive_class_declarations.append(declaration_file)
             self.__primitive_class_definitions.extend(definition_files_per_extension_dict.values())
 
-    def __create_static_header_files(self, lib: TSLLib) -> None:
+    def __create_static_header_files(self) -> None:
         self.log(logging.INFO, f"Starting generation of static header.")
         for static_yaml_file_path in config.static_lib_files():
             if static_yaml_file_path.stem == config.lib_root_header.stem:
@@ -159,7 +159,7 @@ class TSLFileGenerator:
         self.__create_extension_header_files(lib.extension_set)
         self.__create_primitive_header_files(lib.extension_set, lib.primitive_class_set)
 
-        self.__create_static_header_files(lib)
+        self.__create_static_header_files()
 
         generated_files_root: TSLHeaderFile = TSLHeaderFile.create_from_dict(config.lib_generated_files_root_header, {})
         for extension_file in self.extension_files:
