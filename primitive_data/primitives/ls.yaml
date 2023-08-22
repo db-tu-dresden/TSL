@@ -84,10 +84,9 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T reg; //initialize the result
-      auto mem = assume_aligned<Vec::vector_alignment()>(memory);
       #pragma unroll
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
-        reg[idx] = mem[idx];
+        reg[idx] = memory[idx];
       }
       return reg;
 ...
