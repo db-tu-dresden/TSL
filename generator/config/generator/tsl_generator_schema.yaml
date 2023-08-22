@@ -106,6 +106,11 @@ extension:
       example: "{sse4_1: 'msse4.1', sse4_2: 'msse4.2'}"
       default: "{}"
     includes: *includes
+    runtime_headers:
+      type: "list"
+      entry_type: "str"
+      default: []
+      brief: "List of headers that are associated with the runtime (starting from ./supplementary/runtime)"
     required_supplementary_libraries:
       type: "list"
       brief: "List of libraries which are required for this extension."

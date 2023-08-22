@@ -52,4 +52,6 @@ configuration_files:
       lib:                        "core"
    supplementary:
       root_path:                  "supplementary"
+      runtime:
+        root_path:                "runtime"
 ...
