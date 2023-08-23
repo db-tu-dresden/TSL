@@ -15,23 +15,18 @@ namespace tsl {
     struct MEMORY_ON_HOST{};
     struct MEMORY_ON_DEVICE{};
 
-    namespace details {
-      // as the current version of multi_ptr exposes the underlying element type with using "value_type" but older versions call it "element_type", we need this little helper function
+    namespace details {      
       template <typename T, typename = void>
-      struct has_typedef_element_type : std::false_type {};
+      struct multi_ptr_base_type {
+          using type = typename T::value_type;
+      };
       template <typename T>
-      struct has_typedef_element_type<T, std::void_t<typename T::element_type>> : std::true_type {};
-      template <typename T, typename = void>
-      struct has_typedef_value_type : std::false_type {};
-      template <typename T>
-      struct has_typedef_value_type<T, std::void_t<typename T::value_type>> : std::true_type {};
+      struct multi_ptr_base_type<T, std::void_t<typename T::element_type>> {
+          using type = typename T::element_type;
+      };
     }
     template<class MultiPtrClass>
-    using multi_ptr_base_type = std::conditional_t<
-      details::has_typedef_element_type<MultiPtrClass>::value,
-      typename MultiPtrClass::element_type,
-      typename MultiPtrClass::value_type
-    >;
+    using multi_ptr_base_type = typename details::multi_ptr_base_type<MultiPtrClass>::type;
   }
   namespace runtime {
 
