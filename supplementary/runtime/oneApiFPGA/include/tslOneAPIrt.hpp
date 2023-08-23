@@ -171,6 +171,11 @@ namespace tsl {
               ).wait();
             }
     };
+    #ifdef ONEAPI_FPGA_HARDWARE
+    using oneAPI_default_fpga = oneAPI_fpga<oneAPI_hardware_selector>;
+    #else
+    using oneAPI_default_fpga = oneAPI_fpga<oneAPI_emulator_selector>;
+    #endif
   }
 }
 
