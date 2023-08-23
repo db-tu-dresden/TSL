@@ -6,6 +6,7 @@
 #include <cstring>
 #include <type_traits>
 #include <string_view>
+#include <climits>
 #include <CL/sycl.hpp>
 #include <sycl/ext/intel/fpga_extensions.hpp>
 
@@ -139,6 +140,10 @@ namespace tsl {
               std::is_pointer_v<std::remove_reference_t<InT>>
             ) {
               q.memcpy(out, in, element_count * sizeof(InT));
+            } else if constexpr(std::is_pointer_v<std::remove_reference_t<OutT>>){
+              q.memcpy(out, in.get(), element_count * sizeof(InT));              
+            } else if constexpr(std::is_pointer_v<std::remove_reference_t<InT>>) {
+              q.memcpy(out.get(), in, element_count * sizeof(InT));
             } else {
               q.memcpy(out.get(), in.get(), element_count * sizeof(InT));  
             }
@@ -159,7 +164,7 @@ namespace tsl {
             }
           template<typename BaseT, int VectorLength, template<typename...> class Fun, typename... Args>
             decltype(auto) submit(Args... args) {
-              using FunctorClass = Fun<tsl::simd<BaseT, tsl::oneAPIfpga, sizeof(BaseT)*8*VectorLength>, Args...>;
+              using FunctorClass = Fun<tsl::simd<BaseT, tsl::oneAPIfpga, sizeof(BaseT)*CHAR_BIT*VectorLength>, Args...>;
               // Check that all elements of type Args are of type oneAPI_ptr_wrapper
               // static_assert((std::is_same_v<Args, oneAPI_ptr_wrapper<typename Args::T, typename Args::wrapper_t>> && ...), "All arguments must be of type oneAPI_ptr_wrapper");
               return q.submit(
