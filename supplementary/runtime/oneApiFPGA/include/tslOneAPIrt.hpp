@@ -147,26 +147,28 @@ namespace tsl {
             }               
           }
         template<typename OutT, typename InT>
-          void copy(OutT out, InT in, size_t element_count) {
-            if constexpr(
+          void copy(OutT out, InT in, size_t element_count) {     
+            if constexpr( //If pointers are passed to copy, we could use them directly, since we assume them to be raw pointers. This is quite shaky, but it works for now.
               std::is_pointer_v<std::remove_reference_t<OutT>> &&
               std::is_pointer_v<std::remove_reference_t<InT>>
             ) {
-              q.memcpy(out, in, element_count * sizeof(InT));
+              using InBaseT = typename std::remove_pointer_t<std::remove_reference_t<InT>>;
+              q.memcpy(out, in, element_count * sizeof(InBaseT));
             } else if constexpr(std::is_pointer_v<std::remove_reference_t<OutT>>){
-              q.memcpy(out, in.get(), element_count * sizeof(InT));              
+              using InBaseT = typename oneAPI::multi_ptr_base_type<InT>;
+              q.memcpy(out, in.get(), element_count * sizeof(InBaseT));              
             } else if constexpr(std::is_pointer_v<std::remove_reference_t<InT>>) {
-              q.memcpy(out.get(), in, element_count * sizeof(InT));
+              using InBaseT = typename std::remove_pointer_t<std::remove_reference_t<InT>>;
+              q.memcpy(out.get(), in, element_count * sizeof(InBaseT));
             } else {
-              q.memcpy(out.get(), in.get(), element_count * sizeof(InT));  
+              using InBaseT = typename oneAPI::multi_ptr_base_type<InT>;
+              q.memcpy(out.get(), in.get(), element_count * sizeof(InBaseT));  
             }
             q.wait();
           }
         public:
           template<template<typename...> class Fun, typename... Args>
             decltype(auto) submit(Args... args) {
-              // Check that all elements of type Args are of type oneAPI_ptr_wrapper
-              // static_assert((std::is_same_v<Args, oneAPI_ptr_wrapper<typename Args::T, typename Args::wrapper_t>> && ...), "All arguments must be of type oneAPI_ptr_wrapper");
               return q.submit(
                 [&](sycl::handler& h) {
                   h.single_task<Fun<Args...>>([=]() [[intel::kernel_args_restrict]] {
@@ -178,8 +180,6 @@ namespace tsl {
           template<typename BaseT, int VectorLength, template<typename...> class Fun, typename... Args>
             decltype(auto) submit(Args... args) {
               using FunctorClass = Fun<tsl::simd<BaseT, tsl::oneAPIfpga, sizeof(BaseT)*CHAR_BIT*VectorLength>, Args...>;
-              // Check that all elements of type Args are of type oneAPI_ptr_wrapper
-              // static_assert((std::is_same_v<Args, oneAPI_ptr_wrapper<typename Args::T, typename Args::wrapper_t>> && ...), "All arguments must be of type oneAPI_ptr_wrapper");
               return q.submit(
                 [&](sycl::handler& h) {
                   h.single_task<FunctorClass>([=]() [[intel::kernel_args_restrict]] {
