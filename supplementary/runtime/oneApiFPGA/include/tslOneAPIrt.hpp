@@ -27,6 +27,14 @@ namespace tsl {
     }
     template<class MultiPtrClass>
     using multi_ptr_base_type = typename details::multi_ptr_base_type<MultiPtrClass>::type;
+
+    template<typename T>
+    using memory_base_type =
+      std::conditional_t<
+        std::is_pointer_v<std::remove_reference_t<T>>,
+        std::remove_pointer_t<std::remove_reference_t<T>>,
+        typename multi_ptr_base_type<std::remove_reference_t<T>>
+      >;
   }
   namespace runtime {
 
