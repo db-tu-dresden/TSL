@@ -180,7 +180,9 @@ namespace tsl {
               return q.submit(
                 [&](sycl::handler& h) {
                   h.single_task<Fun<Args...>>([=]() [[intel::kernel_args_restrict]] {
-                    return Fun<Args...>::apply(args...);
+                    sycl::ext::intel::fpga_loop_fuse([&] {
+                      return Fun<Args...>::apply(args...);
+                    })
                   });
                 }
               ).wait();
@@ -191,7 +193,9 @@ namespace tsl {
               return q.submit(
                 [&](sycl::handler& h) {
                   h.single_task<FunctorClass>([=]() [[intel::kernel_args_restrict]] {
-                    return FunctorClass::apply(args...);
+                    sycl::ext::intel::fpga_loop_fuse([&]{
+                      return FunctorClass::apply(args...);
+                    });
                   });
                 }
               ).wait();
