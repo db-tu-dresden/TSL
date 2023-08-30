@@ -515,6 +515,11 @@ definitions:
           result[i] = ((vec_data[i] >= vec_min[i]) && (vec_data[i] <= vec_max[i])) ? checker : 0;
       }
       return result;
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (vec_data >= vec_min && vec_data <= vec_max);"
 ...
 ---
 primitive_name: "less_than"
