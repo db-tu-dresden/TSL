@@ -634,16 +634,27 @@ returns:
   description: "Vector register containing the sequence."
 testing:
   - test_name: "default"
-    requires: ["to_array"]
+    requires: ["loadu", "storeu"]
     implementation: |
       using T = typename Vec::base_type;
-      auto vec = sequence<Vec>();
-      auto vec_arr = to_array<Vec>(vec);
-      bool allOk = true;
-      for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
-        allOk &= (i == vec_arr[i]);
+      std::size_t count = Vec::vector_element_count();
+
+      testing::test_memory_helper_t<Vec> test_helper{1, count, false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      
+      typename Vec::base_type data[count];
+      for(std::size_t i = 0; i < count; i++){
+        data[i] = i;
       }
-      return allOk;
+      auto vec = loadu<Vec>(data);
+      storeu<Vec>(reference_result_ptr, vec);
+
+      auto vec_test = sequence<Vec>();
+      storeu<Vec>(test_result_ptr, vec_test);
+
+      test_helper.synchronize();
+      return test_helper.validate();
 definitions:
 #  INTEL - AVX512
   - target_extension: "avx512"
@@ -726,10 +737,10 @@ testing:
       for(std::size_t i = 0; i < element_count; i++) {
         auto vec = custom_sequence<Vec>(config[i], config[i+1]);
         auto vec_arr = to_array<Vec>(vec);
-        //std::cout << "Initial: " << (double)config[i] << "\tStep: " << (double)config[i+1] << std::endl;
+        //std::cout << "Initial: " << (long double)config[i] << "\tStep: " << (long double)config[i+1] << std::endl;
         for(T k = 0, j = config[i]; k < Vec::vector_element_count(); k++, j+= config[i+1]){
           bool temp = (j == vec_arr[k]);
-          //if(!temp) std::cout << "j: " << (double)j <<", arr: " << (double)vec_arr[k] << "\t|\t";
+          //if(!temp) std::cout << "j: " << (long double)j <<", arr: " << (long double)vec_arr[k] << "\t|\t";
           allOk &= temp;
         }
         //std::cout << "\n------------------------------------------------------------------------------" << std::endl;

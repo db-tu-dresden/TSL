@@ -367,6 +367,54 @@ definitions:
       auto const data_vec = _mm256_set1_epi64x(mask);
       auto const anded_vec = _mm256_and_si256(data_vec, and_vec);
       return _mm256_castsi256_pd(_mm256_cmpeq_epi64(anded_vec, and_vec));
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "int8_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi8(0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01);
+      auto const data_vec = _mm_set1_epi16(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_cmpeq_epi8(anded_vec, and_vec);
+  - target_extension: ["sse"]
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi16(0x8000, 0x4000, 0x2000, 0x1000, 0x0800, 0x0400, 0x0200, 0x0100);
+      auto const data_vec = _mm_set1_epi32(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_cmpeq_epi16(anded_vec, and_vec);
+  - target_extension: ["sse"]
+    ctype: ["uint32_t", "int32_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi32(0x8, 0x4, 0x2, 0x1);
+      auto const data_vec = _mm_set1_epi32(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_cmpeq_epi32(anded_vec, and_vec);
+  - target_extension: ["sse"]
+    ctype: ["float"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi32(0x8, 0x4, 0x2, 0x1);
+      auto const data_vec = _mm_set1_epi32(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_castsi128_ps(_mm_cmpeq_epi32(anded_vec, and_vec)); 
+  - target_extension: ["sse"]
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi64x(0x8000000000000000, 0x4000000000000000);
+      auto const data_vec = _mm_set1_epi64x(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_cmpeq_epi64(anded_vec, and_vec);
+  - target_extension: ["sse"]
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi64x(0x8000000000000000, 0x4000000000000000);
+      auto const data_vec = _mm_set1_epi64x(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_castsi128_pd(_mm_cmpeq_epi64(anded_vec, and_vec));
 ...
 ---
 primitive_name: "mask_binary_not"
