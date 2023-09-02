@@ -302,9 +302,8 @@ testing:
       using T = typename Vec::base_type;
       using reg_t = typename Vec::register_type;
       
-      std::array<T, Vec::vector_element_count()> pseudo_mask;
-      pseudo_mask.fill(0);
-      typename Vec::mask_type zero_mask = loadu<Vec>(pseudo_mask.data());  
+      typename Vec::mask_type zero_mask = to_mask<Vec>(integral_all_false<Vec>());
+
       std::size_t element_count = 1024;
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
       bool allOk = true;
@@ -332,19 +331,7 @@ testing:
       using T = typename Vec::base_type;
       using reg_t = typename Vec::register_type;
       
-      std::array<T, Vec::vector_element_count()> pseudo_mask;
-      if(std::is_same<T, float>::value){
-        for (auto& val : pseudo_mask) {
-          std::memset(&val, 0xFF, sizeof(val));
-        }
-      }else if(std::is_same<T, double>::value){
-        for (auto& val : pseudo_mask) {
-          std::memset(&val, 0xFFFF, sizeof(val));
-        }
-      }else{
-        pseudo_mask.fill(-1);
-      }
-      typename Vec::mask_type mask = loadu<Vec>(pseudo_mask.data());
+      typename Vec::mask_type mask = to_mask<Vec>(integral_all_true<Vec>());
 
       std::size_t element_count = 2048;
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
@@ -366,6 +353,7 @@ testing:
         test_helper.synchronize();
         allOk &= test_helper.validate();
       }
+      if(!allOk) std::cout << (int)to_integral<Vec>(to_mask<Vec>(integral_all_true<Vec>())) << std::endl;
       return allOk;
 definitions:
 #INTEL - AVX512
