@@ -296,8 +296,7 @@ returns:
   description: "Vector containing result of the addition."
 testing:
   - test_name: "zero_mask"
-    requires: ["loadu", "storeu"]
-    includes: ["<array>"]
+    requires: ["loadu", "storeu", "to_mask", "integral_all_false"]
     implementation: |
       using T = typename Vec::base_type;
       using reg_t = typename Vec::register_type;
@@ -325,8 +324,7 @@ testing:
       }
       return allOk;
   - test_name: "all_one_mask"
-    requires: ["loadu", "storeu"]
-    includes: ["<array>"]
+    requires: ["loadu", "storeu", "to_mask", "integral_all_true"]
     implementation: |
       using T = typename Vec::base_type;
       using reg_t = typename Vec::register_type;

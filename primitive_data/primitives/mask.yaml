@@ -401,7 +401,7 @@ definitions:
       return _mm_castsi128_ps(_mm_cmpeq_epi32(anded_vec, and_vec)); 
   - target_extension: ["sse"]
     ctype: ["uint64_t", "int64_t"]
-    lscpu_flags: ["sse2"]
+    lscpu_flags: ["sse2", "sse4.1"]
     implementation: |
       auto const and_vec = _mm_set_epi64x(0x2, 0x1);
       auto const data_vec = _mm_set1_epi64x(mask);
@@ -409,7 +409,7 @@ definitions:
       return _mm_cmpeq_epi64(anded_vec, and_vec);
   - target_extension: ["sse"]
     ctype: ["double"]
-    lscpu_flags: ["sse2"]
+    lscpu_flags: ["sse2", "sse4.1"]
     implementation: |
       auto const and_vec = _mm_set_epi64x(0x2, 0x1);
       auto const data_vec = _mm_set1_epi64x(mask);
@@ -826,18 +826,18 @@ testing:
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: [ "uint8_t", "uint16_t", "int8_t", "int16_t" ]
+    ctype: [ "uint8_t", "int8_t" ]
     lscpu_flags: [ "avx512f" ]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
-      return __builtin_popcount(mask);
+      return __builtin_popcountll(mask);
       #elif defined(_MSC_VER)
-      return  __popcnt16(mask);
+      return  __popcnt64(mask);
       #else
       static_assert(false, "No known implementation for popcount");
       #endif
   - target_extension: "avx512"
-    ctype: [ "uint32_t", "int32_t", "float" ]
+    ctype: [ "uint16_t", "int16_t" ]
     lscpu_flags: [ "avx512f" ]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -848,13 +848,24 @@ definitions:
       static_assert(false, "No known implementation for popcount");
       #endif
   - target_extension: "avx512"
+    ctype: [ "uint32_t", "int32_t", "float" ]
+    lscpu_flags: [ "avx512f" ]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcount(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt16(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+  - target_extension: "avx512"
     ctype: [ "uint64_t", "int64_t", "double" ]
     lscpu_flags: [ "avx512f" ]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
-      return __builtin_popcountll(mask);
+      return __builtin_popcount(mask);
       #elif defined(_MSC_VER)
-      return  __popcnt64(mask);
+      return  __popcnt(mask);
       #else
       static_assert(false, "No known implementation for popcount");
       #endif

@@ -737,13 +737,10 @@ testing:
       for(std::size_t i = 0; i < element_count; i++) {
         auto vec = custom_sequence<Vec>(config[i], config[i+1]);
         auto vec_arr = to_array<Vec>(vec);
-        //std::cout << "Initial: " << (long double)config[i] << "\tStep: " << (long double)config[i+1] << std::endl;
         for(T k = 0, j = config[i]; k < Vec::vector_element_count(); k++, j+= config[i+1]){
           bool temp = (j == vec_arr[k]);
-          //if(!temp) std::cout << "j: " << (long double)j <<", arr: " << (long double)vec_arr[k] << "\t|\t";
           allOk &= temp;
         }
-        //std::cout << "\n------------------------------------------------------------------------------" << std::endl;
       }
       return allOk;
 definitions:
