@@ -642,7 +642,7 @@ testing:
       testing::test_memory_helper_t<Vec> test_helper{1, count, false};
       auto reference_result_ptr = test_helper.result_ref();
       auto test_result_ptr = test_helper.result_target();
-      
+
       typename Vec::base_type data[count];
       for(std::size_t i = 0; i < count; i++){
         data[i] = i;
@@ -1548,13 +1548,13 @@ testing:
     includes: ["<random>", "<limits>"]
     implementation: |
       using mask_t = typename Vec::imask_type;
-      
+
       // Generate random Mask
       std::random_device rd;
       std::mt19937 gen(rd());
       std::uniform_int_distribution<mask_t> dist(std::numeric_limits<mask_t>::min(), std::numeric_limits<mask_t>::max());
       mask_t mask = dist(gen);
-      
+
       std::size_t element_count = 2048;
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
       bool allOk = true;

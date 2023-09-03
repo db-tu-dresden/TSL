@@ -398,7 +398,7 @@ definitions:
       auto const and_vec = _mm_set_epi32(0x8, 0x4, 0x2, 0x1);
       auto const data_vec = _mm_set1_epi32(mask);
       auto const anded_vec = _mm_and_si128(data_vec, and_vec);
-      return _mm_castsi128_ps(_mm_cmpeq_epi32(anded_vec, and_vec)); 
+      return _mm_castsi128_ps(_mm_cmpeq_epi32(anded_vec, and_vec));
   - target_extension: ["sse"]
     ctype: ["uint64_t", "int64_t"]
     lscpu_flags: ["sse2", "sse4.1"]
