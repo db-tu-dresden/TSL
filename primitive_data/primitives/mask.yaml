@@ -253,6 +253,50 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Integral value representing the vector mask register."
+testing:
+  - test_name: "full_mask"
+    requires: ["to_array", "to_mask", "integral_all_true"]
+    implementation: |
+      using T = typename Vec::base_type;
+      typename Vec::mask_type mask = to_mask<Vec>(integral_all_true<Vec>());
+      bool allOk = true;
+      auto vec = to_vector<Vec>(mask);
+      auto vec_arr = to_array<Vec>(vec);
+
+      if constexpr (std::is_integral<T>::value){
+        for(int i = 0; i < Vec::vector_element_count(); i++){
+          T temp = vec_arr[i];
+          for(int j = 0; j < sizeof(T)*8; j++){
+            allOk &= ((temp >> j) & 0b1);
+          }
+        }
+      }else if constexpr (std::is_same<T, double>::value){
+        for(int i = 0; i < Vec::vector_element_count(); i++){
+          T temp = vec_arr[i];
+          allOk &= (static_cast<int64_t>(temp) == std::numeric_limits<int64_t>::min());
+        }
+      }else{
+        for(int i = 0; i < Vec::vector_element_count(); i++){
+          T temp = vec_arr[i];
+          allOk &= (static_cast<int32_t>(temp) == std::numeric_limits<int32_t>::min());
+        }
+      }
+      return allOk;
+  - test_name: "no_mask"
+    requires: ["to_array", "to_mask", "integral_all_true"]
+    implementation: |
+      using T = typename Vec::base_type;
+      typename Vec::mask_type mask = to_mask<Vec>(integral_all_false<Vec>());
+      auto vec = to_vector<Vec>(mask);
+
+      testing::test_memory_helper_t<Vec> test_helper{0, Vec::vector_element_count(), false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+
+      storeu<Vec>(reference_result_ptr, set_zero<Vec>());
+      storeu<Vec>(test_result_ptr, vec);
+      test_helper.synchronize();
+      return test_helper.validate();
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
