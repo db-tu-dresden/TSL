@@ -854,18 +854,26 @@ testing:
       std::random_device rd;
       std::mt19937 gen(rd());
       std::uniform_int_distribution<mask_t> dist(std::numeric_limits<mask_t>::min(), std::numeric_limits<mask_t>::max());
-      mask_t mask = dist(gen);
       bool allOk = true;
 
-      for(std::size_t i = 0; i < element_count; i++){
-        std::size_t count = 0;
-        for(std::size_t j = 0; j < sizeof(mask_t)*8; j++){
-          if((mask >> j) & 0b1){
-            count++;
-          }
+      if constexpr (std::is_same<bool, typename Vec::mask_type>::value){
+        for(std::size_t i = 0; i < element_count; i++){
+          mask_t mask = dist(gen);
+          auto result = mask_population_count<Vec>(mask);
+          allOk &= (result == (mask & 0b1));
         }
-        auto result = mask_population_count<Vec>(mask);
-        allOk &= (result == count);
+      }else{
+        for(std::size_t i = 0; i < element_count; i++){
+          mask_t mask = dist(gen);
+          std::size_t count = 0;
+          for(std::size_t j = 0; j < sizeof(mask_t)*8; j++){
+            if((mask >> j) & 0b1){
+              count++;
+            }
+          }
+          auto result = mask_population_count<Vec>(mask);
+          allOk &= (result == count);
+        }
       }
       return allOk;
 definitions:
@@ -917,6 +925,7 @@ definitions:
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    specialization_comment: "TODO: actual value is smaller than the type for u/int8. Pls check."
     lscpu_flags: ["avx"]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -928,6 +937,7 @@ definitions:
       #endif
   - target_extension: "avx2"
     ctype: ["uint32_t", "int32_t", "float"]
+    specialization_comment: "TODO: actual value is smaller than the type. Pls check."
     lscpu_flags: ["avx"]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -940,6 +950,7 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint64_t", "int64_t", "double"]
     lscpu_flags: ["avx"]
+    specialization_comment: "TODO: actual value is smaller than the type. Pls check."
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
       return __builtin_popcountll(mask);
@@ -951,6 +962,7 @@ definitions:
   #INTEL - SSE
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    specialization_comment: "TODO: actual value is smaller than the type for u/int16. Pls check."
     lscpu_flags: ["sse"]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -962,6 +974,7 @@ definitions:
       #endif
   - target_extension: "sse"
     ctype: ["uint32_t", "int32_t", "float"]
+    specialization_comment: "TODO: actual value is smaller than the type. Pls check."
     lscpu_flags: ["sse"]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -973,6 +986,7 @@ definitions:
       #endif
   - target_extension: "sse"
     ctype: ["uint64_t", "int64_t", "double"]
+    specialization_comment: "TODO: actual value is smaller than the type. Pls check."
     lscpu_flags: ["sse"]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -984,38 +998,9 @@ definitions:
       #endif
   #SCALAR
   - target_extension: "scalar"
-    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
     lscpu_flags: []
-    implementation: |
-      #if defined(__clang__) || defined(__GNUC__)
-      return __builtin_popcount(mask);
-      #elif defined(_MSC_VER)
-      return  __popcnt16(mask);
-      #else
-      static_assert(false, "No known implementation for popcount");
-      #endif
-  - target_extension: "scalar"
-    ctype: ["uint32_t", "int32_t", "float"]
-    lscpu_flags: []
-    implementation: |
-      #if defined(__clang__) || defined(__GNUC__)
-      return __builtin_popcountl(mask);
-      #elif defined(_MSC_VER)
-      return  __popcnt32(mask);
-      #else
-      static_assert(false, "No known implementation for popcount");
-      #endif
-  - target_extension: "scalar"
-    ctype: ["uint64_t", "int64_t", "double"]
-    lscpu_flags: []
-    implementation: |
-      #if defined(__clang__) || defined(__GNUC__)
-      return __builtin_popcountll(mask);
-      #elif defined(_MSC_VER)
-      return  __popcnt64(mask);
-      #else
-      static_assert(false, "No known implementation for popcount");
-      #endif
+    implementation: return (mask & 0b1);
 ...
 ---
 primitive_name: "integral_all_true"

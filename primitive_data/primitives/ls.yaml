@@ -667,7 +667,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((T)Is)...
+          (((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -682,7 +682,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((T)Is)...
+          (((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -697,7 +697,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((T)Is)...
+          (((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -726,18 +726,47 @@ returns:
 testing:
   - test_name: "default"
     requires: ["to_array"]
+    includes: ["<cmath>"]
     implementation: |
       using T = typename Vec::base_type;
       std::size_t element_count = 1024;
-      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
-      auto config = test_helper.data_ref();
+
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
 
       bool allOk = true;
-      for(std::size_t i = 0; i < element_count; i++) {
-        auto vec = custom_sequence<Vec>(config[i], config[i+1]);
-        auto vec_arr = to_array<Vec>(vec);
-        for(T k = 0, j = config[i]; k < Vec::vector_element_count(); k++, j+= config[i+1]){
-          allOk &= (j == vec_arr[k]);
+      for(std::size_t i = 0; i < element_count - 1; i++) {
+        auto vec = custom_sequence<Vec>(test_data_ptr[i], test_data_ptr[i+1]);
+        auto test_arr = to_array<Vec>(vec);
+        T data [Vec::vector_element_count()];
+
+        if constexpr (std::is_integral<T>::value){
+          std::size_t idx = 0;
+          for(T j = reference_data_ptr[i]; idx < Vec::vector_element_count(); j+= reference_data_ptr[i+1]){
+            data[idx++] = j;
+          }
+          for(std::size_t l = 0; l < Vec::vector_element_count(); l++){
+            allOk &= (data[l] == test_arr[l]);
+          }
+        }else{
+          // Kahan sum alg
+          T sum = reference_data_ptr[i], c = 0.0;
+          reference_result_ptr[0] = reference_data_ptr[i];
+          data[0] = reference_data_ptr[i];
+          std::size_t idx = 1;
+          while(idx < Vec::vector_element_count()){
+            T y  = reference_data_ptr[i+1] - c;
+            T t = sum + y;
+            c = (t - sum) - y;
+            sum = t;
+            data[idx++] = sum;
+          }
+          for(std::size_t l = 0; l < Vec::vector_element_count(); l++){
+            allOk &= ((data[l] - test_arr[l]) > -1e-3 && (data[l] - test_arr[l]) < 1e-3);
+          }
         }
       }
       return allOk;
