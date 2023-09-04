@@ -752,7 +752,6 @@ testing:
         }else{
           // Kahan sum alg
           T sum = reference_data_ptr[i], c = 0.0;
-          reference_result_ptr[0] = reference_data_ptr[i];
           data[0] = reference_data_ptr[i];
           std::size_t idx = 1;
           while(idx < Vec::vector_element_count()){
