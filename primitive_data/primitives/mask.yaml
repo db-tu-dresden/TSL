@@ -283,7 +283,7 @@ testing:
       }
       return allOk;
   - test_name: "no_mask"
-    requires: ["to_array", "to_mask", "integral_all_true"]
+    requires: ["to_mask", "integral_all_false", "storeu", "set_zero"]
     implementation: |
       using T = typename Vec::base_type;
       typename Vec::mask_type mask = to_mask<Vec>(integral_all_false<Vec>());
