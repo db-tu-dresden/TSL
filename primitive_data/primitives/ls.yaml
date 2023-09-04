@@ -547,6 +547,11 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_setzero_{{ intrin_tp_full[ctype] }}();"
+  #SCALAR
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: return 0;
 ---
 primitive_name: "set"
 brief_description: "Transfers provided elements into a vector register."
