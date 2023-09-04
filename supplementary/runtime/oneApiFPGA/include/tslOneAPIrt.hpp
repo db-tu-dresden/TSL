@@ -10,6 +10,20 @@
 #include <CL/sycl.hpp>
 #include <sycl/ext/intel/fpga_extensions.hpp>
 
+/**
+ * @brief This is a workaround to handle the fact that fpga_loop_fuse_independent was first introduced with oneAPI 2022.2 (compiler release 2022.1.0)
+ */
+namespace sycl { namespace ext { namespace intel {
+  template<typename _F>
+  auto tsl_fuse_loops_independent(_F f, int) -> decltype(fpga_loop_fuse_independent(f)){
+    fpga_loop_fuse_independent(f);
+  }
+  template<typename _F>
+  auto tsl_fuse_loops_independent(_F f, double) -> void {
+    f();
+  }
+}}}
+
 namespace tsl {
   namespace oneAPI {
     struct MEMORY_ON_HOST{};
@@ -180,9 +194,9 @@ namespace tsl {
               return q.submit(
                 [&](sycl::handler& h) {
                   h.single_task<Fun<Args...>>([=]() [[intel::kernel_args_restrict]] {
-                    sycl::ext::intel::fpga_loop_fuse([&] {
+                    ::sycl::ext::intel::tsl_fuse_loops_independent([&] {
                       return Fun<Args...>::apply(args...);
-                    })
+                    }, 0);
                   });
                 }
               ).wait();
@@ -193,9 +207,9 @@ namespace tsl {
               return q.submit(
                 [&](sycl::handler& h) {
                   h.single_task<FunctorClass>([=]() [[intel::kernel_args_restrict]] {
-                    sycl::ext::intel::fpga_loop_fuse([&]{
+                    sycl::ext::intel::tsl_fuse_loops_independent([&]{
                       return FunctorClass::apply(args...);
-                    });
+                    }, 0);
                   });
                 }
               ).wait();

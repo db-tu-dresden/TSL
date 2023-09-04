@@ -1071,6 +1071,21 @@ returns:
   ctype: "typename Vec::offset_base_register_type"
   description: "Vector containing leading zeros number."
 definitions:
+  - target_extension: ["avx512"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512cd"]
+    implementation: |
+      return _mm512_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["avx2"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2", "avx512cd", "avx512vl"]
+    implementation: |
+      return _mm256_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["sse"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse", "avx512cd", "avx512vl"]
+    implementation: |
+      return _mm5_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
   - target_extension: ["oneAPIfpgaRTL"]
     ctype: ["uint32_t", "int32_t", "float"]
     lscpu_flags: ["oneAPIfpgaDev"]
