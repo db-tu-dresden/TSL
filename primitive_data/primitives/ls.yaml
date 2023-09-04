@@ -733,9 +733,7 @@ testing:
 
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
       auto reference_data_ptr = test_helper.data_ref();
-      auto reference_result_ptr = test_helper.result_ref();
       auto test_data_ptr = test_helper.data_target();
-      auto test_result_ptr = test_helper.result_target();
 
       bool allOk = true;
       for(std::size_t i = 0; i < element_count - 1; i++) {
