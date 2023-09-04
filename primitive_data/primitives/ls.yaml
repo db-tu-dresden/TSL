@@ -726,7 +726,6 @@ returns:
 testing:
   - test_name: "default"
     requires: ["to_array"]
-    includes: ["<iostream>"]
     implementation: |
       using T = typename Vec::base_type;
       std::size_t element_count = 1024;
@@ -738,8 +737,7 @@ testing:
         auto vec = custom_sequence<Vec>(config[i], config[i+1]);
         auto vec_arr = to_array<Vec>(vec);
         for(T k = 0, j = config[i]; k < Vec::vector_element_count(); k++, j+= config[i+1]){
-          bool temp = (j == vec_arr[k]);
-          allOk &= temp;
+          allOk &= (j == vec_arr[k]);
         }
       }
       return allOk;
@@ -1497,7 +1495,6 @@ returns:
 testing:
   - test_name: "full_mask"
     requires: ["storeu", "set1"]
-    includes: ["<iostream>"]
     implementation: |
       std::size_t element_count = 2048;
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
@@ -1521,7 +1518,6 @@ testing:
       return allOk;
   - test_name: "no_mask"
     requires: ["storeu", "set1"]
-    includes: ["<iostream>"]
     implementation: |
       std::size_t element_count = 2048;
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};

@@ -411,6 +411,7 @@ definitions:
       auto const data_vec = _mm256_set1_epi64x(mask);
       auto const anded_vec = _mm256_and_si256(data_vec, and_vec);
       return _mm256_castsi256_pd(_mm256_cmpeq_epi64(anded_vec, and_vec));
+  #INTEL - SSE
   - target_extension: ["sse"]
     ctype: ["uint8_t", "int8_t"]
     lscpu_flags: ["sse2"]
