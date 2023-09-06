@@ -68,7 +68,7 @@ namespace tsl {
             {% endfor %}
             else {
               std::cerr << "ERROR: unsupported vector length" << std::endl;
-              std::terminate();
+              throw std::runtime_error("unsupported vector length");
             }
           }
     };
