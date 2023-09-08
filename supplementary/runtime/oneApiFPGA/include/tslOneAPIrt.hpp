@@ -13,19 +13,69 @@
 /**
  * @brief This is a workaround to handle the fact that fpga_loop_fuse_independent was first introduced with oneAPI 2022.2 (compiler release 2022.1.0)
  */
-namespace sycl { namespace ext { namespace intel {
-  template<typename _F>
-  auto tsl_fuse_loops_independent(_F f, int) -> decltype(fpga_loop_fuse_independent(f)){
-    fpga_loop_fuse_independent(f);
+namespace sycl::ext::intel {
+  namespace tsl_helper_details {
+    struct incomplete_helper;
   }
-  template<typename _F>
-  auto tsl_fuse_loops_independent(_F f, double) -> void {
+  template<int N = 1, typename F>
+  std::enable_if_t<std::is_same_v<F, tsl_helper_details::incomplete>> fpga_loop_fuse(F f) = delete;
+  // Helper type to detect the presence of fpga_loop_fuse
+  template <typename F>
+  struct tsl_helper_has_fpga_loop_fuse {
+    template <typename Fun>
+    static auto test(int) -> decltype(fpga_loop_fuse<int{}>(std::declval<Fun>()), std::true_type{});
+    template <typename>
+    static auto test(...) -> std::false_type;
+
+    using type = decltype(test<F>(0));
+    static constexpr bool value = type::value;
+  };
+
+  template <int N = 1, typename Fun>
+  __attribute__((always_inline)) inline auto tsl_helper_loop_fuse(Fun f, int) -> std::enable_if_t<tsl_helper_has_fpga_loop_fuse<Fun>::value> {
+    fpga_loop_fuse<N>(f);
+  }
+  template <int N = 1, typename Fun>
+  __attribute__((always_inline)) inline void tsl_helper_loop_fuse(Fun f, double) {
     f();
   }
-}}}
+  
+
+  template<int N = 1, typename F>
+  std::enable_if_t<std::is_same_v<F, tsl_helper_details::incomplete>> fpga_loop_fuse_independent(F f) = delete;
+  template <typename F>
+  struct tsl_helper_has_fpga_loop_fuse_independent {
+    template <typename Fun>
+    static auto test(int) -> decltype(fpga_loop_fuse_independent<int{}>(std::declval<Fun>()), std::true_type{});
+    template <typename>
+    static auto test(...) -> std::false_type;
+
+    using type = decltype(test<F>(0));
+    static constexpr bool value = type::value;
+  };
+
+  template <int N = 1, typename Fun>
+  __attribute__((always_inline)) inline auto tsl_helper_loop_fuse_independent(Fun f, int) -> std::enable_if_t<tsl_helper_has_fpga_loop_fuse<Fun>::value> {
+    fpga_loop_fuse<N>(f);
+  }
+  template <int N = 1, typename Fun>
+  __attribute__((always_inline)) inline void tsl_helper_loop_fuse_independent(Fun f, double) {
+    f();
+  }
+}
 
 namespace tsl {
   namespace oneAPI {
+
+    template <int N = 1, typename Fun>
+    __attribute__((always_inline)) inline void loop_fuse(Fun f) {
+      sycl::ext::intel::tsl_helper_loop_fuse<N>(f, 0);
+    }
+    template <int N = 1, typename Fun>
+    __attribute__((always_inline)) inline void loop_fuse_independent(Fun f) {
+      sycl::ext::intel::tsl_helper_loop_fuse_independent<N>(f, 0);
+    }
+
     struct MEMORY_ON_HOST{};
     struct MEMORY_ON_DEVICE{};
 
@@ -194,9 +244,7 @@ namespace tsl {
               return q.submit(
                 [&](sycl::handler& h) {
                   h.single_task<Fun<Args...>>([=]() [[intel::kernel_args_restrict]] {
-                    ::sycl::ext::intel::tsl_fuse_loops_independent([&] {
-                      return Fun<Args...>::apply(args...);
-                    }, 0);
+                    return Fun<Args...>::apply(args...);
                   });
                 }
               ).wait();
@@ -207,9 +255,7 @@ namespace tsl {
               return q.submit(
                 [&](sycl::handler& h) {
                   h.single_task<FunctorClass>([=]() [[intel::kernel_args_restrict]] {
-                    sycl::ext::intel::tsl_fuse_loops_independent([&]{
-                      return FunctorClass::apply(args...);
-                    }, 0);
+                    return FunctorClass::apply(args...);
                   });
                 }
               ).wait();
