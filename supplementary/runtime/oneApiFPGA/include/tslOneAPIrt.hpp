@@ -15,10 +15,10 @@
  */
 namespace sycl::ext::intel {
   namespace tsl_helper_details {
-    struct incomplete_helper;
+    struct incomplete_helper_t;
   }
   template<int N = 1, typename F>
-  std::enable_if_t<std::is_same_v<F, tsl_helper_details::incomplete>> fpga_loop_fuse(F f) = delete;
+  std::enable_if_t<std::is_same_v<F, tsl_helper_details::incomplete_helper_t>> fpga_loop_fuse(F f) = delete;
   // Helper type to detect the presence of fpga_loop_fuse
   template <typename F>
   struct tsl_helper_has_fpga_loop_fuse {
@@ -42,7 +42,7 @@ namespace sycl::ext::intel {
   
 
   template<int N = 1, typename F>
-  std::enable_if_t<std::is_same_v<F, tsl_helper_details::incomplete>> fpga_loop_fuse_independent(F f) = delete;
+  std::enable_if_t<std::is_same_v<F, tsl_helper_details::incomplete_helper_t>> fpga_loop_fuse_independent(F f) = delete;
   template <typename F>
   struct tsl_helper_has_fpga_loop_fuse_independent {
     template <typename Fun>
