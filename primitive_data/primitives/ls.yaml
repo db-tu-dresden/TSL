@@ -767,7 +767,8 @@ testing:
             data[idx++] = sum;
           }
           for(std::size_t l = 0; l < Vec::vector_element_count(); l++){
-            allOk &= ((data[l] - test_arr[l]) > -1e-3 && (data[l] - test_arr[l]) < 1e-3); //TODO: find solution without tolerance
+            // Checking with Tolerance
+            allOk &= (std::fabs(data[l] - test_arr[l]) < 1e-3);
           }
         }
       }

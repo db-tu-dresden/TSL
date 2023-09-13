@@ -179,7 +179,7 @@ testing:
             }
           }
           if(isUnique) {
-            bitmask |= (1 << (k - i));
+            bitmask |= (static_cast<mask_t>(1) << (k - i));
           }
         }
         auto vec = loadu<Vec>(&test_data_ptr[i]);
