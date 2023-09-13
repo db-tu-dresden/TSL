@@ -27,4 +27,4 @@ The executable is located in the build folder. You can run it using the followin
 ```bash
 ./build/Example
 ```
-It will add two vectors of numbers and output the result. In this case we use AVX512, where you can store up to 4 64bit Inegers in one register. So two arrays of 4 numbers each can be added in one instruction. The result is then stored in a third array.
+It will add two vectors of numbers and output the result. In this case we use AVX512, where you can store up to 8 64bit Inegers in one register. So two arrays of 8 numbers each can be added in one instruction. The result is then stored in a third array.
