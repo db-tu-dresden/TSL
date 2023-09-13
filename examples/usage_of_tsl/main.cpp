@@ -2,20 +2,26 @@
 #include <tslintrin.hpp>
 
 int main(){
+    // processing style which specifies the vector instruction set
     using ps = tsl::simd<uint64_t, tsl::avx512>;
+    // register type from the processing style
     using reg_t = typename ps::register_type;
+    // input data
     uint64_t a[4] = {1, 2, 3, 4};
     uint64_t b[4] = {5, 6, 7, 8};
 
+    // load input data into registers
     reg_t v1 = tsl::loadu<ps>(a);
     reg_t v2 = tsl::loadu<ps>(b);
 
+    // add the two vectors
     reg_t v3 = tsl::add<ps>(v1, v2);
 
-    // size 8 to avoid stack smashing error
-    uint64_t c[8];
+    // store the result
+    uint64_t c[8]; // size 8 to avoid stack smashing error
     tsl::storeu<ps>(c, v3);
 
+    // print the result
     for (int i = 0; i < 4; ++i){
         std::cout << c[i] << " ";
     }
