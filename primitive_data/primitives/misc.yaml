@@ -13,6 +13,40 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing result of the uniqueness check."
+testing:
+  - test_name: "default"
+    requires: ["storeu", "loadu"]
+    implementation: |
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        std::size_t idx = 0;
+        typename Vec::base_type data[Vec::vector_element_count()];
+        for (std::size_t k = i; k < i + Vec::vector_element_count(); k++) {
+          data[idx] = 0;
+          for (std::size_t j = i; j < k; j++) {
+            if(reference_data_ptr[j] == reference_data_ptr[k]){
+              data[idx] |= (1 << (j - i));
+            }
+          }
+          idx ++;
+        }
+        auto vec_ref = loadu<Vec>(data);
+        storeu<Vec>(reference_result_ptr, vec_ref);
+
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto vec_result = conflict<Vec>(vec);
+
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -122,6 +156,37 @@ parameters:
 returns:
   ctype: "typename Vec::imask_type"
   description: "integral mask containing result of the uniqueness check."
+testing:
+  - test_name: "default"
+    requires: ["loadu", "integral_all_true"]
+    implementation: |
+      using mask_t = typename Vec::imask_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        mask_t bitmask = 0;
+        for (std::size_t k = i; k < i + Vec::vector_element_count(); k++) {
+          bool isUnique = true;
+          for (std::size_t j = i; j < k; j++) {
+            if(reference_data_ptr[j] == reference_data_ptr[k]){
+              isUnique = false;
+              break;
+            }
+          }
+          if(isUnique) {
+            bitmask |= (static_cast<mask_t>(1) << (k - i));
+          }
+        }
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto mask_result = conflict_free<Vec>(integral_all_true<Vec>(), vec);
+        allOk &= (bitmask == mask_result);
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"

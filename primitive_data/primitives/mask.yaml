@@ -253,6 +253,50 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Integral value representing the vector mask register."
+testing:
+  - test_name: "full_mask"
+    requires: ["to_array", "to_mask", "integral_all_true"]
+    implementation: |
+      using T = typename Vec::base_type;
+      typename Vec::mask_type mask = to_mask<Vec>(integral_all_true<Vec>());
+      bool allOk = true;
+      auto vec = to_vector<Vec>(mask);
+      auto vec_arr = to_array<Vec>(vec);
+
+      if constexpr (std::is_integral<T>::value){
+        for(int i = 0; i < Vec::vector_element_count(); i++){
+          T temp = vec_arr[i];
+          for(int j = 0; j < sizeof(T)*8; j++){
+            allOk &= ((temp >> j) & 0b1);
+          }
+        }
+      }else if constexpr (std::is_same<T, double>::value){
+        for(int i = 0; i < Vec::vector_element_count(); i++){
+          T temp = vec_arr[i];
+          allOk &= (static_cast<int64_t>(temp) == std::numeric_limits<int64_t>::min());
+        }
+      }else{
+        for(int i = 0; i < Vec::vector_element_count(); i++){
+          T temp = vec_arr[i];
+          allOk &= (static_cast<int32_t>(temp) == std::numeric_limits<int32_t>::min());
+        }
+      }
+      return allOk;
+  - test_name: "no_mask"
+    requires: ["to_mask", "integral_all_false", "storeu", "set_zero"]
+    implementation: |
+      using T = typename Vec::base_type;
+      typename Vec::mask_type mask = to_mask<Vec>(integral_all_false<Vec>());
+      auto vec = to_vector<Vec>(mask);
+
+      testing::test_memory_helper_t<Vec> test_helper{0, Vec::vector_element_count(), false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+
+      storeu<Vec>(reference_result_ptr, set_zero<Vec>());
+      storeu<Vec>(test_result_ptr, vec);
+      test_helper.synchronize();
+      return test_helper.validate();
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
@@ -367,6 +411,55 @@ definitions:
       auto const data_vec = _mm256_set1_epi64x(mask);
       auto const anded_vec = _mm256_and_si256(data_vec, and_vec);
       return _mm256_castsi256_pd(_mm256_cmpeq_epi64(anded_vec, and_vec));
+  #INTEL - SSE
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "int8_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi8(0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01);
+      auto const data_vec = _mm_set1_epi16(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_cmpeq_epi8(anded_vec, and_vec);
+  - target_extension: ["sse"]
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi64x(0x8000400020001000, 0x800040002000100);
+      auto const data_vec = _mm_set1_epi8(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_cmpeq_epi16(anded_vec, and_vec);
+  - target_extension: ["sse"]
+    ctype: ["uint32_t", "int32_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi32(0x8, 0x4, 0x2, 0x1);
+      auto const data_vec = _mm_set1_epi32(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_cmpeq_epi32(anded_vec, and_vec);
+  - target_extension: ["sse"]
+    ctype: ["float"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi32(0x8, 0x4, 0x2, 0x1);
+      auto const data_vec = _mm_set1_epi32(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_castsi128_ps(_mm_cmpeq_epi32(anded_vec, and_vec));
+  - target_extension: ["sse"]
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["sse2", "sse4.1"]
+    implementation: |
+      auto const and_vec = _mm_set_epi64x(0x2, 0x1);
+      auto const data_vec = _mm_set1_epi64x(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_cmpeq_epi64(anded_vec, and_vec);
+  - target_extension: ["sse"]
+    ctype: ["double"]
+    lscpu_flags: ["sse2", "sse4.1"]
+    implementation: |
+      auto const and_vec = _mm_set_epi64x(0x2, 0x1);
+      auto const data_vec = _mm_set1_epi64x(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_castsi128_pd(_mm_cmpeq_epi64(anded_vec, and_vec));
 ...
 ---
 primitive_name: "mask_binary_not"
@@ -750,21 +843,54 @@ parameters:
 returns:
   ctype: "unsigned int"
   description: "Numer of bits set to 1."
+testing:
+  - test_name: "default"
+    includes: ["<random>", "<limits>"]
+    implementation: |
+      using mask_t = typename Vec::imask_type;
+      std::size_t element_count = 1024;
+
+      // Generate random Mask
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_int_distribution<mask_t> dist(std::numeric_limits<mask_t>::min(), std::numeric_limits<mask_t>::max());
+      bool allOk = true;
+
+      if constexpr (std::is_same<bool, typename Vec::mask_type>::value){
+        for(std::size_t i = 0; i < element_count; i++){
+          mask_t mask = dist(gen);
+          auto result = mask_population_count<Vec>(mask);
+          allOk &= (result == (mask & 0b1));
+        }
+      }else{
+        for(std::size_t i = 0; i < element_count; i++){
+          mask_t mask = dist(gen);
+          std::size_t count = 0;
+          for(std::size_t j = 0; j < sizeof(mask_t)*8; j++){
+            if((mask >> j) & 0b1){
+              count++;
+            }
+          }
+          auto result = mask_population_count<Vec>(mask);
+          allOk &= (result == count);
+        }
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: [ "uint8_t", "uint16_t", "int8_t", "int16_t" ]
+    ctype: [ "uint8_t", "int8_t" ]
     lscpu_flags: [ "avx512f" ]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
-      return __builtin_popcount(mask);
+      return __builtin_popcountll(mask);
       #elif defined(_MSC_VER)
-      return  __popcnt16(mask);
+      return  __popcnt64(mask);
       #else
       static_assert(false, "No known implementation for popcount");
       #endif
   - target_extension: "avx512"
-    ctype: [ "uint32_t", "int32_t", "float" ]
+    ctype: [ "uint16_t", "int16_t" ]
     lscpu_flags: [ "avx512f" ]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -775,19 +901,31 @@ definitions:
       static_assert(false, "No known implementation for popcount");
       #endif
   - target_extension: "avx512"
+    ctype: [ "uint32_t", "int32_t", "float" ]
+    lscpu_flags: [ "avx512f" ]
+    implementation: |
+      #if defined(__clang__) || defined(__GNUC__)
+      return __builtin_popcount(mask);
+      #elif defined(_MSC_VER)
+      return  __popcnt16(mask);
+      #else
+      static_assert(false, "No known implementation for popcount");
+      #endif
+  - target_extension: "avx512"
     ctype: [ "uint64_t", "int64_t", "double" ]
     lscpu_flags: [ "avx512f" ]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
-      return __builtin_popcountll(mask);
+      return __builtin_popcount(mask);
       #elif defined(_MSC_VER)
-      return  __popcnt64(mask);
+      return  __popcnt(mask);
       #else
       static_assert(false, "No known implementation for popcount");
       #endif
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    specialization_comment: "TODO: actual value is smaller than the type for u/int8. Pls check."
     lscpu_flags: ["avx"]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -799,6 +937,7 @@ definitions:
       #endif
   - target_extension: "avx2"
     ctype: ["uint32_t", "int32_t", "float"]
+    specialization_comment: "TODO: actual value is smaller than the type. Pls check."
     lscpu_flags: ["avx"]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -811,6 +950,7 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint64_t", "int64_t", "double"]
     lscpu_flags: ["avx"]
+    specialization_comment: "TODO: actual value is smaller than the type. Pls check."
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
       return __builtin_popcountll(mask);
@@ -822,6 +962,7 @@ definitions:
   #INTEL - SSE
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    specialization_comment: "TODO: actual value is smaller than the type for u/int16. Pls check."
     lscpu_flags: ["sse"]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -833,6 +974,7 @@ definitions:
       #endif
   - target_extension: "sse"
     ctype: ["uint32_t", "int32_t", "float"]
+    specialization_comment: "TODO: actual value is smaller than the type. Pls check."
     lscpu_flags: ["sse"]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -844,6 +986,7 @@ definitions:
       #endif
   - target_extension: "sse"
     ctype: ["uint64_t", "int64_t", "double"]
+    specialization_comment: "TODO: actual value is smaller than the type. Pls check."
     lscpu_flags: ["sse"]
     implementation: |
       #if defined(__clang__) || defined(__GNUC__)
@@ -855,38 +998,9 @@ definitions:
       #endif
   #SCALAR
   - target_extension: "scalar"
-    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
     lscpu_flags: []
-    implementation: |
-      #if defined(__clang__) || defined(__GNUC__)
-      return __builtin_popcount(mask);
-      #elif defined(_MSC_VER)
-      return  __popcnt16(mask);
-      #else
-      static_assert(false, "No known implementation for popcount");
-      #endif
-  - target_extension: "scalar"
-    ctype: ["uint32_t", "int32_t", "float"]
-    lscpu_flags: []
-    implementation: |
-      #if defined(__clang__) || defined(__GNUC__)
-      return __builtin_popcountl(mask);
-      #elif defined(_MSC_VER)
-      return  __popcnt32(mask);
-      #else
-      static_assert(false, "No known implementation for popcount");
-      #endif
-  - target_extension: "scalar"
-    ctype: ["uint64_t", "int64_t", "double"]
-    lscpu_flags: []
-    implementation: |
-      #if defined(__clang__) || defined(__GNUC__)
-      return __builtin_popcountll(mask);
-      #elif defined(_MSC_VER)
-      return  __popcnt64(mask);
-      #else
-      static_assert(false, "No known implementation for popcount");
-      #endif
+    implementation: return (mask & 0b1);
 ...
 ---
 primitive_name: "integral_all_true"
@@ -932,7 +1046,7 @@ definitions:
 primitive_name: "integral_all_false"
 returns:
   ctype: "typename Vec::imask_type"
-  description: "Integral value where all values are set to 1."
+  description: "Integral value where all values are set to 0."
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"

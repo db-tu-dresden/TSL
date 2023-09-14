@@ -294,6 +294,65 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing result of the addition."
+testing:
+  - test_name: "zero_mask"
+    requires: ["loadu", "storeu", "to_mask", "integral_all_false"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+
+      typename Vec::mask_type zero_mask = to_mask<Vec>(integral_all_false<Vec>());
+
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+
+      for(std::size_t i = 0; i < (element_count - Vec::vector_element_count()); i += Vec::vector_element_count()){
+        std::size_t tester_idx = 0;
+        for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
+            reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+        }
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto vec_result = add<Vec>(zero_mask, vec, vec);
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "all_one_mask"
+    requires: ["loadu", "storeu", "to_mask", "integral_all_true"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+
+      typename Vec::mask_type mask = to_mask<Vec>(integral_all_true<Vec>());
+
+      std::size_t element_count = 2048;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+
+      for(std::size_t i = 0; i < (element_count - (2*Vec::vector_element_count())); i += 2*Vec::vector_element_count()){
+        std::size_t tester_idx = 0;
+        for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
+            reference_result_ptr[tester_idx++] = reference_data_ptr[j] + reference_data_ptr[j + Vec::vector_element_count()];
+        }
+        auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+        auto vec_b = loadu<Vec>(&test_data_ptr[i + Vec::vector_element_count()]);
+        auto vec_result = add<Vec>(mask, vec_a, vec_b);
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      if(!allOk) std::cout << (int)to_integral<Vec>(to_mask<Vec>(integral_all_true<Vec>())) << std::endl;
+      return allOk;
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
@@ -322,6 +381,11 @@ definitions:
     ctype: ["double"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_add_pd(vec_a, _mm_and_pd(vec_b, mask));"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (mask)? vec_a + vec_b : vec_a;"
 ---
 primitive_name: "mul"
 brief_description: "Multiplies two vector registers."
@@ -363,6 +427,67 @@ testing:
           allOk &= test_helper.validate();
         }
         return allOk;
+  - test_name: "multiply_by_zero"
+    requires: ["loadu", "storeu", "set1"]
+    includes: []
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      reg_t vec_zero = set1<Vec>(0);
+      for(std::size_t i = 0; i < (element_count - Vec::vector_element_count()); i += Vec::vector_element_count()){
+        std::size_t tester_idx = 0;
+        for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
+          reference_result_ptr[tester_idx++] = 0;
+        }
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto vec_result = mul<Vec>(vec, vec_zero);
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "multiply_neg_and_neg"
+    requires: ["to_array", "set1"]
+    includes: []
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+      if(std::is_signed<T>::value){
+        reg_t vec = set1<Vec>(-1);
+        auto const vec_result = to_array<Vec>(mul<Vec>(vec,vec));
+        bool allOk = true;
+        for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
+          allOk = (vec_result[i] == 1);
+        }
+        return allOk;
+      }else{
+        return true;
+      }
+  - test_name: "multiply_neg_and_pos"
+    requires: ["to_array", "set1"]
+    includes: []
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+      if(std::is_signed<T>::value){
+        reg_t vec_a = set1<Vec>(-1);
+        reg_t vec_b = set1<Vec>(1);
+        auto const vec_result = to_array<Vec>(mul<Vec>(vec_a,vec_b));
+        bool allOk = true;
+        for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
+          allOk = (vec_result[i] == -1);
+        }
+        return allOk;
+      }else{
+        return true;
+      }
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
@@ -1201,7 +1326,6 @@ definitions:
       }
       return result;
 ...
-
 ---
 primitive_name: "hmax"
 brief_description: "Reduces the elements to the maximum value."
