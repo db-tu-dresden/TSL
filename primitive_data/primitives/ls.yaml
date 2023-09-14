@@ -976,7 +976,6 @@ definitions:
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ ]
     implementation: "return *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<const char*>(memory) + index * N);"
-    
 ...
 ---
 primitive_name: "gather"

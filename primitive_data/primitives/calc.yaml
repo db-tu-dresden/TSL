@@ -674,7 +674,7 @@ definitions:
       } else {
         {% import 'core/definition_macro_helper_oneAPI.template' as helpers %}
         {{ helpers.tree_like_reduce("Vec", "result_vec", "value", "+") }}
-        return result_vec[Vec::vector_element_count()-2];        
+        return result_vec[Vec::vector_element_count()-2];
       }
   - target_extension: "oneAPIfpgaRTL"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
@@ -687,7 +687,7 @@ definitions:
       } else {
         {% import 'core/definition_macro_helper_oneAPI.template' as helpers %}
         {{ helpers.tree_like_reduce("Vec", "result_vec", "value", "+") }}
-        return result_vec[Vec::vector_element_count()-2];        
+        return result_vec[Vec::vector_element_count()-2];
       }
   # - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
   #   ctype: ["uint64_t", "int64_t", "double"]
