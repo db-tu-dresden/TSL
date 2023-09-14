@@ -199,6 +199,35 @@ testing: #optional
         allOk &= test_helper.validate();
       }
       return allOk;
+  - test_name: "all_unequal"
+    requires: ["to_integral", "loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false, testing::seq_init<T>,1};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - (1+Vec::vector_element_count()); i+=Vec::vector_element_count()) {
+        *reference_result_ptr = 0;
+        auto vec1 = loadu<Vec>( &test_data_ptr[i] );
+        auto vec2 = loadu<Vec>( &test_data_ptr[i+1] );
+        auto result_mask = equal<Vec>( vec1, vec2 );
+        auto result_integral = to_integral<Vec>( result_mask );
+        size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(((result_integral >> i) & 0b1) == 1) {
+            matches += 1;
+          }
+        }
+        *test_result_ptr = matches;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX2
   - target_extension: "avx2"
@@ -219,7 +248,66 @@ parameters:
     description: "Right vector."
 returns:
   ctype: "typename Vec::mask_type"
-  description: "Vector mask type indicating whether vec_a[*]==vec_b[*]."
+  description: "Vector mask type indicating whether vec_a[*]!=vec_b[*]."
+testing:
+  - test_name: "all_equal"
+    requires: ["to_integral", "loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        *reference_result_ptr = 0;
+        auto vec1 = loadu<Vec>( &test_data_ptr[i] );
+        auto vec2 = loadu<Vec>( &test_data_ptr[i] );
+        auto result_mask = equal<Vec>( vec1, vec2 );
+        auto result_integral = to_integral<Vec>( result_mask );
+        size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(!(((result_integral >> i) & 0b1) == 1) ) {
+            matches += 1;
+          }
+        }
+        *test_result_ptr = matches;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "all_unequal"
+    requires: ["to_integral", "loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false, testing::seq_init<T>,1};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - (1+Vec::vector_element_count()); i+=Vec::vector_element_count()) {
+        *reference_result_ptr = Vec::vector_element_count();
+        auto vec1 = loadu<Vec>( &test_data_ptr[i] );
+        auto vec2 = loadu<Vec>( &test_data_ptr[i+1] );
+        auto result_mask = equal<Vec>( vec1, vec2 );
+        auto result_integral = to_integral<Vec>( result_mask );
+        size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(!(((result_integral >> i) & 0b1) == 1)) {
+            matches += 1;
+          }
+        }
+        *test_result_ptr = matches;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -328,6 +416,91 @@ parameters:
 returns:
   ctype: "typename Vec::mask_type"
   description: "Vector mask type indicating whether the data is in the given range."
+testing:
+  - test_name: "complete_range"
+    requires: ["to_integral", "loadu", "set1"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+
+      auto vec_min = set1<Vec>(0);
+      auto vec_max = set1<Vec>(std::numeric_limits<T>::max());
+
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        *reference_result_ptr = Vec::vector_element_count();
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto result_mask = between_inclusive<Vec>( vec, vec_min, vec_max );
+        auto result_integral = to_integral<Vec>( result_mask );
+        size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(((result_integral >> i) & 0b1) == 1) {
+            matches += 1;
+          }
+        }
+        *test_result_ptr = matches;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "not_in_range"
+    requires: ["to_integral", "loadu", "set1"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false, testing::alternate_init_no_zero<T>};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec_min = set1<Vec>(0);
+      auto vec_max = set1<Vec>(0);
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        *reference_result_ptr = 0;
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto result_mask = between_inclusive<Vec>( vec, vec_min, vec_max );
+        auto result_integral = to_integral<Vec>( result_mask );
+        size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(((result_integral >> i) & 0b1) == 1) {
+            matches += 1;
+          }
+        }
+        *test_result_ptr = matches;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "check_boundaries"
+    requires: ["to_integral", "loadu", "set1"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false, testing::alternate_init_no_zero<T>};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(0);
+      *reference_result_ptr = Vec::vector_element_count();
+      auto result_mask = between_inclusive<Vec>(vec, vec, vec);
+      auto result_imask = to_integral<Vec>(result_mask);
+      size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(((result_imask >> i) & 0b1) == 1) {
+            matches += 1;
+          }
+        }
+      *test_result_ptr = matches;
+      test_helper.synchronize();
+      return test_helper.validate();
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
@@ -388,6 +561,11 @@ definitions:
         result[i] = ((vec_data[i] >= vec_min[i]) && (vec_data[i] <= vec_max[i])) ? checker : 0;
       }
       return result;
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (vec_data >= vec_min && vec_data <= vec_max);"
 ...
 ---
 primitive_name: "less_than"
@@ -995,20 +1173,19 @@ returns:
   description: "Result indicating if the vector register contains at least one value unequal to zero."
 testing:
   - test_name: "with_only_zero"
-    requires: ["set1", "loadu", "storeu"]
+    requires: ["set_zero"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
       testing::test_memory_helper_t<Vec> test_helper{1, false};
       auto reference_result_ptr = test_helper.result_ref();
       auto test_result_ptr = test_helper.result_target();
-      auto vec = set1<Vec>(0);
       *reference_result_ptr = 0;
-      *test_result_ptr = unequal_zero<Vec>(vec);
+      *test_result_ptr = unequal_zero<Vec>(set_zero<Vec>());
       test_helper.synchronize();
       return test_helper.validate();
   - test_name: "with_only_one"
-    requires: ["set1", "loadu", "storeu"]
+    requires: ["set1"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -1021,7 +1198,7 @@ testing:
       test_helper.synchronize();
       return test_helper.validate();
   - test_name: "with_sequence"
-    requires: ["sequence", "loadu", "storeu"]
+    requires: ["sequence"]
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
@@ -1038,11 +1215,11 @@ definitions:
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ['avx512f', 'avx512bw']
-    implementation: return ~(_mm512_cmpeq_epi{{intrin_tp[ctype][1]}}_mask(vec, _mm512_setzero_si512()));
+    implementation: return (_mm512_cmpneq_{{intrin_tp_full[ctype]}}_mask(vec, _mm512_setzero_si512()));
   - target_extension: "avx512"
     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ['avx512f']
-    implementation: return ~(_mm512_cmpeq_epi{{intrin_tp[ctype][1]}}_mask(vec, _mm512_setzero_si512())) & 0x1;
+    implementation: return (_mm512_cmpneq_{{intrin_tp_full[ctype]}}_mask(vec, _mm512_setzero_si512()));
   - target_extension: "avx512"
     ctype: ["float", "double"]
     lscpu_flags: ['avx512f', 'avx512bw']

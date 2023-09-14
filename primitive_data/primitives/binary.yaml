@@ -71,6 +71,7 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["avx"]
     implementation: "return _mm256_and_{{ intrin_tp_full[ctype] }}(a,b);"
+#Intel - SSE
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["sse2"]
@@ -83,6 +84,7 @@ definitions:
     ctype: [ "double" ]
     lscpu_flags: [ "sse2" ]
     implementation: "return _mm_and_pd(a, b);"
+#ARM - NEON
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: [ 'neon' ]

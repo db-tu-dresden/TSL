@@ -356,6 +356,34 @@ parameters:
 returns:
   ctype: "__attribute__((__aligned__(Vec::vector_alignment()))) std::array<typename Vec::base_type, Vec::vector_element_count()>"
   description: "Array containing the values from data."
+testing:
+  - test_name: "default"
+    requires: ["loadu"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        *reference_result_ptr = Vec::vector_element_count();
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto result_arr = to_array<Vec>(vec);
+
+        std::size_t hit = 0;
+        for(std::size_t j = 0, k = i; j < Vec::vector_element_count(); j++, k++){
+          if(result_arr[j] == reference_data_ptr[k]){
+            hit ++;
+          }
+        }
+        *test_result_ptr = hit;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -381,6 +409,14 @@ definitions:
       alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
       tsl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
       return tmp;
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: |
+      std::array<typename Vec::base_type, Vec::vector_element_count()> temp;
+      temp.fill(data);
+      return temp;
 ---
 primitive_name: "set1"
 brief_description: "Broadcasts a single value into all lanes of a vector register."
@@ -485,6 +521,13 @@ brief_description: "Set all lanes to zero."
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing 0 in all lanes."
+testing:
+  - test_name: "default"
+    requires: ["hor"]
+    implementation: |
+      auto zero_vec = set_zero<Vec>();
+      auto result = hor<Vec>(zero_vec);
+      return !((bool) result);
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -526,6 +569,11 @@ definitions:
         result[i] = 0;
       }
       return result;
+  #SCALAR
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: return 0;
 ---
 primitive_name: "set"
 brief_description: "Transfers provided elements into a vector register."
@@ -611,6 +659,29 @@ brief_description: "Creates a sequence [0..SIMD-Reg-Element-Count]."
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector register containing the sequence."
+testing:
+  - test_name: "default"
+    requires: ["loadu", "storeu"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t count = Vec::vector_element_count();
+
+      testing::test_memory_helper_t<Vec> test_helper{1, count, false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+
+      typename Vec::base_type data[count];
+      for(std::size_t i = 0; i < count; i++){
+        data[i] = i;
+      }
+      auto vec = loadu<Vec>(data);
+      storeu<Vec>(reference_result_ptr, vec);
+
+      auto vec_test = sequence<Vec>();
+      storeu<Vec>(test_result_ptr, vec_test);
+
+      test_helper.synchronize();
+      return test_helper.validate();
 definitions:
 #  INTEL - AVX512
   - target_extension: "avx512"
@@ -623,7 +694,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((T)Is)...
+          (((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -638,7 +709,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((T)Is)...
+          (((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -653,7 +724,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((T)Is)...
+          (((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -679,6 +750,51 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector register containing the sequence."
+testing:
+  - test_name: "default"
+    requires: ["to_array"]
+    includes: ["<cmath>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      auto reference_data_ptr = test_helper.data_ref();
+      auto test_data_ptr = test_helper.data_target();
+
+      bool allOk = true;
+      for(std::size_t i = 0; i < element_count - 1; i++) {
+        auto vec = custom_sequence<Vec>(test_data_ptr[i], test_data_ptr[i+1]);
+        auto test_arr = to_array<Vec>(vec);
+        T data [Vec::vector_element_count()];
+
+        if constexpr (std::is_integral<T>::value){
+          std::size_t idx = 0;
+          for(T j = reference_data_ptr[i]; idx < Vec::vector_element_count(); j+= reference_data_ptr[i+1]){
+            data[idx++] = j;
+          }
+          for(std::size_t l = 0; l < Vec::vector_element_count(); l++){
+            allOk &= (data[l] == test_arr[l]);
+          }
+        }else{
+          // Kahan sum alg
+          T sum = reference_data_ptr[i], c = 0.0;
+          data[0] = reference_data_ptr[i];
+          std::size_t idx = 1;
+          while(idx < Vec::vector_element_count()){
+            T y  = reference_data_ptr[i+1] - c;
+            T t = sum + y;
+            c = (t - sum) - y;
+            sum = t;
+            data[idx++] = sum;
+          }
+          for(std::size_t l = 0; l < Vec::vector_element_count(); l++){
+            // Checking with Tolerance
+            allOk &= (std::fabs(data[l] - test_arr[l]) < 1e-3);
+          }
+        }
+      }
+      return allOk;
 definitions:
   #  INTEL - AVX512
   - target_extension: "avx512"
@@ -1286,6 +1402,49 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
     description: "Data"
+testing:
+  - test_name: "full_mask"
+    requires: ["loadu"]
+    implementation: |
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      typename Vec::imask_type mask = -1;
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        auto vec_a = loadu<Vec>(&reference_data_ptr[i]);
+        storeu<Vec>(reference_result_ptr, vec_a);
+
+        auto vec_b = loadu<Vec>(&test_data_ptr[i]);
+        compress_store<Vec>(mask, test_result_ptr, vec_b);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "no_mask"
+    requires: ["storeu", "set1"]
+    implementation: |
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      typename Vec::imask_type mask = 0;
+      auto zero_vec = set1<Vec>(0);
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        storeu<Vec>(reference_result_ptr, zero_vec);
+        storeu<Vec>(test_result_ptr, zero_vec);
+
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        compress_store<Vec>(mask, test_result_ptr, vec);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -1349,6 +1508,28 @@ definitions:
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
     implementation: "_mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+  #INTEL - SSE
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    is_native: False
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const data_array = tsl::to_array<Vec>(data);
+
+      for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
+        if((mask >> i) & 1){
+          *memory = data_array[i];
+          memory ++;
+        }
+      }
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: |
+      if(mask){
+        *memory = tsl::extract_value<Vec, 0>(data);
+      }
 ...
 ---
 primitive_name: "expand_load"
@@ -1366,6 +1547,86 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing the elements."
+testing:
+  - test_name: "full_mask"
+    requires: ["storeu", "set1"]
+    implementation: |
+      std::size_t element_count = 2048;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto offset = 1024;
+      typename Vec::imask_type mask = -1;
+      auto zero_vec = set1<Vec>(0);
+      for(std::size_t i = 0; i < (element_count/2) - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        auto mem_ref = loadu<Vec>(&reference_data_ptr[i + offset]);
+        storeu<Vec>(reference_result_ptr, mem_ref);
+        auto src_test = loadu<Vec>(&test_data_ptr[i]);
+        auto result = expand_load<Vec>(mask, src_test, &test_data_ptr[i+offset]);
+        storeu<Vec>(test_result_ptr, result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "no_mask"
+    requires: ["storeu", "set1"]
+    implementation: |
+      std::size_t element_count = 2048;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto offset = 1024;
+      typename Vec::imask_type mask = 0;
+      auto zero_vec = set1<Vec>(0);
+      for(std::size_t i = 0; i < (element_count/2) - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        auto mem_ref = loadu<Vec>(&reference_data_ptr[i]);
+        storeu<Vec>(reference_result_ptr, mem_ref);
+        auto src_test = loadu<Vec>(&test_data_ptr[i]);
+        auto result = expand_load<Vec>(mask, src_test, &test_data_ptr[i+offset]);
+        storeu<Vec>(test_result_ptr, result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "default"
+    requires: ["storeu", "loadu"]
+    includes: ["<random>", "<limits>"]
+    implementation: |
+      using mask_t = typename Vec::imask_type;
+
+      // Generate random Mask
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_int_distribution<mask_t> dist(std::numeric_limits<mask_t>::min(), std::numeric_limits<mask_t>::max());
+      mask_t mask = dist(gen);
+
+      std::size_t element_count = 2048;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto offset = 1024;
+      for(std::size_t i = 0; i < (element_count/2) - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        typename Vec::base_type data[Vec::vector_element_count()];
+        for(std::size_t j = 0, k = i, l = i; j < Vec::vector_element_count(); j++, k++){
+          ((mask >> j) & 0b1)? data[j] = reference_data_ptr[offset + l++] : data[j] = reference_data_ptr[k];
+        }
+        auto temp = loadu<Vec>(data);
+        storeu<Vec>(reference_result_ptr, temp);
+        auto result = expand_load<Vec>(mask, loadu<Vec>(&test_data_ptr[i]), &test_data_ptr[i + offset]);
+        storeu<Vec>(test_result_ptr, result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
