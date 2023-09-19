@@ -82,22 +82,23 @@ namespace {{ tsl_implementation_namespace }} {
 template<
     VectorProcessingStyle {{ vector_name }},
     {{ ns.additional_template_params_with_defaults}}ImplementationDegreeOfFreedom {{ idof_name }} = workaround{{ ns.parameter_pack_typenames_str }}
-    {% if functor_name != primitive_name %}
-    #ifdef {{ tsl_namespace|upper ~ '_' ~ tsl_implementation_namespace|upper ~ '_' ~ primitive_name|upper ~ '_STRUCT_DEFINED'}}
-    , typename std::enable_if_t<
-        !std::is_same_v<
-            typename {{ tsl_implementation_namespace }}::{{ primitive_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>::param_tuple_t,
-            typename {{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>::param_tuple_t
-        >,
-        std::nullptr_t
-    > = nullptr
-    #endif
-    {% endif %}
 >
 {# If the primitive returns something, the caller has to capture the result. #}
-{{ '[[nodiscard]] ' if returns['ctype'] != 'void' else '' }}{# If force_inline is set to True, we use TSL_FORCE_INLINE. #}{{ 'TSL_FORCE_INLINE ' if force_inline else '' }}{{ returns['ctype'] }} {{ primitive_name }}(
+{{ '[[nodiscard]] ' if returns['ctype'] != 'void' else '' }}{# If force_inline is set to True, we use TSL_FORCE_INLINE. #}{{ 'TSL_FORCE_INLINE ' if force_inline else ' ' }}auto {{ primitive_name }}(
     {{ ns.full_qualified_parameters_str }}
-) {
+) -> std::enable_if_t<
+{% if functor_name == primitive_name %}
+  tsl_functor_defined<{{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>>::value,
+  {{ returns['ctype'] }}
+{% else %}
+#ifdef {{ tsl_namespace|upper ~ '_' ~ tsl_implementation_namespace|upper ~ '_' ~ primitive_name|upper ~ '_STRUCT_DEFINED'}}
+  !tsl_primitive_ambiguous<{{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>, {{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>>(),
+#else
+  true,
+#endif
+  {{ returns['ctype'] }}
+{% endif %}
+>{
     {# If the function primitive implementation returns something we have to return it, otherwise we just call it. #}
     {# Call the actual implementation with all parameters. #}
     {{ 'return ' if returns['ctype'] != 'void' else '' }}{{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>::apply(
