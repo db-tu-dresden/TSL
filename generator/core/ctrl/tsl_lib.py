@@ -6,7 +6,7 @@ import shutil
 
 from generator.core.tsl_config import config
 from generator.core.model.tsl_extension import TSLExtensionSet, TSLExtension
-from generator.core.model.tsl_primitive import TSLPrimitiveClassSet
+from generator.core.model.tsl_primitive import TSLPrimitiveClassSet, TSLPrimitive
 from generator.utils.log_utils import LogInit
 
 
@@ -102,6 +102,19 @@ class TSLLib:
                 template = config.create_template(file_content)
                 runtime_header_output.write(template.render(runtime_relevant_data_dict))
             # shutil.copy(fpath.resolve(), supplementary_root_path.joinpath(fpath).resolve(), follow_symlinks=True)
+
+    @property
+    def known_primitives_name(self) -> Generator[str, None, None]:
+        for primitive_class in self.__primitive_class_set:
+            for primitive in primitive_class:
+                yield primitive.declaration.name
+
+    @property
+    def known_primitives(self) -> Generator[Tuple[str, TSLPrimitive], None, None]:
+        for primitive_class in self.__primitive_class_set:
+            for primitive in primitive_class:
+                yield primitive_class.name, primitive
+                    
 
     @LogInit()
     def __init__(self, extension_set: TSLExtensionSet, primitive_class_set: TSLPrimitiveClassSet) -> None:

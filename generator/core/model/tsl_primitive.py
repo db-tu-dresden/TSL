@@ -19,6 +19,8 @@ class TSLPrimitive:
         def __init__(self, data_dict: dict):
             self.__data_dict = data_dict
             self.__data_dict["tsl_namespace"] = config.get_config_entry("namespace")
+            if "tsl_implementation_namespace" not in self.__data_dict:
+                self.__data_dict["tsl_implementation_namespace"] = config.implementation_namespace
             if len(data_dict["functor_name"]) == 0:
                 self.__data_dict["functor_name"] = data_dict["primitive_name"]
             self.log(logging.INFO, f"Created Primitive Declaration {self.__data_dict['primitive_name']}")
@@ -301,6 +303,23 @@ class TSLPrimitive:
         if self.has_test():
             for test in self.declaration.data["testing"]:
                 yield copy.deepcopy(test)
+            
+    def get_tests_implementations(self, copy: bool = True) -> Generator[Tuple[str, str], None, None]:
+        if self.has_test():
+            for test in self.declaration.data["testing"]:
+                if "implementation" in test:
+                    if copy:
+                        yield test["test_name"], copy.deepcopy(test["implementation"])
+                    else:
+                        yield test["test_name"], test["implementation"]
+    
+    def get_implementations(self, copy: bool = True) -> Generator[str, None, None]:
+      if copy:
+        for definition in self.definitions:
+            yield copy.deepcopy(definition.data["implementation"])
+      else:
+        for definition in self.definitions:
+            yield definition.data["implementation"]
 
     @staticmethod
     @requirement(data_dict="NotNone;dict")
