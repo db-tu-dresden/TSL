@@ -523,11 +523,20 @@ returns:
   description: "Vector containing 0 in all lanes."
 testing:
   - test_name: "default"
-    requires: ["hor"]
+    requires: ["set1"]
     implementation: |
-      auto zero_vec = set_zero<Vec>();
-      auto result = hor<Vec>(zero_vec);
-      return !((bool) result);
+      using T = typename Vec::base_type;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set_zero<Vec>();
+      storeu<Vec>(test_result_ptr, vec);
+      for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        reference_result_ptr[i] = (T)0;
+      }
+      test_helper.synchronize();
+      return test_helper.validate();
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -1527,7 +1536,7 @@ definitions:
     lscpu_flags: []
     implementation: |
       if(mask){
-        *memory = tsl::extract_value<Vec, 0>(data);
+        *memory = data;
       }
 ...
 ---
