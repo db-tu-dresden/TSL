@@ -18,4 +18,32 @@ implementations:
       #ifndef TSL_CVAL
       #   define TSL_CVAL(type, value) std::integral_constant<type,value>{}
       #endif
+    - |
+      template <typename T, class = void>
+      struct class_declared : std::false_type {};
+      template <typename T> 
+      struct class_declared<T,decltype(void(sizeof(T)))> : std::true_type {};
+    - |
+      template <class HelperStruct>
+      struct tsl_functor_defined {
+        template <class CurrentHelperStruct>
+        static auto test(int) -> decltype(CurrentHelperStruct::apply, std::true_type{});
+        template <typename>
+        static auto test(...) -> std::false_type;
+        using type = decltype(test<HelperStruct>(0));
+        static constexpr bool value = type::value;
+      };
+    - |
+      template<class A, class B>
+      constexpr bool tsl_primitive_ambiguous() {
+          if constexpr ((class_declared<A>::value)) {
+              if constexpr ((tsl_functor_defined<A>::value) && (tsl_functor_defined<B>::value)) {
+                  return std::is_same_v<typename A::param_tuple_t, typename B::param_tuple_t>;
+              } else {
+                  return false;
+              }
+          } else {
+              return false;
+          }
+      }
 ...
