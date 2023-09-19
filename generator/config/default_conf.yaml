@@ -1,6 +1,7 @@
 ---
 configuration:
    namespace:                     "tsl"
+   tsl_implementation_namespace:  "functors"
    header_file_extension:         ".hpp"
    source_file_extension:         ".cpp"
    root_path:                     "./generated_tsl"

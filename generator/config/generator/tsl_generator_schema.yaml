@@ -294,7 +294,7 @@ primitive:
       type: "str"
       brief: "@TODO"
       example: "test_add"
-    tsl_implementation_namespace:
+    implementation_namespace:
       type: "str"
       default: "functors"
       brief: "Namespace for template specializations."
