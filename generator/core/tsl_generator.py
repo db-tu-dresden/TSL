@@ -10,7 +10,7 @@ from generator.core.ctrl.tsl_slicer import TSLSlicer
 from generator.core.model.tsl_extension import TSLExtensionSet
 from generator.core.model.tsl_primitive import TSLPrimitiveClass, TSLPrimitiveClassSet
 from generator.core.tsl_config import config
-from generator.core.ctrl.tsl_dependendies import TSLDependencyGraph
+from generator.core.ctrl.tsl_dependencies import TSLDependencyGraph
 from generator.expansions.tsl_readme_md import create_readme
 from generator.expansions.tsl_translation_unit import TSLTranslationUnitContainer
 from generator.expansions.tsl_unit_test import TSLTestGenerator
@@ -189,26 +189,8 @@ class TSLGenerator:
         lib: TSLLib = TSLLib(relevant_extensions_set, relevant_primitives_class_set)
 
         dep_graph = TSLDependencyGraph(lib)
-        if not dep_graph.is_acyclic():
-            self.log(logging.ERROR, "Dependency graph for primitive definitions is not acyclic. Please check your dependencies.")
-            for cycle in dep_graph.get_cycles_as_str():
-                self.log(logging.ERROR, f"Cycle: {cycle}")
-            return
-        for x in dep_graph.sorted_classes():
-            print(f"#include {x}")
-        print("DONE")
-        dep_graph.inspect_tests()
-        if not dep_graph.is_acyclic():
-            self.log(logging.ERROR, "Dependency graph for primitive definitions is not acyclic. Please check your dependencies.")
-            for cycle in dep_graph.get_cycles_as_str():
-                self.log(logging.ERROR, f"Cycle: {cycle}")
-            return
-        print(dep_graph.as_str(True))
-        for missing_test in dep_graph.missing_tests():
-            self.log(logging.WARNING, f"Missing test for primitive {missing_test}")
 
-
-        file_generator: TSLFileGenerator = TSLFileGenerator(lib)
+        file_generator: TSLFileGenerator = TSLFileGenerator(lib, dep_graph)
         if not config.print_output_only:
             for path in file_generator.out_pathes:
                 self.log(logging.INFO, f"Creating directory {path}")
@@ -222,7 +204,8 @@ class TSLGenerator:
             cmake_config = config.get_expansion_config("cmake")
 
             tsl_translation_units: TSLTranslationUnitContainer = TSLTranslationUnitContainer()
-            for path, tu in TSLTestGenerator.generate(lib):
+
+            for path, tu in TSLTestGenerator.generate(lib, dep_graph):
                 tsl_translation_units.add_tu(path, tu)
 
             if cmake_config["enabled"]:
