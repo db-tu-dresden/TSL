@@ -72,7 +72,8 @@ class TSLDependencyGraph:
       for implementation_str in primitive.get_implementations(False):
         for match in self.__primitive_regex.finditer(implementation_str):          
           required_primitive = match.group(2)
-          self.__dependency_graph.add_edge(TSLDependencyGraph.PrimitiveNode(required_primitive), TSLDependencyGraph.PrimitiveNode(primitive.declaration.functor_name), label="requires")
+          if required_primitive != primitive.declaration.functor_name:
+            self.__dependency_graph.add_edge(TSLDependencyGraph.PrimitiveNode(required_primitive), TSLDependencyGraph.PrimitiveNode(primitive.declaration.functor_name), label="requires")
 
   def inspect_tests(self) -> None:
     for _, primitive in self.__tsl_lib.known_primitives:
