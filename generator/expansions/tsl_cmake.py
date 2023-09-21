@@ -17,16 +17,20 @@ class TSLCMakeGenerator:
     @staticmethod
     def generate_lib(lib: TSLLib, file_generator: TSLFileGenerator, translation_units: TSLTranslationUnitContainer, cmake_config: dict) -> None:
         def get_architecture_flags(lib: TSLLib) -> str:
+            hollistic_arch_flags_dict = dict()
+            for extension in lib.extension_set:
+                arch_flags: dict = extension.data["arch_flags"] if "arch_flags" in extension.data else dict()
+                hollistic_arch_flags_dict.update(arch_flags)
             result: Set[str] = set()
             for primitive_definition in lib.primitive_class_set.definitions():
                 extension: TSLExtension = lib.extension_set.get_extension_by_name(
                     primitive_definition.target_extension)
                 if extension.data["needs_arch_flags"]:
-                    arch_flags: dict = extension.data["arch_flags"] if "arch_flags" in extension.data else dict()
+                    # arch_flags: dict = extension.data["arch_flags"] if "arch_flags" in extension.data else dict()
                     for flag in primitive_definition.architecture_flags:
                         f = flag
-                        if flag in arch_flags:
-                            f = arch_flags[flag]
+                        if flag in hollistic_arch_flags_dict:
+                            f = hollistic_arch_flags_dict[flag]
                         result.add(f"{config.compiler_architecture_prefix}{f}")
             return " ".join(result)
         def get_warning_options() -> str:

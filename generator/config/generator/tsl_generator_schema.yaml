@@ -104,7 +104,7 @@ extension:
       type: "dict"
       brief: "Dictionary for mapping architecture flags to compiler related arcitecture flags. Only non-obvious mappings must be included in this dictionary."
       example: "{sse4_1: 'msse4.1', sse4_2: 'msse4.2'}"
-      default: "{}"
+      default: {}
     includes: *includes
     runtime_headers:
       type: "list"
