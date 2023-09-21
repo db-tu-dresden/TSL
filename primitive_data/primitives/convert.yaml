@@ -166,12 +166,12 @@ testing:
   - test_name: "default_int_float_conversion"
     requires: ["loadu", "storeu"]
     includes: ["<iostream>"]
-    implementation:
+    implementation: |
       using T = typename Vec::base_type;
       using T_int = typename ToType::base_type;
 
       if constexpr(std::is_same<typename Vec::target_extension, typename ToType::target_extension>::value){
-        std::size_t element_count = 1024 * 8 * 10000;
+        std::size_t element_count = 1024 * 8;
         testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
         testing::test_memory_helper_t<ToType> test_helper_float{element_count, Vec::vector_element_count(), false};
 

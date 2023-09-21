@@ -19,31 +19,52 @@ implementations:
       #   define TSL_CVAL(type, value) std::integral_constant<type,value>{}
       #endif
     - |
-      template <typename T, class = void>
-      struct class_declared : std::false_type {};
-      template <typename T> 
-      struct class_declared<T,decltype(void(sizeof(T)))> : std::true_type {};
+      template <typename T, class = void> struct class_declared : std::false_type {};
+      template <typename T> struct class_declared<T,decltype(void(sizeof(T)))> : std::true_type {};
     - |
       template <class HelperStruct>
-      struct tsl_functor_defined {
+      struct tsl_functor_template_defined {
+        // Define a helper function that checks if apply can be instantiated with specific arguments.
+        template <typename... Args>
+        static auto has_valid_apply(Args&&...) -> decltype(std::declval<HelperStruct>().apply(std::declval<Args>()...), std::true_type{});
+        // If the helper function is well-formed, it means apply can be instantiated with these arguments.
+        template <typename... Args>
+        static std::true_type test(int, Args&&...);
+        // If the helper function is not well-formed, it means apply cannot be instantiated with these arguments.
+        static std::false_type test(...);
+        // Combine the results of the tests.
+        template <typename... Args>
+        using type = decltype(test(0, std::declval<Args>()...));
+        static constexpr bool value = type<>::value;
+      };
+    - |
+      template <class HelperStruct>
+      struct tsl_functor_plain_defined {
         template <class CurrentHelperStruct>
-        static auto test(int) -> decltype(CurrentHelperStruct::apply, std::true_type{});
+        static auto test(int) -> decltype(std::declval<CurrentHelperStruct>().apply, std::true_type{});
         template <typename>
         static auto test(...) -> std::false_type;
         using type = decltype(test<HelperStruct>(0));
         static constexpr bool value = type::value;
       };
     - |
+      template <class HelperStruct>
+      struct tsl_functor_defined {
+        static constexpr bool value =
+          tsl_functor_template_defined<HelperStruct>::value ||
+          tsl_functor_plain_defined<HelperStruct>::value;
+      };
+    - |
       template<class A, class B>
       constexpr bool tsl_primitive_ambiguous() {
-          if constexpr ((class_declared<A>::value)) {
-              if constexpr ((tsl_functor_defined<A>::value) && (tsl_functor_defined<B>::value)) {
-                  return std::is_same_v<typename A::param_tuple_t, typename B::param_tuple_t>;
-              } else {
-                  return false;
-              }
+        if constexpr ((class_declared<A>::value)) {
+          if constexpr ((tsl_functor_defined<A>::value) && (tsl_functor_defined<B>::value)) {
+            return std::is_same_v<typename A::param_tuple_t, typename B::param_tuple_t>;
           } else {
-              return false;
+            return false;
           }
+        } else {
+          return false;
+        }
       }
 ...

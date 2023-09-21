@@ -703,7 +703,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (((T)(sizeof...(Is) - 1 - Is)))...
+          (T)(((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -718,7 +718,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (((T)(sizeof...(Is) - 1 - Is)))...
+          (T)(((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -733,7 +733,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (((T)(sizeof...(Is) - 1 - Is)))...
+          (T)(((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -816,7 +816,7 @@ definitions:
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
       return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -831,7 +831,7 @@ definitions:
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
       return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -846,7 +846,7 @@ definitions:
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
       return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -1482,7 +1482,7 @@ definitions:
         *memory = data_array[i];
         memory += (mask>>i)&0b1;
       }
-      if(((mask>>Vec::vector_element_count())&0b1) == 0) {
+      if(((mask>>(Vec::vector_element_count()-1))&0b1) == 0) {
         *memory = safe[memory-orig_mem];
       }
   #INTEL - AVX2
@@ -1501,7 +1501,7 @@ definitions:
         *memory = data_array[i];
         memory += (mask>>i)&0b1;
       }
-      if(((mask>>Vec::vector_element_count())&0b1) == 0) {
+      if(((mask>>(Vec::vector_element_count()-1))&0b1) == 0) {
         *memory = safe[memory-orig_mem];
       }
   - target_extension: "avx2"

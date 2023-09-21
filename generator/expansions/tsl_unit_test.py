@@ -486,18 +486,10 @@ class TSLTestGenerator:
     @staticmethod
     def generate(lib: TSLLib, dep_graph: TSLDependencyGraph) -> Generator[Tuple[Path,TSLTranslationUnit], None, None]:
         if not config.expansion_enabled("unit_tests"):
-            if not dep_graph.is_acyclic():
-              self.log(logging.ERROR, "Dependency graph for primitive definitions is not acyclic. Please check your dependencies.")
-              for cycle in dep_graph.get_cycles_as_str():
-                  self.log(logging.ERROR, f"Cycle: {cycle}")
             return
 
         dep_graph.inspect_tests()
-        if not dep_graph.is_acyclic():
-            self.log(logging.ERROR, "Dependency graph for primitive definitions is not acyclic. Please check your dependencies.")
-            for cycle in dep_graph.get_cycles_as_str():
-                self.log(logging.ERROR, f"Cycle: {cycle}")
-            return
+        
         print(dep_graph.as_str(True))
 
         unit_test_config: dict = config.get_expansion_config("unit_tests")

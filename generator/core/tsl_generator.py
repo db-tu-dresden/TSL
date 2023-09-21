@@ -189,6 +189,11 @@ class TSLGenerator:
         lib: TSLLib = TSLLib(relevant_extensions_set, relevant_primitives_class_set)
 
         dep_graph = TSLDependencyGraph(lib)
+        if not dep_graph.is_acyclic():
+          self.log(logging.ERROR, "Dependency graph for primitive definitions is not acyclic. Please check your dependencies.")
+          for cycle in dep_graph.get_cycles_as_str():
+            self.log(logging.ERROR, f"Cycle: {cycle}")
+          return
 
         file_generator: TSLFileGenerator = TSLFileGenerator(lib, dep_graph)
         if not config.print_output_only:
@@ -205,8 +210,14 @@ class TSLGenerator:
 
             tsl_translation_units: TSLTranslationUnitContainer = TSLTranslationUnitContainer()
 
-            for path, tu in TSLTestGenerator.generate(lib, dep_graph):
-                tsl_translation_units.add_tu(path, tu)
+            try:
+                for path, tu in TSLTestGenerator.generate(lib, dep_graph):
+                    tsl_translation_units.add_tu(path, tu)
+            except Exception as e:
+                self.log(logging.ERROR, f"Error while generating test files. Exception: {str(e)}")
+                for cycle in dep_graph.get_cycles_as_str():
+                    self.log(logging.ERROR, f"Cycle: {cycle}")
+                raise e
 
             if cmake_config["enabled"]:
                 TSLCMakeGenerator.generate_lib(lib, file_generator, tsl_translation_units, cmake_config)

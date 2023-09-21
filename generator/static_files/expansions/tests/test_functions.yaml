@@ -142,7 +142,7 @@ implementations:
           private:
             template<std::size_t... Is>
             static auto call_set_impl(typename Vec::base_type const * data, std::index_sequence<Is...>) {
-                return tsl::set<Vec>(data[(Vec::vector_element_count()-1)-Is]...);
+                return tsl::set<Vec>((typename Vec::base_type)data[(Vec::vector_element_count()-1)-Is]...);
             }
           public:
             static auto call_set(typename Vec::base_type const * data) {

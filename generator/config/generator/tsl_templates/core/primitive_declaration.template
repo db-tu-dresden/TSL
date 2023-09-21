@@ -92,7 +92,7 @@ template<
   {{ returns['ctype'] }}
 {% else %}
 #ifdef {{ tsl_namespace|upper ~ '_' ~ tsl_implementation_namespace|upper ~ '_' ~ primitive_name|upper ~ '_STRUCT_DEFINED'}}
-  !tsl_primitive_ambiguous<{{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>, {{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>>(),
+  !tsl_primitive_ambiguous<{{ tsl_implementation_namespace }}::{{ primitive_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>, {{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>>(),
 #else
   true,
 #endif
