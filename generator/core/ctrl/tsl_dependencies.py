@@ -50,7 +50,7 @@ class TSLDependencyGraph:
     def attributes(self):
       return {"name": self.name, "type": self.type, "size": self.size}
   
-  NodeType = PrimitiveClassNode | PrimitiveNode | PrimitiveTestNode
+  NodeType = Union[PrimitiveClassNode, PrimitiveNode, PrimitiveTestNode]
     
   @property
   def graph(self) -> nx.DiGraph:
