@@ -843,7 +843,7 @@ testing:
         for(std::size_t i = 0; i < mask_count; i++){
           mask_t mask;
           testing::rnd_init(&mask, 1);
-          
+
           *reference_result_ptr = (mask & 0b1);
           *test_result_ptr = mask_population_count<Vec>(mask);
 
@@ -863,7 +863,7 @@ testing:
           }
           *reference_result_ptr = count;
           *test_result_ptr = mask_population_count<Vec>(mask);
-          
+
           test_helper.synchronize();
           allOk &= test_helper.validate();
         }
