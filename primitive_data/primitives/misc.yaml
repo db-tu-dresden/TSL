@@ -162,7 +162,7 @@ testing:
     implementation: |
       using mask_t = typename Vec::imask_type;
       std::size_t element_count = 1024;
-      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
       bool allOk = true;
       auto reference_data_ptr = test_helper.data_ref();
       auto reference_result_ptr = test_helper.result_ref();
@@ -182,9 +182,12 @@ testing:
             bitmask |= (static_cast<mask_t>(1) << (k - i));
           }
         }
+        *reference_result_ptr = bitmask;
         auto vec = loadu<Vec>(&test_data_ptr[i]);
-        auto mask_result = conflict_free<Vec>(integral_all_true<Vec>(), vec);
-        allOk &= (bitmask == mask_result);
+        *test_result_ptr = conflict_free<Vec>(integral_all_true<Vec>(), vec);
+
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
       }
       return allOk;
 definitions:

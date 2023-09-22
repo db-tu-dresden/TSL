@@ -514,11 +514,15 @@ returns:
   description: "Vector containing 0 in all lanes."
 testing:
   - test_name: "default"
-    requires: ["hor"]
+    requires: ["storeu", "set1"]
     implementation: |
-      auto zero_vec = set_zero<Vec>();
-      auto result = hor<Vec>(zero_vec);
-      return !((bool) result);
+      testing::test_memory_helper_t<Vec> test_helper{ Vec::vector_element_count(), false };
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      storeu<Vec>(reference_result_ptr, set1<Vec>(0));
+      storeu<Vec>(test_result_ptr, set_zero<Vec>());
+      test_helper.synchronize();
+      return test_helper.validate();
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -644,7 +648,7 @@ testing:
       using T = typename Vec::base_type;
       std::size_t count = Vec::vector_element_count();
 
-      testing::test_memory_helper_t<Vec> test_helper{1, count, false};
+      testing::test_memory_helper_t<Vec> test_helper{count, false};
       auto reference_result_ptr = test_helper.result_ref();
       auto test_result_ptr = test_helper.result_target();
 

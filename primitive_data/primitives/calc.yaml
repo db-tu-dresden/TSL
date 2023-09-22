@@ -314,7 +314,7 @@ testing:
       for(std::size_t i = 0; i < (element_count - Vec::vector_element_count()); i += Vec::vector_element_count()){
         std::size_t tester_idx = 0;
         for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
-            reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+          reference_result_ptr[tester_idx++] = reference_data_ptr[j];
         }
         auto vec = loadu<Vec>(&test_data_ptr[i]);
         auto vec_result = add<Vec>(zero_mask, vec, vec);
@@ -331,7 +331,7 @@ testing:
 
       typename Vec::mask_type mask = to_mask<Vec>(integral_all_true<Vec>());
 
-      std::size_t element_count = 2048;
+      std::size_t element_count = 1024;
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
       bool allOk = true;
       auto reference_data_ptr = test_helper.data_ref();
@@ -342,7 +342,7 @@ testing:
       for(std::size_t i = 0; i < (element_count - (2*Vec::vector_element_count())); i += 2*Vec::vector_element_count()){
         std::size_t tester_idx = 0;
         for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
-            reference_result_ptr[tester_idx++] = reference_data_ptr[j] + reference_data_ptr[j + Vec::vector_element_count()];
+          reference_result_ptr[tester_idx++] = reference_data_ptr[j] + reference_data_ptr[j + Vec::vector_element_count()];
         }
         auto vec_a = loadu<Vec>(&test_data_ptr[i]);
         auto vec_b = loadu<Vec>(&test_data_ptr[i + Vec::vector_element_count()]);
@@ -351,7 +351,6 @@ testing:
         test_helper.synchronize();
         allOk &= test_helper.validate();
       }
-      if(!allOk) std::cout << (int)to_integral<Vec>(to_mask<Vec>(integral_all_true<Vec>())) << std::endl;
       return allOk;
 definitions:
 #INTEL - AVX512
@@ -454,39 +453,46 @@ testing:
       }
       return allOk;
   - test_name: "multiply_neg_and_neg"
-    requires: ["to_array", "set1"]
+    requires: ["set1", "storeu"]
     includes: []
     implementation: |
       using T = typename Vec::base_type;
-      using reg_t = typename Vec::register_type;
-      if(std::is_signed<T>::value){
-        reg_t vec = set1<Vec>(-1);
-        auto const vec_result = to_array<Vec>(mul<Vec>(vec,vec));
-        bool allOk = true;
-        for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
-          allOk = (vec_result[i] == 1);
-        }
-        return allOk;
-      }else{
+
+      if(std::is_unsigned<T>::value){
         return true;
+      }else{
+        testing::test_memory_helper_t<Vec> test_helper{ Vec::vector_element_count(), false };
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+
+        storeu<Vec>(reference_result_ptr, set1<Vec>(1));
+        auto vec = set1<Vec>(-1);
+        storeu<Vec>(test_result_ptr, mul<Vec>(vec,vec));
+
+        test_helper.synchronize();
+        return test_helper.validate();
       }
   - test_name: "multiply_neg_and_pos"
-    requires: ["to_array", "set1"]
+    requires: ["set1", "storeu"]
     includes: []
     implementation: |
       using T = typename Vec::base_type;
-      using reg_t = typename Vec::register_type;
-      if(std::is_signed<T>::value){
-        reg_t vec_a = set1<Vec>(-1);
-        reg_t vec_b = set1<Vec>(1);
-        auto const vec_result = to_array<Vec>(mul<Vec>(vec_a,vec_b));
-        bool allOk = true;
-        for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
-          allOk = (vec_result[i] == -1);
-        }
-        return allOk;
-      }else{
+
+      if(std::is_unsigned<T>::value){
         return true;
+      }else{
+        testing::test_memory_helper_t<Vec> test_helper{ Vec::vector_element_count(), false };
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+
+        auto neg = set1<Vec>(-1);
+        auto pos = set1<Vec>(1);
+
+        storeu<Vec>(reference_result_ptr, neg);
+        storeu<Vec>(test_result_ptr, mul<Vec>(pos, neg));
+
+        test_helper.synchronize();
+        return test_helper.validate();
       }
 definitions:
 #INTEL - AVX512

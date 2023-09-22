@@ -259,29 +259,16 @@ testing:
     implementation: |
       using T = typename Vec::base_type;
       typename Vec::mask_type mask = to_mask<Vec>(integral_all_true<Vec>());
-      bool allOk = true;
       auto vec = to_vector<Vec>(mask);
-      auto vec_arr = to_array<Vec>(vec);
 
-      if constexpr (std::is_integral<T>::value){
-        for(int i = 0; i < Vec::vector_element_count(); i++){
-          T temp = vec_arr[i];
-          for(int j = 0; j < sizeof(T)*8; j++){
-            allOk &= ((temp >> j) & 0b1);
-          }
-        }
-      }else if constexpr (std::is_same<T, double>::value){
-        for(int i = 0; i < Vec::vector_element_count(); i++){
-          T temp = vec_arr[i];
-          allOk &= (static_cast<int64_t>(temp) == std::numeric_limits<int64_t>::min());
-        }
-      }else{
-        for(int i = 0; i < Vec::vector_element_count(); i++){
-          T temp = vec_arr[i];
-          allOk &= (static_cast<int32_t>(temp) == std::numeric_limits<int32_t>::min());
-        }
-      }
-      return allOk;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+
+      storeu<Vec>(reference_result_ptr, inv<Vec>(set_zero<Vec>()));
+      storeu<Vec>(test_result_ptr, vec);
+      test_helper.synchronize();
+      return test_helper.validate();
   - test_name: "no_mask"
     requires: ["to_mask", "integral_all_false", "storeu", "set_zero"]
     implementation: |
@@ -289,7 +276,7 @@ testing:
       typename Vec::mask_type mask = to_mask<Vec>(integral_all_false<Vec>());
       auto vec = to_vector<Vec>(mask);
 
-      testing::test_memory_helper_t<Vec> test_helper{0, Vec::vector_element_count(), false};
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
       auto reference_result_ptr = test_helper.result_ref();
       auto test_result_ptr = test_helper.result_target();
 
@@ -845,34 +832,40 @@ returns:
   description: "Numer of bits set to 1."
 testing:
   - test_name: "default"
-    includes: ["<random>", "<limits>"]
     implementation: |
       using mask_t = typename Vec::imask_type;
-      std::size_t element_count = 1024;
-
-      // Generate random Mask
-      std::random_device rd;
-      std::mt19937 gen(rd());
-      std::uniform_int_distribution<mask_t> dist(std::numeric_limits<mask_t>::min(), std::numeric_limits<mask_t>::max());
+      std::size_t mask_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{ 1, false };
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
       bool allOk = true;
-
       if constexpr (std::is_same<bool, typename Vec::mask_type>::value){
-        for(std::size_t i = 0; i < element_count; i++){
-          mask_t mask = dist(gen);
-          auto result = mask_population_count<Vec>(mask);
-          allOk &= (result == (mask & 0b1));
+        for(std::size_t i = 0; i < mask_count; i++){
+          mask_t mask;
+          testing::rnd_init(&mask, 1);
+          
+          *reference_result_ptr = (mask & 0b1);
+          *test_result_ptr = mask_population_count<Vec>(mask);
+
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
         }
       }else{
-        for(std::size_t i = 0; i < element_count; i++){
-          mask_t mask = dist(gen);
+        for(std::size_t i = 0; i < mask_count; i++){
+          mask_t mask;
+          testing::rnd_init(&mask, 1);
+
           std::size_t count = 0;
           for(std::size_t j = 0; j < sizeof(mask_t)*8; j++){
             if((mask >> j) & 0b1){
               count++;
             }
           }
-          auto result = mask_population_count<Vec>(mask);
-          allOk &= (result == count);
+          *reference_result_ptr = count;
+          *test_result_ptr = mask_population_count<Vec>(mask);
+          
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
         }
       }
       return allOk;
