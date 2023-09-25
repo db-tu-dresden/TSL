@@ -93,6 +93,12 @@ class TSLDependencyGraph:
         return node
     return None
   
+  def find_test(self, primitive_name: str, test_name) -> TSLDependencyGraph.PrimitiveTestNode|None:
+    node = TSLDependencyGraph.PrimitiveTestNode(f"{primitive_name}::{test_name}")
+    if node in self.__dependency_graph:
+      return node
+    return None
+
   def traverse_by_type(self, nodes: List[NodeType], node_types_of_interest: list, reversed:bool, self_contained: bool = False) -> Generator[NodeType, None, None]:
     for current_node in nodes:
       if self_contained:

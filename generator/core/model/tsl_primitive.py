@@ -302,7 +302,8 @@ class TSLPrimitive:
     def tests(self) -> Generator[YamlDataType, None, None]:
         if self.has_test():
             for test in self.declaration.data["testing"]:
-                yield copy.deepcopy(test)
+                if "implementation" in test:
+                  yield copy.deepcopy(test)
             
     def get_tests_implementations(self, copy: bool = True) -> Generator[Tuple[str, str], None, None]:
         if self.has_test():
