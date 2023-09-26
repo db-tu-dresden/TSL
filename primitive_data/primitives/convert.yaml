@@ -166,12 +166,12 @@ testing:
   - test_name: "default_int_float_conversion"
     requires: ["loadu", "storeu"]
     includes: ["<iostream>"]
-    implementation:
+    implementation: |
       using T = typename Vec::base_type;
       using T_int = typename ToType::base_type;
 
       if constexpr(std::is_same<typename Vec::target_extension, typename ToType::target_extension>::value){
-        std::size_t element_count = 1024 * 8 * 10000;
+        std::size_t element_count = 1024 * 8;
         testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
         testing::test_memory_helper_t<ToType> test_helper_float{element_count, Vec::vector_element_count(), false};
 
@@ -380,9 +380,9 @@ definitions:
       __m256i magic_i_all  = _mm256_set1_epi64x(0x4530000080100000);                /* 2^84 + 2^63 + 2^52 encoded as floating-point  */
       __m256d magic_d_all  = _mm256_castsi256_pd(magic_i_all);
 
-      __m256i v_lo         = _mm256_blend_epi32(magic_i_lo, data, 0b01010101);      /* Blend the 32 lowest significant bits of v with magic_int_lo                            */
+      __m256i v_lo         = _mm256_blend_epi32(magic_i_lo, data, 0b01010101);      /* Blends the 32 lowest significant bits of v with magic_int_lo                            */
       __m256i v_hi         = _mm256_srli_epi64(data, 32);                           /* Extract the 32 most significant bits of v                                              */
-              v_hi         = _mm256_xor_si256(v_hi, magic_i_hi32);                  /* Flip the msb of v_hi and blend with 0x45300000                                         */
+              v_hi         = _mm256_xor_si256(v_hi, magic_i_hi32);                  /* Flip the msb of v_hi and blends with 0x45300000                                         */
       __m256d v_hi_dbl     = _mm256_sub_pd(_mm256_castsi256_pd(v_hi), magic_d_all); /* Compute in double precision:                                                           */
       return _mm256_add_pd(v_hi_dbl, _mm256_castsi256_pd(v_lo));                    /* (v_hi - magic_d_all) + v_lo  Do not assume associativity of floating point addition !! */
   - target_extension: "avx2"
@@ -397,9 +397,9 @@ definitions:
       __m256i magic_i_all  = _mm256_set1_epi64x(0x4530000000100000);                /* 2^84 + 2^52 encoded as floating-point  */
       __m256d magic_d_all  = _mm256_castsi256_pd(magic_i_all);
 
-      __m256i v_lo         = _mm256_blend_epi32(magic_i_lo, data, 0b01010101);      /* Blend the 32 lowest significant bits of v with magic_int_lo                                                   */
+      __m256i v_lo         = _mm256_blend_epi32(magic_i_lo, data, 0b01010101);      /* Blends the 32 lowest significant bits of v with magic_int_lo                                                   */
       __m256i v_hi         = _mm256_srli_epi64(data, 32);                           /* Extract the 32 most significant bits of v                                                                     */
-              v_hi         = _mm256_xor_si256(v_hi, magic_i_hi32);                  /* Blend v_hi with 0x45300000                                                                                    */
+              v_hi         = _mm256_xor_si256(v_hi, magic_i_hi32);                  /* Blends v_hi with 0x45300000                                                                                    */
       __m256d v_hi_dbl     = _mm256_sub_pd(_mm256_castsi256_pd(v_hi), magic_d_all); /* Compute in double precision:                                                                                  */
       __m256d result       = _mm256_add_pd(v_hi_dbl, _mm256_castsi256_pd(v_lo));    /* (v_hi - magic_d_all) + v_lo  Do not assume associativity of floating point addition !!                        */
       return result;

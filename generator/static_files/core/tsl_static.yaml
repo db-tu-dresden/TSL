@@ -8,4 +8,5 @@ includes:
     - '"simd/simd_type_concepts.hpp"'
     - '"simd/simd_type.hpp"'
     - '"simd/simd_primitive_concepts.hpp"'
+    - '"utils/runtime.hpp"'
 ...

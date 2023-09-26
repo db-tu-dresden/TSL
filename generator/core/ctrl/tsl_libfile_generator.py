@@ -15,6 +15,7 @@ from generator.core.model.tsl_primitive import TSLPrimitiveClassSet
 from generator.utils.file_utils import strip_common_path_prefix
 from generator.utils.log_utils import LogInit
 from generator.utils.yaml_utils import yaml_load, YamlDataType
+from generator.core.ctrl.tsl_dependencies import TSLDependencyGraph
 
 
 
@@ -149,8 +150,18 @@ class TSLFileGenerator:
                     tsl_file.add_code_to_be_rendered(implementation)
             self.__static_files.append(tsl_file)
 
+    def __sort_header_files(self, sorted_keys: List[str], header_files: List[TSLHeaderFile]) -> List[TSLHeaderFile]:
+        result: List[TSLHeaderFile] = []
+        for key in sorted_keys:
+            for header_file in header_files:
+                if header_file.file_name.stem.startswith(key):
+                    result.append(header_file)
+        if len(result) != len(header_files):    
+            raise Exception("Could not sort header files.")
+        return result
+
     @LogInit()
-    def __init__(self, lib: TSLLib) -> None:
+    def __init__(self, lib: TSLLib, dependency_graph: TSLDependencyGraph) -> None:
         self.__static_files: List[TSLHeaderFile] = []
         self.__extension_name_to_file_dict: Dict[str, TSLHeaderFile] = {}
         self.__primitive_class_declarations: List[TSLHeaderFile] = []
@@ -160,13 +171,23 @@ class TSLFileGenerator:
         self.__create_primitive_header_files(lib.extension_set, lib.primitive_class_set)
 
         self.__create_static_header_files()
+        # dep_graph = TSLDependencyGraph(lib)
+        # print("Checking implementation dependencies:")
+        # ordered_primitive_classes = list(dep_graph.sort_tsl_classes("get_implementations"))
+
+        sorted_classes_prefix: List[str] = [p for p in dependency_graph.sorted_classes_as_string()]
+        print("Sorting includes according to the following order: " + ", ".join(sorted_classes_prefix))
+        include_order_dict = {prefix: index for index, prefix in enumerate(sorted_classes_prefix)}
+        include_sort_fun = lambda x: [include_order_dict[ref] for ref in sorted_classes_prefix if x.file_name.stem.startswith(ref)]
 
         generated_files_root: TSLHeaderFile = TSLHeaderFile.create_from_dict(config.lib_generated_files_root_header, {})
         for extension_file in self.extension_files:
             generated_files_root.add_file_include(extension_file)
-        for primitive_declaration in self.primitive_declaration_files:
+        # for primitive_declaration in self.__sort_header_files(ordered_primitive_classes, list(self.primitive_declaration_files)):
+        for primitive_declaration in sorted(self.primitive_declaration_files, key=include_sort_fun):
             generated_files_root.add_file_include(primitive_declaration)
-        for primitive_definition in self.primitive_definition_files:
+        for primitive_definition in sorted(self.primitive_definition_files, key=include_sort_fun):
             generated_files_root.add_file_include(primitive_definition)
-
+        for runtime_header in lib.relevant_runtime_headers:
+            generated_files_root.add_predefined_tsl_file_include(f'"{runtime_header.name}"')
         self.__static_files.append(generated_files_root)
