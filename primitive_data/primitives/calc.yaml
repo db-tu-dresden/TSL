@@ -20,6 +20,12 @@ testing: #optional
     requires: ["set1", "loadu", "storeu"]
     includes: ["<cstddef>"]
     implementation: |
+      auto exec_target = tsl::get_executor_by_extension<typename Vec::target_extension>();
+      auto test_fun_lol = [](int a) {
+        std::cout << "LOOOOL " << a << std::endl;
+        std::cout << tsl::type_name<Vec>() << std::endl;
+      };
+      exec_target.submit(test_fun_lol, 5);
       using T = typename Vec::base_type;
       std::size_t element_count = 1024;
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};

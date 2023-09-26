@@ -153,6 +153,9 @@ namespace tsl {
     
     template<typename Selector>
     class oneAPI_fpga {
+      public:
+        static constexpr bool needs_heterogenious_memory_access = false;
+        static constexpr bool has_heterogenious_memory_access = true;
       private:
         Selector selector;
         sycl::queue& q;
@@ -178,6 +181,23 @@ namespace tsl {
       public:
         template<typename _T>
           auto allocate(size_t element_count, ::tsl::oneAPI::MEMORY_ON_HOST, size_t alignment = 0) {
+            using T = std::remove_pointer_t<std::remove_reference_t<_T>>;
+            T * buffer;
+            if (alignment == 0) {
+              if ((buffer = sycl::malloc_host<T>(element_count*sizeof(T), q)) == nullptr) {
+                std::cerr << "ERROR: could not allocate space on host" << std::endl;
+                std::terminate();
+              }
+            } else {
+              if ((buffer = sycl::aligned_alloc_host<T>(alignment, element_count*sizeof(T), q)) == nullptr) {
+                std::cerr << "ERROR: could not allocate space on host" << std::endl;
+                std::terminate();
+              }
+            }
+            return sycl::host_ptr<T>{buffer};
+          }
+        template<typename _T>
+          auto allocate(size_t element_count, size_t alignment = 0) {
             using T = std::remove_pointer_t<std::remove_reference_t<_T>>;
             T * buffer;
             if (alignment == 0) {
@@ -239,6 +259,16 @@ namespace tsl {
             q.wait();
           }
         public:
+        template<class Fun, typename... Args>
+          decltype(auto) submit(Fun f, Args... args) {
+            return q.submit(
+              [&](sycl::handler& h) {
+                h.single_task<Fun>([=]() [[intel::kernel_args_restrict]] {
+                  return f::apply(args...);
+                });
+              }
+            ).wait();
+          }
           template<template<typename...> class Fun, typename... Args>
             decltype(auto) submit(Args... args) {
               return q.submit(
@@ -266,6 +296,13 @@ namespace tsl {
     #else
     using oneAPI_default_fpga = oneAPI_fpga<oneAPI_emulator_selector>;
     #endif
+  
+    {% for key, extension in avail_extension_types_dict.items() %}
+    template<>
+    struct executor_helper_t<{{ extension }}> {
+      using type = oneAPI_fpga;
+    };
+    {% endfor %}
   }
 }
 

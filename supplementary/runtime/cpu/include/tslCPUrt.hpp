@@ -10,6 +10,9 @@ namespace tsl {
   namespace runtime {
     class cpu {
       public:
+        static constexpr bool needs_heterogenious_memory_access = false;
+        static constexpr bool has_heterogenious_memory_access = false;
+      public:
         cpu() = default;
       public:
         template<typename T>
@@ -52,6 +55,10 @@ namespace tsl {
             }
           }
       public:
+        template<class Fun, typename... Args>
+          decltype(auto) submit(Args... args) {
+            return Fun::apply(args...);
+          }
         template<template<typename...> class Fun, typename... Args>
           decltype(auto) submit(Args... args) {
             return Fun<Args...>::apply(args...);
@@ -62,9 +69,11 @@ namespace tsl {
               return Fun<simd<BaseT, scalar>, Args...>::apply(args...);
             } 
             {% for avail_extension_type_size in avail_extension_types_dict %}
+              {% if avail_extension_type_size != 0 %}
             else if constexpr(sizeof(BaseT)*CHAR_BIT*VectorLength == {{ avail_extension_type_size }}) {
               return Fun<simd<BaseT, {{ avail_extension_types_dict[avail_extension_type_size] }}>, Args...>::apply(args...);
             }
+              {% endif %}
             {% endfor %}
             else {
               std::cerr << "ERROR: unsupported vector length" << std::endl;
@@ -72,6 +81,12 @@ namespace tsl {
             }
           }
     };
+    {% for key, extension in avail_extension_types_dict.items() %}
+    template<>
+    struct executor_helper_t<{{ extension }}> {
+      using type = cpu;
+    };
+    {% endfor %}
   }
 }
 #endif
