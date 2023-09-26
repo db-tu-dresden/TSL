@@ -22,8 +22,9 @@
 [name](#extension-custom_types-entry_type--name) | [language](#extension--language)
 [struct_code](#extension-custom_types-entry_type--struct_code) | [needs_arch_flags](#extension--needs_arch_flags)
 [cmakelists_path](#extension-required_supplementary_libraries-entry_type--cmakelists_path) | [required_supplementary_libraries](#extension--required_supplementary_libraries)
-[library_create_function](#extension-required_supplementary_libraries-entry_type--library_create_function) | [simdT_default_size_in_bits](#extension--simdT_default_size_in_bits)
-[name](#extension-required_supplementary_libraries-entry_type--name) | [simdT_integral_mask_type](#extension--simdT_integral_mask_type)
+[library_create_function](#extension-required_supplementary_libraries-entry_type--library_create_function) | [runtime_headers](#extension--runtime_headers)
+[name](#extension-required_supplementary_libraries-entry_type--name) | [simdT_default_size_in_bits](#extension--simdT_default_size_in_bits)
+ | [simdT_integral_mask_type](#extension--simdT_integral_mask_type)
  | [simdT_mask_type_attributes](#extension--simdT_mask_type_attributes)
  | [simdT_mask_type_compiler_attributes](#extension--simdT_mask_type_compiler_attributes)
  | [simdT_register_type_attributes](#extension--simdT_register_type_attributes)
@@ -133,7 +134,16 @@ example: `'intel'` <br />
 type: `dict` <br />
 brief: Dictionary for mapping architecture flags to compiler related arcitecture flags. Only non-obvious mappings must be included in this dictionary. <br />
 example: `{sse4_1: 'msse4.1', sse4_2: 'msse4.2'}` <br />
-default: {} <br />
+<details open>
+<summary><a name="default"></a>default</summary>
+
+<blockquote>
+
+
+
+</blockquote>
+</details>
+
 
 
 </blockquote>
@@ -357,6 +367,23 @@ brief: Name of the library which will be used for linking. <br />
 </details>
 
 <details>
+<summary><a name="extension--runtime_headers"></a>runtime_headers: (optional)</summary>
+
+<blockquote>
+
+type: `list` <br />
+entry_type: str <br />
+default: [] <br />
+brief: List of headers that are associated with the runtime (starting from ./supplementary/runtime) <br />
+
+
+</blockquote>
+
+[Back to Table of Content](#toc-extension)
+
+</details>
+
+<details>
 <summary><a name="extension--simdT_default_size_in_bits"></a>simdT_default_size_in_bits: (optional)</summary>
 
 <blockquote>
@@ -486,6 +513,7 @@ default: "" <br />
  | [force_inline](#primitive--force_inline)
  | [functor_name](#primitive--functor_name)
  | [idof_name](#primitive--idof_name)
+ | [implementation_namespace](#primitive--implementation_namespace)
  | [includes](#primitive--includes)
  | [parameters](#primitive--parameters)
  | [attributes](#primitive-parameters-entry_type--attributes)
@@ -501,7 +529,6 @@ default: "" <br />
  | [includes](#primitive-testing-entry_type--includes)
  | [requires](#primitive-testing-entry_type--requires)
  | [test_name](#primitive-testing-entry_type--test_name)
- | [tsl_implementation_namespace](#primitive--tsl_implementation_namespace)
  | [vector_name](#primitive--vector_name)
 <details>
 <summary><a name="primitive--primitive_name"></a>primitive_name: (required)</summary>
@@ -918,6 +945,22 @@ brief: The template class name which is used to care about the implementation de
 </details>
 
 <details>
+<summary><a name="primitive--implementation_namespace"></a>implementation_namespace: (optional)</summary>
+
+<blockquote>
+
+type: `str` <br />
+default: functors <br />
+brief: Namespace for template specializations. <br />
+
+
+</blockquote>
+
+[Back to Table of Content](#toc-primitive)
+
+</details>
+
+<details>
 <summary><a name="primitive--includes"></a>includes: (optional)</summary>
 
 <blockquote>
@@ -1206,22 +1249,6 @@ brief: Name of a specific test definition. <br />
 default: [] <br />
 brief: Testing code. <br />
 recommended: True <br />
-
-
-</blockquote>
-
-[Back to Table of Content](#toc-primitive)
-
-</details>
-
-<details>
-<summary><a name="primitive--tsl_implementation_namespace"></a>tsl_implementation_namespace: (optional)</summary>
-
-<blockquote>
-
-type: `str` <br />
-default: functors <br />
-brief: Namespace for template specializations. <br />
 
 
 </blockquote>
