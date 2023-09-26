@@ -234,6 +234,10 @@ class TSLGeneratorConfig:
     @property
     def lib_namespace(self) -> str:
         return self.get_config_entry("namespace")
+    
+    @property
+    def implementation_namespace(self) -> str:
+        return self.get_config_entry("tsl_implementation_namespace")
 
     @property
     def lib_header_file_extension(self) -> str:

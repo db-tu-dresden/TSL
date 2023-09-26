@@ -1,0 +1,41 @@
+---
+file_description: "Static header that defines the runtime."
+includes:
+  - "<cstdlib>"
+  - "<cstddef>"
+implementations:
+  - |
+    template<class ExecTarget>
+      class executor {
+        private:
+          ExecTarget target;
+        public:
+          template<typename... Args>
+            executor(Args&&... args)
+            : target{std::forward<Args>(args)...} 
+            {}
+        public:
+          
+          template<typename T, typename... Args>
+            auto allocate(Args&& ... args) {
+              return target.template allocate<T>(std::forward<Args>(args)...);
+            }
+          template<typename T>
+            void deallocate(T ptr) {
+              return target.deallocate(ptr);
+            }
+          template<typename OutT, typename InT>
+            void copy(OutT out, InT in, size_t element_count) {
+              target.copy(out, in, element_count);
+            }
+        public:
+          template<template<typename...> class Fun, typename... Args>
+            decltype(auto) submit(Args... args) {
+              return target.template submit<Fun>(args...);
+            }
+          template<typename BaseT, int VectorLength, template<typename...> class Fun, typename... Args>
+            decltype(auto) submit(Args... args) {
+              return target.template submit<BaseT, VectorLength, Fun, Args...>(args...);
+            }
+      };
+...

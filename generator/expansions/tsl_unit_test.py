@@ -19,6 +19,7 @@ from generator.expansions.tsl_translation_unit import TSLTranslationUnit
 from generator.utils.file_utils import strip_common_path_prefix
 from generator.utils.log_utils import LogInit
 from generator.utils.yaml_utils import YamlDataType, yaml_load
+from generator.core.ctrl.tsl_dependencies import TSLDependencyGraph
 
 import os
 
@@ -227,7 +228,7 @@ class TSLPrimitiveClassTests:
     
 class TSLTestSuite:
     @LogInit()
-    def __init__(self, lib: TSLLib) -> None:
+    def __init__(self, lib: TSLLib, dep_graph: TSLDependencyGraph) -> None:
         self.__test_cases: List[TSLPrimitiveTestCaseData] = []
         self.__test_class_names: Set[str] = set()
         self.__primitive_test: Set[Tuple[str, str]] = set()
@@ -242,10 +243,15 @@ class TSLTestSuite:
                     primitive_definition_extension_ctype: Dict[str, List[str]] = primitive.specialization_dict()
                     missing_primitive_definitions: Dict[str, Dict[str, List[str]]] = dict()
                     for test in primitive.tests:
+                        #inject dependencies from TSLDependencyGraph
+                        test_node = dep_graph.find_test(primitive.declaration.functor_name, test["test_name"])
                         if test["test_name"] in test_name_dict:
                             test_name = f"{test['test_name']}_{test_name_dict[test['test_name']]}"
                             test_name_dict[test["test_name"]] += 1
                             test["test_name"] = test_name
+                        if test_node is None:
+                            raise ValueError(f"Does not know test {primitive.declaration.name}::{test['test_name']}")
+                        test['requires'] = list({*test['requires'], *{dep for dep in dep_graph.get_required_primitives(test_node)}})
                         if ("requires" in test) and (len(test['requires']) > 0):
                             updated_primitive_definition_extension_ctype: Dict[str, List[str]] = dict()
                             for target_extension in primitive_definition_extension_ctype:
@@ -483,15 +489,19 @@ class TSLTestGenerator:
         pass
 
     @staticmethod
-    def generate(lib: TSLLib) -> Generator[Tuple[Path,TSLTranslationUnit], None, None]:
+    def generate(lib: TSLLib, dep_graph: TSLDependencyGraph) -> Generator[Tuple[Path,TSLTranslationUnit], None, None]:
         if not config.expansion_enabled("unit_tests"):
             return
+
+        dep_graph.inspect_tests()
+        
+        print(dep_graph.as_str(True))
 
         unit_test_config: dict = config.get_expansion_config("unit_tests")
 
         tsltu: TSLTranslationUnit = TSLTranslationUnit(target_name="tsl_test")
 
-        suite: TSLTestSuite = TSLTestSuite(lib)
+        suite: TSLTestSuite = TSLTestSuite(lib, dep_graph)
         dependency_graph: TSLTestDependencyGraph = TSLTestDependencyGraph(suite)
         dependency_graph.update_completeness()
         root_path: Path = config.generation_out_path.joinpath(unit_test_config["root_path"])
@@ -595,3 +605,6 @@ class TSLTestGenerator:
                 tsltu.add_source(tsf)
 
         yield root_path, tsltu
+
+
+

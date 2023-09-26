@@ -142,7 +142,7 @@ implementations:
           private:
             template<std::size_t... Is>
             static auto call_set_impl(typename Vec::base_type const * data, std::index_sequence<Is...>) {
-                return tsl::set<Vec>(data[(Vec::vector_element_count()-1)-Is]...);
+                return tsl::set<Vec>((typename Vec::base_type)data[(Vec::vector_element_count()-1)-Is]...);
             }
           public:
             static auto call_set(typename Vec::base_type const * data) {
@@ -173,7 +173,7 @@ implementations:
                 m_result_target_for_ref{tsl::allocate<tsl::simd<result_t, tsl::scalar>>(p_result_count*sizeof(result_t))},
                 m_result_target        {(aligned) ? tsl::allocate_aligned<Vec>(p_result_count*sizeof(result_t), Vec::vector_alignment()) : tsl::allocate<Vec>(p_result_count*sizeof(result_t))}
             {
-
+                std::memset(reinterpret_cast<void*>(m_result_ref), 0, p_result_count*sizeof(result_t));
             }
             test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, std::function<void(base_t*, std::size_t)> const& fun = rnd_init<typename Vec::base_type>):
                 m_data_element_count   {p_data_element_count},
@@ -186,6 +186,7 @@ implementations:
             {
                 fun(m_data_ref, p_data_element_count);
                 tsl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
+                std::memset(reinterpret_cast<void*>(m_result_ref), 0, p_result_count*sizeof(result_t));
             }
             template<typename... Ts>
             test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, void (*fun)(base_t*, std::size_t, Ts...), Ts... init_args):
@@ -199,6 +200,7 @@ implementations:
             {
                 fun(m_data_ref, p_data_element_count, init_args...);
                 tsl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
+                std::memset(reinterpret_cast<void*>(m_result_ref), 0, p_result_count*sizeof(result_t));
             }
             template<typename... Ts>
             test_memory_helper_t(std::size_t p_data_element_count, std::size_t p_result_count, bool aligned, std::function<void(base_t*,std::size_t, base_t)> const & fun, base_t start):
@@ -212,6 +214,7 @@ implementations:
             {
               fun(m_data_ref, p_data_element_count, start);
               tsl::memory_cp<Vec>(m_data_target, m_data_ref, p_data_element_count*sizeof(base_t), 1);
+              std::memset(reinterpret_cast<void*>(m_result_ref), 0, p_result_count*sizeof(result_t));
             }
             virtual ~test_memory_helper_t() {
                 tsl::deallocate<outVec>(m_result_target);
@@ -237,6 +240,7 @@ implementations:
             bool validate() const {
                 bool result = true;
                 for(auto i = 0; i < m_result_count; ++i) {
+                  //std::cerr << m_result_ref[i] << " " << m_result_target_for_ref[i] << std::endl;
                   result &= check_value<result_t>(m_result_ref[i], m_result_target_for_ref[i]);
                 }
                 return result;
