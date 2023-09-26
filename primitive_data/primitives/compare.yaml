@@ -484,21 +484,20 @@ testing:
     includes: ["<cstddef>"]
     implementation: |
       using T = typename Vec::base_type;
-      std::size_t element_count = 1024;
-      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false, testing::alternate_init_no_zero<T>};
+      testing::test_memory_helper_t<Vec> test_helper{ 1, false };
       auto reference_result_ptr = test_helper.result_ref();
       auto test_result_ptr = test_helper.result_target();
       auto vec = set1<Vec>(0);
-      *reference_result_ptr = Vec::vector_element_count();
       auto result_mask = between_inclusive<Vec>(vec, vec, vec);
       auto result_imask = to_integral<Vec>(result_mask);
       size_t matches = 0;
-        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-          if(((result_imask >> i) & 0b1) == 1) {
-            matches += 1;
-          }
+      for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+        if(((result_imask >> i) & 0b1) == 1) {
+          matches += 1;
         }
+      }
       *test_result_ptr = matches;
+      *reference_result_ptr = Vec::vector_element_count();
       test_helper.synchronize();
       return test_helper.validate();
 definitions:

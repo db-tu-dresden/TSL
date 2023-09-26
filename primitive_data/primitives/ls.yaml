@@ -523,18 +523,13 @@ returns:
   description: "Vector containing 0 in all lanes."
 testing:
   - test_name: "default"
-    requires: ["set1"]
+    requires: ["storeu", "set1"]
     implementation: |
-      using T = typename Vec::base_type;
-      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), Vec::vector_element_count(), false};
-      bool allOk = true;
+      testing::test_memory_helper_t<Vec> test_helper{ Vec::vector_element_count(), false };
       auto reference_result_ptr = test_helper.result_ref();
       auto test_result_ptr = test_helper.result_target();
-      auto vec = set_zero<Vec>();
-      storeu<Vec>(test_result_ptr, vec);
-      for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        reference_result_ptr[i] = (T)0;
-      }
+      storeu<Vec>(reference_result_ptr, set1<Vec>(0));
+      storeu<Vec>(test_result_ptr, set_zero<Vec>());
       test_helper.synchronize();
       return test_helper.validate();
 definitions:
@@ -675,7 +670,7 @@ testing:
       using T = typename Vec::base_type;
       std::size_t count = Vec::vector_element_count();
 
-      testing::test_memory_helper_t<Vec> test_helper{1, count, false};
+      testing::test_memory_helper_t<Vec> test_helper{count, false};
       auto reference_result_ptr = test_helper.result_ref();
       auto test_result_ptr = test_helper.result_target();
 
