@@ -12,7 +12,7 @@ parameters:
 returns:
   ctype: "typename Vec::imask_type"
   description: "Integral value representing of the vector mask register."
-testing: #optional
+testing_old: #optional
   - test_name: "mask_match_zero_to_vec_count"
     requires: ["loadu"]
     includes: ["<cstddef>", "<array>"]
@@ -293,7 +293,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Integral value representing the vector mask register."
-testing:
+testing_old:
   - test_name: "full_mask"
     requires: ["to_array", "to_mask", "integral_all_true"]
     implementation: |
@@ -902,7 +902,7 @@ parameters:
 returns:
   ctype: "unsigned int"
   description: "Numer of bits set to 1."
-testing:
+testing_old:
   - test_name: "default"
     implementation: |
       using mask_t = typename Vec::imask_type;

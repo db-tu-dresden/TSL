@@ -162,7 +162,7 @@ parameters:
 returns:
   ctype: "typename ToType::register_type"
   description: "Casted SIMD register."
-testing:
+testing_old:
   - test_name: "default_int_float_conversion"
     requires: ["loadu", "storeu"]
     includes: ["<iostream>"]
@@ -531,7 +531,7 @@ parameters:
 returns:
   ctype: "std::array<typename ToType::register_type, sizeof(typename ToType::base_type)/sizeof(typename Vec::base_type)>"
   description: "Array containing the upconverted simd registers."
-testing:
+testing_old:
   - test_name: "default"
     requires: ["loadu", "equal", "to_integral", "add"]
     includes: ["<limits>", "<cstdint>", "<algorithm>"]
@@ -926,7 +926,7 @@ parameters:
 returns:
   ctype: "typename ToType::register_type"
   description: "SIMD register containing the down-converted data."
-testing:
+testing_old:
   - test_name: "default"
     requires: ["loadu", "equal", "to_integral", "add"]
     includes: ["<limits>", "<cstdint>", "<algorithm>"]

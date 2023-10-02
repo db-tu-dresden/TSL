@@ -7,8 +7,14 @@ includes:
   - '"static/simd/simd_type.hpp"'
 implementations:
   - |
+    struct MEMORY_ON_HOST{};
+    struct MEMORY_ON_DEVICE{};
+  - |
     template<class ExecTarget>
       class executor {
+        public:
+          template<typename T>
+          using ptr_t = decltype(((ExecTarget*)nullptr)->template allocate<T>(0));
         private:
           ExecTarget target;
         public:

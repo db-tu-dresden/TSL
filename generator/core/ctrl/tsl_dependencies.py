@@ -37,6 +37,20 @@ class TSLDependencyGraph:
     def attributes(self):
       return {"name": self.name, "type": self.type, "size": self.size}
   @dataclass(order=True, unsafe_hash=True, frozen=True)
+  class PrimitiveDefinitionNode:
+    name: str
+    extension: str
+    type: str = "definition"
+    size: int = 3
+    def __str__(self):
+      return f"{self.name}<{self.extension}>"
+    def __repr__(self):
+      return str(self)
+    def id(self):
+      return str(self)
+    def attributes(self):
+      return {"name": self.name, "extension": self.extension, "type": self.type, "size": self.size}
+  @dataclass(order=True, unsafe_hash=True, frozen=True)
   class PrimitiveTestNode:
     name: str
     type: str = "test"

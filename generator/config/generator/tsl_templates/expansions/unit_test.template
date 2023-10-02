@@ -1,92 +1,41 @@
-{% macro create_test_call(case, extension, ctype) -%}
-{% if case['conversion_types'] %}
-{%    for (additional_extension, conversion_types) in case['conversion_types'][extension].items() %}
-{%      for conversion_type in conversion_types[ctype] %}
-        CHECK(test_{{ case['primitive_name'] }}_{{ case['test_name'] }}<simd<{{ ctype }}, {{ extension }}>, simd<{{ conversion_type }}, {{ additional_extension }}>>());
-{%      endfor %}
-{%    endfor %}
-{% else %}
-        CHECK(test_{{ case['primitive_name'] }}_{{ case['test_name'] }}<simd<{{ ctype }}, {{ extension }}>>());
-{% endif %}
-{%- endmacro -%}
-
-namespace {{ tsl_namespace }} {
-    {% for primitive_class_test in tests %}
-    {%    for primitive_test in primitive_class_test['primitive_tests'] %}
-    {%       for case in primitive_test['cases'] %}
-    {%        if case['conversion_types'] %}
-    template<VectorProcessingStyle {{ primitive_test['vector_name'] }}, VectorProcessingStyle {{ primitive_test['additional_simd_template_parameter']['name'] }}>
-    {%        else %}
-    template<VectorProcessingStyle {{ primitive_test['vector_name'] }}>
-    {%        endif %}
-    bool test_{{ case['primitive_name'] }}_{{ case['test_name'] }}() {
-        using namespace {{ tsl_namespace }};
-        {%- filter indent(width=8) +%}
-{{ case['implementation'] }}
-        {% endfilter %}
+namespace test_kernels {
+  template<
+    VectorProcessingStyle {{ primitive_test['vector_name'] }}, 
+    typename ResultT,
+    {{ 'typename ParamT_' ~ case['implementation']['param_names']|join(', typename ParamT_') ~ ',' if case['implementation']['param_names']|length > 0 }}
+    typename SizeT
+  >
+  struct test_{{ case['primitive_name'] }}_{{ case['test_name'] }} {
+    static void apply(
+      ResultT {{ case['implementation']['result_name'] }},
+      {% for name in case['implementation']['param_names'] %}{{ ', ' if loop.index > 1 }}ParamT_{{ name }} {{ name }}{% endfor %}{{ ',' if case['implementation']['param_names']|length > 0 }}
+      SizeT {{ case['implementation']['element_count_name'] }}
+    ) {
+      {{ case['implementation']['test'] }}
     }
-    {%       endfor %}
-    {%    endfor %}
+  };
+}
+
+template<VectorProcessingStyle {{ primitive_test['vector_name'] }}>
+bool test_{{ case['primitive_name'] }}_{{ case['test_name'] }}(void) {
+  using namespace {{ tsl_namespace }};
+  auto test_case_executor = {{ case['test_operation'] }}_{{ case['test_type'] }}_test_case<{{ primitive_test['vector_name'] }}>({{ case['element_count'] }});
+
+  test_case_executor.initialize(
+    {% for initialization in case['initialize'] %}[](auto {{ initialization['data_name'] }}, size_t {{ initialization['element_count_name'] }}) {    
+      {{ initialization['implementation'] }}
+    }{{ ',' if loop.index < case['initialize']|length }}
     {% endfor %}
-}
-
-{% for primitive_class_test in tests %}
-{%    for primitive_test in primitive_class_test['primitive_tests'] %}
-{%       for extension in known_extensions %}
-TEST_CASE("Testing primitive '{{ primitive_test['functor_name'] }}' for {{ extension }}", "[{{ primitive_test['functor_name'] }}],[{{ extension }}]") {
-    using namespace {{ tsl_namespace }};
-{%             for case in primitive_test['cases'] %}
-    SECTION("{{ case['test_name'] }}") {
-{%                   if extension not in case['complete_tests_lib_definitions'] %}
-{%                      set resolved = False %}
-{%                      if case['missing_required_primitive_definitions'] is not none %}
-{%                         if extension in case['missing_required_primitive_definitions'] %}
-{%                            set resolved = True %}
-{%                            for ctype in case['missing_required_primitive_definitions'][extension] %}
-        WARN("Can't run. Required primitive(s) {{ case['missing_required_primitive_definitions'][extension][ctype] }} not provided.");
-{%                            endfor %}
-{%                         endif %}
-{%                      endif %}
-{%                      if extension in case['missing_previous_tests'] and not resolved %}
-{%                         set resolved = True %}
-{%                         for ctype in case['missing_required_primitive_definitions'][extension] %}
-        WARN("Unreliable test. Required tests for primitive(s) {{ case['missing_previous_tests'][extension][ctype] }} not provided.");
-{{ create_test_call(case, extension, ctype) }}
-{%                         endfor %}
-{%                      endif %}
-{%                      if not resolved %}
-        WARN("Primitive {{ case['primitive_name'] }} not implemented for {{ extension }}");
-{%                      endif %}
-{%                   else %}
-{%                      for ctype in known_ctypes %}
-{%                         if ctype in case['complete_tests_lib_definitions'][extension] %}
-{{ create_test_call(case, extension, ctype) }}
-{%                         else %}
-{%                            set resolved = False %}
-{%                            if case['missing_required_primitive_definitions'] is not none %}
-{%                               if extension in case['missing_required_primitive_definitions'] %}
-{%                                  if ctype in case['missing_required_primitive_definitions'][extension] %}
-{%                                     set resolved = True %}
-        WARN("Can't run. Required primitive(s) {{ case['missing_required_primitive_definitions'][extension][ctype] }} not provided.");
-{%                                  endif %}
-{%                               endif %}
-{%                            endif %}
-{%                            if extension in case['missing_previous_tests'] and not resolved %}
-{%                               if ctype in case['missing_required_primitive_definitions'][extension] %}
-{%                                  set resolved = True %}
-        WARN("Unreliable test. Required tests for primitive(s) {{ case['missing_previous_tests'][extension][ctype] }} not provided.");
-{{ create_test_call(case, extension, ctype) }}
-{%                               endif %}
-{%                            endif %}
-{%                            if not resolved %}
-        WARN("Primitive {{ case['primitive_name'] }}<simd<{{ ctype }}, {{ extension }}>> not implemented.");
-{%                            endif %}
-{%                         endif %}
-{%                      endfor %}
-{%                   endif %}
+  );
+  test_case_executor.execute_test_kernel<test_kernels::test_{{ case['primitive_name'] }}_{{ case['test_name'] }}>();
+  test_case_executor.execute_reference_lambda(
+    [](
+      auto {{ case['implementation']['result_name'] }}, 
+      {% for name in case['implementation']['param_names'] %}{{ ', ' if loop.index > 1 }}ParamT_{{ name }} {{ name }}{% endfor %}{{ ',' if case['implementation']['param_names']|length > 0 }}
+      auto {{ case['implementation']['element_count_name'] }}
+    ) {
+      {{ case['implementation']['reference'] }}
     }
-{%             endfor %}
+  );
+  return test_case_executor.validate();
 }
-{%       endfor %}
-{%    endfor %}
-{% endfor %}

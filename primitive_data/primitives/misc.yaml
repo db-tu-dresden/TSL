@@ -13,7 +13,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing result of the uniqueness check."
-testing:
+testing_old:
   - test_name: "default"
     requires: ["storeu", "loadu"]
     implementation: |
@@ -166,7 +166,7 @@ parameters:
 returns:
   ctype: "typename Vec::imask_type"
   description: "integral mask containing result of the uniqueness check."
-testing:
+testing_old:
   - test_name: "default"
     requires: ["loadu", "integral_all_true"]
     implementation: |

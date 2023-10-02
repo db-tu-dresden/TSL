@@ -12,7 +12,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing the loaded data."
-testing:
+testing_old:
   - requires: ["storeu"]
     includes: ["<cstddef>", "<cstring>"]
     implementation: |
@@ -100,7 +100,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing the loaded data."
-testing:
+testing_old:
   - requires: ["storeu"]
     includes: ["<cstddef>", "<cstring>"]
     implementation: |
@@ -188,7 +188,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
     description: "Vector containing the data."
-testing:
+testing_old:
   - requires: ["set1"]
     includes: ["<cstddef>", "<cstring>"]
     implementation: |
@@ -273,7 +273,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
     description: "Vector containing the data."
-testing:
+testing_old:
   - requires: ["set1"]
     includes: ["<cstddef>", "<cstring>"]
     implementation: |
@@ -356,7 +356,7 @@ parameters:
 returns:
   ctype: "__attribute__((__aligned__(Vec::vector_alignment()))) std::array<typename Vec::base_type, Vec::vector_element_count()>"
   description: "Array containing the values from data."
-testing:
+testing_old:
   - test_name: "default"
     requires: ["loadu"]
     implementation: |
@@ -427,7 +427,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing the same value in all lanes."
-testing:
+testing_old:
   - name: "set1"
     includes: ["<cstddef>", "<algorithm>", "<limits>"]
     implementation: |
@@ -521,7 +521,7 @@ brief_description: "Set all lanes to zero."
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing 0 in all lanes."
-testing:
+testing_old:
   - test_name: "default"
     requires: ["storeu", "set1"]
     implementation: |
@@ -589,7 +589,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector register containing the values."
-testing:
+testing_old:
   - requires: ["storeu"]
     includes: ["<cstddef>", "<algorithm>", "<limits>"]
     implementation: |
@@ -663,7 +663,7 @@ brief_description: "Creates a sequence [0..SIMD-Reg-Element-Count]."
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector register containing the sequence."
-testing:
+testing_old:
   - test_name: "default"
     requires: ["loadu", "storeu"]
     implementation: |
@@ -754,7 +754,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector register containing the sequence."
-testing:
+testing_old:
   - test_name: "default"
     requires: ["to_array"]
     includes: ["<cmath>"]
@@ -876,7 +876,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing gathered data."
-testing:
+testing_old:
   - requires: ["storeu", "loadu"]
     includes: ["<cstddef>", "<algorithm>", "<limits>", "<type_traits>"]
     implementation: |
@@ -1405,7 +1405,7 @@ parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
     description: "Data"
-testing:
+testing_old:
   - test_name: "full_mask"
     requires: ["loadu"]
     implementation: |
@@ -1550,7 +1550,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing the elements."
-testing:
+testing_old:
   - test_name: "full_mask"
     requires: ["storeu", "set1"]
     implementation: |
@@ -1752,7 +1752,7 @@ parameters:
 returns:
    ctype: "typename Vec::register_type"
    description: "Base Vector, with the elements specified by mask changed to value."
-testing:
+testing_old:
    -  requires: ["loadu"]
       includes: ["<cstddef>"]
       implementation: |
@@ -1853,7 +1853,7 @@ parameters:
 returns:
    ctype: "typename Vec::register_type"
    description: "Base Vector, with the elements specified by mask changed to value."
-testing:
+testing_old:
    -  requires: ["loadu"]
       includes: ["<cstddef>"]
       implementation: |
@@ -1940,7 +1940,7 @@ parameters:
 returns:
    ctype: "typename Vec::register_type"
    description: "Base Vector, with the elements specified by mask changed to value."
-testing:
+testing_old:
    -  requires: ["loadu"]
       includes: ["<cstddef>"]
       implementation: |
@@ -2023,7 +2023,7 @@ parameters:
 returns:
   ctype: "typename Vec::base_type"
   description: "Extracted value."
-testing:
+testing_old:
   - test_name: "default"
     requires: ["loadu"]
     implementation: |

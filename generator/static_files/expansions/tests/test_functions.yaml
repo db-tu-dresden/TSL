@@ -14,6 +14,310 @@ includes:
    - '"catch.hpp"'
 implementations:
   - |
+    template<class ExecutorClass, typename T>
+    class test_case_memory_buffer {
+      public:
+        using memory_t = typename ExecutorClass::ptr_t<T>;
+        using base_t = T;
+      private:
+        static constexpr size_t fence_size = 128;
+        using check_t = uint64_t;
+        static constexpr check_t init_value = 0x7465737463617365ULL;
+        static constexpr check_t canary_value = 0xff63616e617279ffULL;
+      private:
+        ExecutorClass & m_executor;
+        size_t m_data_element_count;
+        size_t m_data_bytes_count;
+        size_t m_data_allocated_bytes_count;
+        size_t m_data_allocated_element_count;
+        size_t m_allocated_bytes_count;
+        memory_t m_buffer;
+      private:
+        base_t * data() const {
+          return reinterpret_cast<base_t*>(&m_buffer[0]);
+        }
+        base_t * end_data_ptr()  const {
+          return reinterpret_cast<base_t*>(&m_buffer[m_data_allocated_element_count]);
+        }
+        void reset_data() {
+          auto data = reinterpret_cast<check_t*>(data());
+          for(size_t i = 0; i < m_data_allocated_bytes_count/sizeof(check_t); ++i) {
+            data[i] = 0x7465737463617365ULL;
+          }
+        }
+        void reset_fence() {
+          auto suffix = reinterpret_cast<check_t*>(end_data_ptr());
+          for(size_t i = 0; i < fence_size/sizeof(check_t); ++i) {
+            suffix[i] = 0xff63616e617279ffULL;
+          }
+        }
+        void reset() {
+          reset_data();
+          reset_fence();
+        }
+        bool fences_valid() {
+          auto suffix = reinterpret_cast<check_t*>(end_data_ptr());
+          for(size_t i = 0; i < fence_size/sizeof(check_t); ++i) {
+            if(suffix[i] != canary_value) {
+              std::cerr << "Suffix fence corrupted at index " << i << std::endl;
+              return false;
+            }
+          }
+          return true;
+        }
+      
+      public:
+        size_t data_element_count() const { return m_data_element_count; }
+        size_t element_count() const { return m_allocated_bytes_count / sizeof(T); }
+        memory_t buffer() const { 
+          return m_buffer;
+        }
+
+      public:
+        template<typename... Args>
+        test_case_memory_buffer(
+          ExecutorClass & executor,
+          size_t data_element_count,
+          Args&&... args
+        ) : m_executor(executor),
+            m_data_element_count(data_element_count),
+            m_data_bytes_count{data_element_count*sizeof(T)},
+            m_data_allocated_bytes_count(
+              m_data_bytes_count + (sizeof(check_t) - m_data_bytes_count%sizeof(check_t))%sizeof(check_t)
+            )
+            m_data_allocated_element_count(m_data_allocated_bytes_count/sizeof(T)),
+            m_allocated_bytes_count(
+              m_data_allocated_bytes_count + fence_size
+            ),
+            m_buffer(
+              m_executor.template allocate<T>(m_allocated_bytes_count / sizeof(T), std::forward<Args>(args)...)
+            )
+        {    }
+        ~test_case_memory_buffer() {
+          m_executor.deallocate(m_buffer);
+        }
+        friend class test_case_memory_handler<ExecutorClass, T>;
+    };
+
+
+    template<class ExecutorClass, typename T>
+    class test_case_memory_handler;
+
+    template<class ExecutorClass, typename T>
+    class test_case_memory_handler<ExecutorClass, T, std::enable_if_t<ExecutorClass::needs_heterogenious_memory_access>> {
+      public: 
+        using buffer_t = test_case_memory_buffer<ExecutorClass, T>;
+      protected:
+        ExecutorClass & m_executor;
+        buffer_t m_host;
+        buffer_t m_device;
+      public: 
+        test_case_memory_handler(ExecutorClass & executor, size_t data_element_count)
+        : m_executor(executor),
+          m_host(executor, data_element_count, MEMORY_ON_HOST{}),
+          m_device(executor, data_element_count, MEMORY_ON_DEVICE{})
+        {}
+      protected:
+        void copy_from_host() {
+          m_executor.copy(m_device.buffer(), m_host.buffer(), m_host.element_count());
+        }
+        void copy_to_host() {
+          m_executor.copy(m_host.buffer(), m_device.buffer(), m_host.element_count());
+        }
+    };
+    template<class ExecutorClass, typename T>
+    class test_case_memory_handler<ExecutorClass, T, std::enable_if_t<!ExecutorClass::needs_heterogenious_memory_access>> {
+      public: 
+        using buffer_t = test_case_memory_buffer<ExecutorClass, T>;
+      protected:
+        ExecutorClass & m_executor;
+        buffer_t m_host;
+      public: 
+        test_case_memory_handler(ExecutorClass & executor, size_t data_element_count)
+        : m_executor(executor),
+          m_host(executor, data_element_count)
+        {}
+      protected:
+        void copy_from_host() { /*NOP*/ }
+        void copy_to_host() { /*NOP*/ }
+    };
+
+    template<class Executor, typename T>
+    class test_case_memory: public test_case_memory_handler<Executor, T> {
+      public:
+        using base_t = T;
+        using initialize_lambda_t = std::function<void(base_t *, size_t)>;
+      public:
+        test_case_memory(Executor & executor, size_t data_element_count):
+          test_case_memory_handler<Executor, T>(executor, data_element_count)
+        {}
+      public:
+        void initialize(auto&& fun) {
+          m_host.reset();
+          fun(this->m_host.buffer(), this->m_host.data_element_count());
+          this->copy_from_host();
+        }
+        bool check_validity() {
+          this->copy_to_host();
+          return this->m_host.fences_valid();
+        }
+
+        auto buffer() const {
+          return this->m_host.buffer();
+        }
+        auto element_count() const {
+          return this->m_host.data_element_count();
+        }
+    };
+
+    template<VectorProcessingStyle PS>
+    class test_case {
+      public:
+        using base_t = typename PS::base_type;
+        using test_executor_t = typename runtime::executor_helper_t<typename PS::target_extension>::type;
+        using test_memory_t = test_case_memory<executor_t, base_type>;
+
+        using reference_executor_t = typename runtime::executor_helper_t<scalar>::type;
+        using reference_memory_t = test_case_memory<reference_executor_t, base_type>;
+      
+      protected:
+        test_executor_t      m_executor;
+        reference_executor_t m_reference_executor;
+        test_memory_t        m_test_result;
+        reference_memory_t   m_reference_result;
+
+      public:
+        explicit test_case(size_t result_element_count)
+        : m_executor(test_executor_t()),
+          m_reference_executor(reference_executor_t()),
+          m_test_result(m_executor, result_element_count),
+          m_reference_result(m_reference_executor, result_element_count)
+        {}
+        bool validate() {
+          if (!m_test_result.check_validity()) {
+            std::cerr << "Test result buffer corrupted" << std::endl;
+            return false;
+          }
+          if (!m_reference_result.check_validity()) {
+            std::cerr << "Reference result buffer corrupted" << std::endl;
+            return false;
+          }
+          auto test_result = m_test_result.buffer();
+          auto reference_result = m_reference_result.buffer();
+          for (size_t i = 0; i < m_reference_result.element_count(); ++i) {
+            if (test_result[i] != reference_result[i]) {
+              std::cerr << "Data mismatch at index " << i << std::endl;
+              std::cerr << "Test result: " << test_result[i] << std::endl;
+              std::cerr << "Reference result: " << reference_result[i] << std::endl;
+              return false;
+            }
+          }
+          return true;
+        }
+    };
+
+    template<VectorProcessingStyle PS>
+    class unary_test_case : public test_case<PS>{
+      protected:
+        test_memory_t        m_data;
+        reference_memory_t   m_reference_data;
+      public:
+        explicit unary_test_case(size_t data_element_count, size_t result_element_count) 
+        : test_case<PS>(result_element_count),
+          m_data(this->m_executor, data_element_count),
+          m_reference_data(this->m_reference_executor, data_element_count)   
+        {}
+        void initialize(auto&& fun) {
+          m_data.initialize(fun);
+          m_reference_data.initialize(fun);
+        }
+        template<template<typename...> class Fun>
+        void execute_test_kernel() {
+          this->m_executor.template submit<Fun, PS>(this->m_test_result.buffer(), m_data.buffer(), m_data.element_count());
+        }
+        void execute_reference_lambda(auto && fun) {
+          fun(this->m_reference_result.buffer(), m_reference_data.buffer(), m_reference_data.element_count());
+        }
+    };
+
+    template<VectorProcessingStyle PS>
+    class map_unary_test_case : public unary_test_case<PS> {
+      public:
+        explicit map_unary_test_case(size_t data_element_count)
+          : unary_test_case<PS>(data_element_count, data_element_count)
+        {}
+    };
+
+    template<VectorProcessingStyle PS>
+    class reduce_unary_test_case : public unary_test_case<PS> {
+      public:
+        explicit reduce_unary_test_case(size_t data_element_count)
+          : unary_test_case<PS>(data_element_count, 1)
+        {}
+    };
+
+    template<VectorProcessingStyle PS>
+    class filter_unary_test_case : public unary_test_case<PS> {
+      public:
+        explicit filter_unary_test_case(size_t data_element_count, size_t result_element_count)
+          : unary_test_case<PS>(data_element_count, result_element_count)
+        {}
+    };
+
+    template<VectorProcessingStyle PS>
+    class binary_test_case : public test_case<PS>{
+      protected:
+        test_memory_t        m_data_first;
+        test_memory_t        m_data_second;
+        reference_memory_t   m_reference_data_first;
+        reference_memory_t   m_reference_data_second;
+      public:
+        explicit binary_test_case(size_t data_element_count, size_t result_element_count) 
+        : test_case<PS>(result_element_count),
+          m_data_first(this->m_executor, data_element_count),
+          m_data_second(this->m_executor, data_element_count),
+          m_reference_data_first(this->m_reference_executor, data_element_count),
+          m_reference_data_second(this->m_reference_executor, data_element_count)
+        {}
+        void initialize(auto&& fun1, auto&& fun2) {
+          m_data_first.initialize(fun1);
+          m_reference_data_first.initialize(fun1);
+          m_data_second.initialize(fun2);
+          m_reference_data_second.initialize(fun2);
+        }
+        template<template<typename...> class Fun>
+        void execute_test_kernel() {
+          this->m_executor.template submit<Fun, PS>(this->m_test_result.buffer(), m_data_first.buffer(), m_data_second.buffer(), m_data_first.element_count());
+        }
+        void execute_reference_lambda(auto && fun) {
+          fun(this->m_reference_result.buffer(), m_reference_data.buffer(), m_reference_data.element_count());
+        }
+    };
+
+    template<VectorProcessingStyle PS>
+    class map_binary_test_case : public binary_test_case<PS> {
+      public:
+        explicit map_binary_test_case(size_t data_element_count)
+          : binary_test_case<PS>(data_element_count, data_element_count)
+        {}
+    };
+
+    template<VectorProcessingStyle PS>
+    class reduce_binary_test_case : public binary_test_case<PS> {
+      public:
+        explicit reduce_binary_test_case(size_t data_element_count)
+          : binary_test_case<PS>(data_element_count, 1)
+        {}
+    };
+
+    template<VectorProcessingStyle PS>
+    class filter_binary_test_case : public binary_test_case<PS> {
+      public:
+        explicit filter_binary_test_case(size_t data_element_count, size_t result_element_count)
+          : binary_test_case<PS>(data_element_count, result_element_count)
+        {}
+    };
+  - |
       template<typename T>
       void rnd_init_bounded(
           T* data, std::size_t element_count, T min_inclusive, T max_inclusive

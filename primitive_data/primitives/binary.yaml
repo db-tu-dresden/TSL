@@ -15,7 +15,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing result of the binary AND."
-testing: #optional
+testing_old: #optional
   - test_name: "and_as_compare"
     requires: ["storeu", "loadu"]
     includes: ["<cstddef>"]
@@ -160,7 +160,7 @@ parameters:
 returns:
    ctype: "typename Vec::register_type"
    description: "Vector containing result of the binary AND."
-testing:
+testing_old:
   - requires: ["loadu"]
     includes: ["<cstddef>"]
     implementation: |
@@ -271,7 +271,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing result of the binary XOR."
-testing: #optional
+testing_old: #optional
   - test_name: "xor_as_compare"
     requires: ["storeu", "loadu"]
     includes: ["<cstddef>"]
@@ -477,7 +477,7 @@ definitions:
           result[i] = data[i] << (typename Vec::base_type) shift;
       }
       return result;
-testing:
+testing_old:
   - requires: ["storeu", "loadu"]
     includes: ["<cstddef>", "<climits>"]
     implementation: |
@@ -570,7 +570,7 @@ definitions:
           result[i] = data[i] << shift[i];
       }
       return result;
-testing:
+testing_old:
   - requires: ["storeu", "loadu", "set1"]
     includes: ["<cstddef>", "<climits>"]
     implementation: |
@@ -796,7 +796,7 @@ definitions:
   #     uint64_t x = *reinterpret_cast<uint64_t const *>(&data);
   #     x >>= shift;
   #     return *reinterpret_cast<double*>(&x);
-testing:
+testing_old:
   - test_name: "shift_right_arithmetic"
     requires: ["storeu", "loadu"]
     includes: ["<cstddef>", "<type_traits>", "<climits>"]
@@ -1009,7 +1009,7 @@ definitions:
           result[i] = data[i] >> shift[i];
       }
       return result;
-testing:
+testing_old:
   - test_name: "shift_right_arithmetic"
     requires: ["storeu", "loadu", "set1"]
     includes: ["<cstddef>", "<type_traits>"]
@@ -1139,7 +1139,7 @@ parameters:
 returns:
   ctype: "typename Vec::offset_base_type"
   description: "Number of leading zeros."
-testing:
+testing_old:
   - test_name: "test_zero"
     includes: ["<cstddef>", "<climits>", "<iostream>"]
     implementation: |
@@ -1202,7 +1202,7 @@ parameters:
 returns:
   ctype: "typename Vec::base_type"
   description: "Result of the horizontal OR"
-testing:
+testing_old:
   - test_name: "with_only_zero"
     requires: ["set1", "loadu", "storeu"]
     includes: ["<cstddef>"]
@@ -1429,7 +1429,7 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Result of the invertion."
-testing:
+testing_old:
   - test_name: "with_only_zero"
     requires: ["set1", "loadu", "storeu"]
     includes: ["<cstddef>", "<algorithm>", "<limits>"]
