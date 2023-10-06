@@ -212,8 +212,8 @@ project(<PROJECTNAME>)
 include(tools/tsl/tsl.cmake)
 #tsl.cmake exports a function which can should be used to generate the TSL
 create_tsl(
-  TSLGENERATOR_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tools/tslgen"
-  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/tools/tslgen"
+  TSLGENERATOR_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tools/tsl"
+  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/tools/tsl"
 )
 
 target_include_directories(<target> PUBLIC ${TSL_INCLUDE_DIRECTORY} <target_includes>...) #[1] see explanation below
@@ -300,11 +300,11 @@ The primitives and extensions reside in the namespace `tsl`. An minimal example 
 //Now we can access the TSL functionality through their namespace:
 int main() {
   //Now we can access the TSL functionality through their namespace.
-  auto _vec = tsl::set1<tsl::avx2, uint32_t>(42);
+  auto _vec = tsl::set1<tsl::simd<uint32_t, tsl::avx2>>(42);
   
   { // Of course, you can also use the namespace  
     using namespace tsl;
-    to_ostream<avx2, uint32_t>(std::cout, _vec) << std::endl;
+    to_ostream<simd<uint32_t, avx2>(std::cout, _vec) << std::endl;
     // This should print the following to stdout: [42,42,42,42,42,42,42,42]
   }
   return 0;

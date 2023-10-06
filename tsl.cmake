@@ -17,12 +17,10 @@ function(create_tsl)
 
   if (CREATE_TSL_ARGS_TARGETS_FLAGS STREQUAL "" OR NOT DEFINED CREATE_TSL_ARGS_TARGETS_FLAGS)
     set(TARGETS_FLAGS "") # STRING "space separated lscpu flags for --targets, will attempt to call lscpu if empty"
-    if(LSCPU_FLAGS STREQUAL "")
-        execute_process(
-            COMMAND "${Python3_EXECUTABLE}" -c "import cpuinfo; print(*cpuinfo.get_cpu_info()['flags'])"
-            OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE TARGETS_FLAGS
-        )
-    endif()
+    execute_process(
+        COMMAND "${Python3_EXECUTABLE}" -c "import cpuinfo; print(*cpuinfo.get_cpu_info()['flags'])"
+        OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE TARGETS_FLAGS
+    )
     if(TARGETS_FLAGS STREQUAL "")
       execute_process(
         COMMAND bash -c "LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' '"
