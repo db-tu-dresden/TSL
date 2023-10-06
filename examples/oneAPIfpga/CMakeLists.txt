@@ -71,7 +71,12 @@ function(create_fpga_target targetName mainFile)
   target_link_options(${exec_target_name} PRIVATE -qactypes -fsycl -fintelfpga -Xshardware -Xsboard=${fpga_board} -reuse-exe=${CMAKE_CURRENT_BINARY_DIR}/${exec_target_name}) 
 endfunction()
 
-
-#create_fpga_emulator_target(clz_rtl clz_rtl_example.cpp)
-create_fpga_target(clz_rtl clz_rtl_example.cpp)
-#
+if(NOT DEFINED ${TARGET})
+  message(STATUS "No target specified. Assuming emulator")
+  set(TARGET EMULATOR)
+endif()
+if(${TARGET} STREQUAL "EMULATOR")
+  create_fpga_emulator_target(clz_rtl clz_rtl_example.cpp)
+elif(${TARGET} STREQUAL "FPGA_HARDWARE")
+  create_fpga_target(clz_rtl clz_rtl_example.cpp)
+endif()

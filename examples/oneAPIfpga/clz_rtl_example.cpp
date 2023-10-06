@@ -1,3 +1,4 @@
+#include <iostream>
 #include "tslintrin.hpp"
 
 template<class SimdT, typename PtrTOut, typename PtrTIn, typename SizeT>
@@ -88,5 +89,6 @@ int main(void) {
   cpu_executor.deallocate(host_mem_data);
   
   // done
+  std::cout << "Everything worked fine!" << std::endl;
   return 0;
 }
