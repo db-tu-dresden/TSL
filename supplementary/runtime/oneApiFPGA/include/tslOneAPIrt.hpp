@@ -239,6 +239,17 @@ namespace tsl {
             q.wait();
           }
         public:
+          template<VectorProcessingStyle PS, template<typename...> class Fun, typename... Args>
+            decltype(auto) submit(Args... args) {
+              using FunctorClass = Fun<PS, Args...>;
+              return q.submit(
+                [&](sycl::handler& h) {
+                  h.single_task<FunctorClass>([=]() [[intel::kernel_args_restrict]] {
+                    return FunctorClass::apply(args...);
+                  });
+                }
+              ).wait();
+            }
           template<template<typename...> class Fun, typename... Args>
             decltype(auto) submit(Args... args) {
               return q.submit(

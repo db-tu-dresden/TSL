@@ -52,6 +52,10 @@ namespace tsl {
             }
           }
       public:
+        template<VectorProcessingStyle PS, template<typename...> class Fun, typename... Args>
+          decltype(auto) submit(Args... args) {
+            return Fun<PS, Args...>::apply(args...);
+          }
         template<template<typename...> class Fun, typename... Args>
           decltype(auto) submit(Args... args) {
             return Fun<Args...>::apply(args...);
