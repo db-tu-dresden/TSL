@@ -29,3 +29,4 @@ networkx==3.0
 #breathe==4.35.0
 #exhale==0.3.5
 neato==1.0.0
+natsort>=8.4.0
