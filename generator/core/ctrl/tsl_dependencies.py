@@ -72,8 +72,7 @@ class TSLDependencyGraph:
       return cls(name)
     @property
     def class_name(self) -> str:
-      return self._class_name
-    
+      return self._class_name    
 
   class PrimitiveNode:
     type: str = "primitive"
@@ -81,6 +80,7 @@ class TSLDependencyGraph:
     def __init__(self, name: str):
       self._primitive_name: str = name
       self._valid: bool = True
+      self._safe: bool = True
     def id(self) -> str:
       return self._primitive_name
     def __str__(self):
@@ -100,6 +100,14 @@ class TSLDependencyGraph:
       return self._valid
     def invalidate(self) -> None:
       self._valid = False
+    @property
+    def unsafe(self) -> bool:
+      return not self._safe
+    @property
+    def safe(self) -> bool:
+      return self._safe
+    def mark_unsafe(self) -> None:
+      self._safe = False
     def __lt__(self, other: TSLDependencyGraph.PrimitiveNode) -> bool:
       # Sort by name using natural sorting
       if isinstance(other, TSLDependencyGraph.PrimitiveNode):
@@ -580,12 +588,11 @@ class TSLDependencyGraph:
     '''
     for _, primitive in tsl_lib.known_primitives:
       primitive_name = primitive.declaration.functor_name
-      primitive_node = TSLDependencyGraph.PrimitiveNode(primitive_name)
+      primitive_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveNode,primitive_name)
       has_tests: bool = False
       for test_name, _ in primitive.get_tests(copy=False):
         has_tests = True
-        test_node = TSLDependencyGraph.PrimitiveTestNode(TSLDependencyGraph.PrimitiveTestNode.create_full_qualified_name(primitive_name, test_name))
-        self.__dependency_graph.add_node(test_node)
+        test_node = self.__add_node(TSLDependencyGraph.PrimitiveTestNode, primitive_name, test_name)
         self.__dependency_graph.add_edge(test_node, primitive_node, label="test of")
       if not has_tests:
         self.__problems.add_warning(primitive_node, f"Primitive {primitive_name} has no tests")
