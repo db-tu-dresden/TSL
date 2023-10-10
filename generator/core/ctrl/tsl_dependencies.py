@@ -202,11 +202,12 @@ class TSLDependencyGraph:
   class PrimitiveTestNode:
     type: str = "test"
     size: int = 3
-    def __init__(self, primitive_name: str, test_name: str) -> None:
+    def __init__(self, primitive_name: str, test_name: str, implicit_reliable: bool = False) -> None:
       self._primitive_name: str = primitive_name
       self._test_name: str = test_name
       self._valid: bool = True
       self._safe: bool = True
+      self.__implicit_reliable: bool = implicit_reliable
     def id(self) -> str:
       return f"{self._primitive_name}::{self._test_name}"
     def __str__(self):
@@ -214,11 +215,11 @@ class TSLDependencyGraph:
     def __repr__(self):
       return f"PrimitiveTestNode: {{{str(self)}}}"
     @classmethod
-    def create(cls, name: str, test_name: str = None) -> TSLDependencyGraph.PrimitiveTestNode:
+    def create(cls, name: str, test_name: str = None, implicit_reliable: bool = False) -> TSLDependencyGraph.PrimitiveTestNode:
       if test_name is not None:
-        return cls(name, test_name)
+        return cls(name, test_name, implicit_reliable)
       else:
-        return cls(*name.split("::"))
+        return cls(*name.split("::"), implicit_reliable)
     @property
     def primitive_name(self) -> str:
       return self._primitive_name
@@ -237,7 +238,8 @@ class TSLDependencyGraph:
     def safe(self) -> bool:
       return self._safe
     def mark_unsafe(self) -> None:
-      self._safe = False
+      if not self.__implicit_reliable:
+        self._safe = False
     def __lt__(self, other: TSLDependencyGraph.PrimitiveTestNode) -> bool:
       # Sort by name using natural sorting
       if isinstance(other, TSLDependencyGraph.PrimitiveTestNode):
@@ -481,6 +483,11 @@ class TSLDependencyGraph:
         self.__dependency_graph.add_edge(primitive_node, primitive_class_node, label="part of")
 
   def __add_primitive_instantiations(self, tsl_lib: TSLLib) -> None:
+    '''
+    Iterates over all primitives within the tsl_lib.
+    For every definition, a PrimitiveImplementationNode is added to the dependency graph as well as a named
+    edge ("concrete instantiation") betwwen the implementation-node and the primitive-node.    
+    '''
     for _, primitive in tsl_lib.known_primitives:
       primitive_name = primitive.declaration.functor_name
       primitive_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveNode, primitive_name)
@@ -542,43 +549,6 @@ class TSLDependencyGraph:
                   else:
                     self.__dependency_graph.add_edge(required_instantiation_node, primitive_instantiation_node, label="concrete requirement of")
 
-  def __complete_validity_check(self, level_of_detail: TSLInspectionLevelOfDetail) -> None:
-    '''
-    Traverses the dependency graph and checks, whether all nodes are valid.
-    A node is valid, if all its requirements are valid.
-    A node gets invalidated, if its implementation depends on a primitive that does not exist in the graph or is invalid.
-    If the level_of_detail is greater or equal PRIMITIVE_INSTANTIATION, the check is performed for PrimitiveImplementationNodes.
-    If a single PrimitiveImplementationNode is invalid, all depending PrimitiveImplementationNodes are invalidated as well.
-    However, the PrimitiveNode is not invalidated necessarily (except all PrimitiveImplementationNodes are invalid).
-    '''
-    if level_of_detail.value >= TSLInspectionLevelOfDetail.PRIMITIVE_INSTANTIATION.value:
-      root_node_generator = self.roots([TSLDependencyGraph.PrimitiveNode, TSLDependencyGraph.PrimitiveImplementationNode])
-      traverse_node_types_of_interest = [TSLDependencyGraph.PrimitiveImplementationNode]
-    else:
-      root_node_generator = self.roots([TSLDependencyGraph.PrimitiveNode])
-      traverse_node_types_of_interest = [TSLDependencyGraph.PrimitiveNode]
-    for primitive_node in root_node_generator():
-      visited_nodes = list()
-      visited_nodes.append(primitive_node)
-      chain_valid: bool = primitive_node.valid
-      for current_node in self.traverse_by_type([primitive_node], traverse_node_types_of_interest, reversed=False):
-        if current_node in visited_nodes:
-          raise ValueError(f"Cycle detected: [{' -> '.join(visited_nodes)}]")
-        visited_nodes.append(current_node)
-        chain_valid = chain_valid and current_node.valid
-        if not chain_valid:
-          current_node.invalidate()
-    if level_of_detail.value >= TSLInspectionLevelOfDetail.PRIMITIVE_INSTANTIATION.value:
-      for primitive_node in self.nodes_by_type([TSLDependencyGraph.PrimitiveNode]):
-        if primitive_node.valid:
-          if not any(primitive_implementation_node.valid for primitive_implementation_node, _ in self.edges_by_label("concrete instantiation of", "in", [primitive_node])):
-            primitive_node.invalidate()
-            for current_node in self.traverse_by_type([primitive_node], [TSLDependencyGraph.PrimitiveNode], reversed=False):
-              if current_node.valid:
-                current_node.invalidate()
-              else:
-                break
-
   def __add_tests(self, tsl_lib: TSLLib) -> None:
     '''
     Iterates over all test cases of all primitives.
@@ -588,14 +558,29 @@ class TSLDependencyGraph:
     '''
     for _, primitive in tsl_lib.known_primitives:
       primitive_name = primitive.declaration.functor_name
-      primitive_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveNode,primitive_name)
+      primitive_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveNode, primitive_name)
       has_tests: bool = False
-      for test_name, _ in primitive.get_tests(copy=False):
+      for test_name, _, implicitly_reliable in primitive.get_tests(copy=False):
         has_tests = True
-        test_node = self.__add_node(TSLDependencyGraph.PrimitiveTestNode, primitive_name, test_name)
+        test_node = self.__add_node(TSLDependencyGraph.PrimitiveTestNode, primitive_name, test_name, implicitly_reliable)
         self.__dependency_graph.add_edge(test_node, primitive_node, label="test of")
       if not has_tests:
-        self.__problems.add_warning(primitive_node, f"Primitive {primitive_name} has no tests")
+        primitive_node.mark_unsafe()
+
+  def __add_primitive_tests_instantiations(self, tsl_lib: TSLLib) -> None:
+    '''
+    Iterates over all test cases of all primitives.
+    For every test, a PrimitiveTestImplementationNode is added to the dependency graph as well as a named
+    edge ("concrete instantiation of") betwwen the implementation-node and the test-node.
+    '''
+    for _, primitive in tsl_lib.known_primitives:
+      primitive_name = primitive.declaration.functor_name
+      for test_name, _, implicitly_reliable in primitive.get_tests(copy=False):
+        test_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveTestNode, primitive_name, test_name, implicitly_reliable)
+        for target_extension, ctype_list in primitive.specialization_dict().items():
+          for ctype in ctype_list:
+            primitive_test_instantiation_node = self.__add_node(TSLDependencyGraph.PrimitiveTestImplementationNode, primitive_name, test_name, target_extension, ctype)
+            self.__dependency_graph.add_edge(primitive_test_instantiation_node, test_node, label="concrete instantiation of")
 
   def __add_primitive_tests_implementation_dependencies(self, tsl_lib: TSLLib, primitive_pattern: re.Pattern, level_of_detail: TSLInspectionLevelOfDetail) -> None:
     '''
@@ -615,60 +600,105 @@ class TSLDependencyGraph:
     '''
     for _, primitive in tsl_lib.known_primitives:
       primitive_name = primitive.declaration.functor_name
-      for test_name, test_implementation in primitive.get_tests(copy=False):
-        test_node = TSLDependencyGraph.PrimitiveTestNode(TSLDependencyGraph.PrimitiveTestNode.create_full_qualified_name(primitive_name, test_name))
-        if level_of_detail.value >= TSLInspectionLevelOfDetail.TEST_INSTANTIATION.value:
-          for target_extension, ctype_list in primitive.specialization_dict().items():
-            for ctype in ctype_list:
-              primitive_test_instantiation_node = TSLDependencyGraph.PrimitiveTestImplementationNode(
-                TSLDependencyGraph.PrimitiveTestImplementationNode.create_full_qualified_name(primitive_name, test_name, target_extension, ctype)
-              )
-              self.__dependency_graph.add_node(primitive_test_instantiation_node)
-              self.__dependency_graph.add_edge(primitive_test_instantiation_node, test_node, label="concrete instantiation of")
+      for test_name, test_implementation, implicitly_reliable in primitive.get_tests(copy=False):
+        test_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveTestNode, primitive_name, test_name, implicitly_reliable)          
         for match in primitive_pattern.finditer(test_implementation):
           required_primitive_name = match.group("primitive").strip()
           if required_primitive_name != primitive_name:
-            required_primitive_node = TSLDependencyGraph.PrimitiveNode(required_primitive_name)
-            if required_primitive_node not in self.__dependency_graph:
-              self.__problems.add_error(test_node, f"Unknown primitive {required_primitive_name} (required by {test_node}")
-              continue
+            required_primitive_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveNode, required_primitive_name)
+            if required_primitive_node is None:
+              test_node.invalidate()
+              break
             self.__dependency_graph.add_edge(required_primitive_node, test_node, label="requirement of")
             if level_of_detail.value >= TSLInspectionLevelOfDetail.TEST_INSTANTIATION.value:
               # Check, if a specific tsl extension was specified
               if "simd_type" in match.groupdict():
                 if "ctype" in match.group_dict() and "extension" in match.group_dict():
-                  required_instantiation_node = TSLDependencyGraph.PrimitiveImplementationNode(
-                    TSLDependencyGraph.PrimitiveImplementationNode.create_full_qualified_name(required_primitive_name, match.group("extension").strip(), match.group("ctype").strip())
-                  )
-                  if required_instantiation_node not in self.__dependency_graph:
-                    self.__problems.add_error(test_node, f"Unknown primitive specialization {required_instantiation_node} (required by {test_node}")
-                    continue
+                  required_instantiation_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveImplementationNode, required_primitive_name, match.group("extension").strip(), match.group("ctype").strip())
                   for target_extension, ctype_list in primitive.specialization_dict().items():
                     for ctype in ctype_list:
-                      primitive_test_instantiation_node = TSLDependencyGraph.PrimitiveTestImplementationNode(
-                        TSLDependencyGraph.PrimitiveTestImplementationNode.create_full_qualified_name(primitive_name, test_name, target_extension, ctype)
-                      )
-                      self.__dependency_graph.add_edge(
-                        required_instantiation_node, 
-                        primitive_test_instantiation_node, label="concrete requirement of")
+                      primitive_test_instantiation_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveTestImplementationNode, primitive_name, test_name, target_extension, ctype)
+                      if required_instantiation_node is None:
+                        primitive_test_instantiation_node.invalidate()
+                      else:
+                        self.__dependency_graph.add_edge(required_instantiation_node, primitive_test_instantiation_node, label="concrete requirement of")
                 else:
                   raise ValueError("Found simd_type but no ctype AND extension")
               else:
                 # Generic one -> add all possible nodes
                 for target_extension, ctype_list in primitive.specialization_dict().items():
                   for ctype in ctype_list:
-                    required_instantiation_node = TSLDependencyGraph.PrimitiveImplementationNode(
-                      TSLDependencyGraph.PrimitiveImplementationNode.create_full_qualified_name(required_primitive_name, match.group("extension").strip(), match.group("ctype").strip())
-                    )
-                    if required_instantiation_node not in self.__dependency_graph:
-                      self.__problems.add_error(test_node, f"Unknown primitive specialization {required_instantiation_node} (required by {test_node}")
-                      continue
-                    primitive_test_instantiation_node = TSLDependencyGraph.PrimitiveTestImplementationNode(
-                      TSLDependencyGraph.PrimitiveTestImplementationNode.create_full_qualified_name(primitive_name, test_name, target_extension, ctype)
-                    )
-                    self.__dependency_graph.add_edge(
-                      required_instantiation_node, 
-                      primitive_test_instantiation_node, label="concrete requirement of")
+                    required_instantiation_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveImplementationNode, required_primitive_name, match.group("extension").strip(), match.group("ctype").strip())
+                    primitive_test_instantiation_node = self.__get_node_by_args(TSLDependencyGraph.PrimitiveTestImplementationNode, primitive_name, test_name, target_extension, ctype)
+                    if required_instantiation_node is None:
+                      primitive_test_instantiation_node.invalidate()
+                    else:
+                      self.__dependency_graph.add_edge(required_instantiation_node, primitive_test_instantiation_node, label="concrete requirement of")
+  
+  def __check_validity(self, level_of_detail: TSLInspectionLevelOfDetail) -> None:
+    '''
+    Traverses the dependency graph and checks, whether the nodes are valid (and invalidates invalid nodes if necessary).
+    A node is valid, if all its requirements are valid.
+    A node gets invalidated, if it depends on another node that does not exist in the graph or is invalid.
+    If a node is invalidated, all nodes that depend on it are invalidated as well.
+    The function behaves differently depending on the given level_of_detail:
+    (i) TEST_INSTANTIATION:
+        The dependency graph is traversed starting from nodes of type PrimitiveNode, PrimitiveImplementationNode, PrimitiveTestNode and PrimitiveTestImplementationNode.
+        Only nodes are considered for starting the traversal, that have no incoming edges (no dependencies).
+        For every starting node, a breadth-first traversal (using traverse_by_type) is performed.
+
+    '''
+
+
+    if level_of_detail.value >= TSLInspectionLevelOfDetail.TEST_INSTANTIATION.value:
+      # Create a generator that yields all nodes that:
+      # (i) have no incoming edges (no dependencies)
+      # (ii) are of the given types: PrimitiveNode, PrimitiveImplementationNode, PrimitiveTestNode, PrimitiveTestImplementationNode
+      root_node_generator = self.roots([TSLDependencyGraph.PrimitiveNode, TSLDependencyGraph.PrimitiveImplementationNode, TSLDependencyGraph.PrimitiveTestNode, TSLDependencyGraph.PrimitiveTestImplementationNode])
+      traverse_node_types_of_interest = [TSLDependencyGraph.PrimitiveImplementationNode, TSLDependencyGraph.PrimitiveTestNode, TSLDependencyGraph.PrimitiveTestImplementationNode]
+
+    if level_of_detail.value >= TSLInspectionLevelOfDetail.PRIMITIVE_INSTANTIATION.value:
+      root_node_generator = self.roots([TSLDependencyGraph.PrimitiveNode, TSLDependencyGraph.PrimitiveImplementationNode])
+      traverse_node_types_of_interest = [TSLDependencyGraph.PrimitiveImplementationNode]
+    elif level_of_detail.value >= TSLInspectionLevelOfDetail.TEST_IMPLEMENTATION.value:
+      root_node_generator = self.roots([TSLDependencyGraph.PrimitiveNode, TSLDependencyGraph.PrimitiveImplementationNode])
+    elif level_of_detail.value >= TSLInspectionLevelOfDetail.TEST_INSTANTIATION.value:
+
+    else:
+      root_node_generator = self.roots([TSLDependencyGraph.PrimitiveNode])
+      traverse_node_types_of_interest = [TSLDependencyGraph.PrimitiveNode]
+    for primitive_node in root_node_generator():
+      visited_nodes = list()
+      visited_nodes.append(primitive_node)
+      chain_valid: bool = primitive_node.valid
+      for current_node in self.traverse_by_type([primitive_node], traverse_node_types_of_interest, reversed=False):
+        if current_node in visited_nodes:
+          raise ValueError(f"Cycle detected: [{' -> '.join(visited_nodes)}]")
+        visited_nodes.append(current_node)
+        chain_valid = chain_valid and current_node.valid
+        if not chain_valid:
+          current_node.invalidate()
+    if level_of_detail.value >= TSLInspectionLevelOfDetail.PRIMITIVE_INSTANTIATION.value:
+      '''
+      If all primitive instantiations of a primitive are invalid, the primitive is invalid as well.
+      Consequently, we iterate over all primitive nodes and check, whether all primitive instantiations are invalid.
+      If so, we invalidate the whole dependency chain
+      '''
+      for primitive_node in self.nodes_by_type([TSLDependencyGraph.PrimitiveNode]):
+        if primitive_node.valid:
+          if not any(primitive_implementation_node.valid for primitive_implementation_node, _ in self.edges_by_label("concrete instantiation of", "in", [primitive_node])):
+            primitive_node.invalidate()
+            for current_node in self.traverse_by_type([primitive_node], [TSLDependencyGraph.PrimitiveNode], reversed=False):
+              if current_node.valid:
+                current_node.invalidate()
+              else:
+                break
+
+  def __complete_safety_check(self, level_of_detail: TSLInspectionLevelOfDetail) -> None:
+    '''
+    Iterates over all Primitive Tests. 
+
+    '''
 
   def __add_implicit_class_dependencies(self) -> None:
     '''
@@ -733,21 +763,26 @@ class TSLDependencyGraph:
     # Step 5: Inspect Primitive implementations for dependencies
     self.__add_primitive_implementation_dependencies(tsl_lib, primitive_pattern, level_of_detail)
 
-    # Step 6: Complete validity check
-    self.__complete_validity_check(level_of_detail)
+    if level_of_detail.value >= TSLInspectionLevelOfDetail.TEST.value:
+      # Step 6 (may be omitted): If level of detail is greater or equal TEST, add tests to the dependency graph and connect them with their associated primitive
+      self.__add_tests(tsl_lib)
+      if level_of_detail.value >= TSLInspectionLevelOfDetail.TEST_IMPLEMENTATION.value:
+        if level_of_detail.value >= TSLInspectionLevelOfDetail.TEST_INSTANTIATION.value:
+          # Step 7 (may be ommitted): If level of detail is greater or equal TEST_INSTANTIATION, add all possible test instantiations to the dependency graph and connect them with their associated test
+          self.__add_primitive_tests_instantiations(tsl_lib)
+        # Step 8 (may be ommitted): If level of detail is greater or equal TEST_IMPLEMENTATION, inspect test implementations for dependencies
+        self.__add_primitive_tests_implementation_dependencies(tsl_lib, primitive_pattern, level_of_detail)
+    
+    
+    # Step 9: Execute a validity check for the dependency graph and return
+    self.__check_validity(level_of_detail)
 
-    # Step 6: Add implicit class dependencies (derived from the primitive dependencies)
+    if level_of_detail.value >= TSLInspectionLevelOfDetail.TEST.value:
+      # Step 10 (may be ommitted):
+      self.__complete_safety_check(level_of_detail)
+
+    # Step 11: Add implicit class dependencies (derived from the primitive dependencies)
     self.__add_implicit_class_dependencies()
-
-    # Step 7: If level of detail is greater or equal TEST, add tests to the dependency graph and connect them with their associated primitive
-    if level_of_detail.value < TSLInspectionLevelOfDetail.TEST.value:
-      return
-    self.__add_tests(tsl_lib)
-
-    # Step 8: If level of detail is greater or equal TEST_IMPLEMENTATION, inspect test implementations for dependencies
-    if level_of_detail.value < TSLInspectionLevelOfDetail.TEST_IMPLEMENTATION:
-      return
-    self.__add_primitive_tests_implementation_dependencies(tsl_lib, primitive_pattern, level_of_detail)
 
   def subgraph(self, level_of_detail: TSLDependencyGraphLevelOfDetail) -> nx.DiGraph:
     if level_of_detail == TSLDependencyGraphLevelOfDetail.CLASS:
