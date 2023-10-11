@@ -115,6 +115,13 @@ class TSLPrimitive:
         @property
         def data(self) -> YamlDataType:
             return self.__data_dict
+        
+        @property
+        def location_of_origin_str(self) -> str:
+            if "yaml_origin_file" and "yaml_origin_file" in self.__data_dict:
+                return f"{self.__data_dict['yaml_origin_file']}:{self.__data_dict['yaml_origin_line']}"
+            else:
+                return "UNKNOWN"
 
         @property
         def target_extension(self) -> str:
@@ -305,14 +312,25 @@ class TSLPrimitive:
                 if "implementation" in test:
                   yield copy.deepcopy(test)
             
-    def get_tests_implementations(self, copy: bool = True) -> Generator[Tuple[str, str], None, None]:
+    def get_tests(self, copy: bool = True) -> Generator[Tuple[str, str, bool, str], None, None]:
         if self.has_test():
+            test_names_dict: Dict[str, int] = {}
             for test in self.declaration.data["testing"]:
+                if "yaml_origin_file" and "yaml_origin_file" in self.__data_dict:
+                    location_or_origin_str = f"{test['yaml_origin_file']}:{test['yaml_origin_line']}"
+                else:
+                    location_or_origin_str = "UNKNOWN"
                 if "implementation" in test:
-                    if copy:
-                        yield test["test_name"], copy.deepcopy(test["implementation"])
+                    test_name = test["test_name"]
+                    if test_name in test_names_dict:
+                        test["test_name"] = f"{test_name}_{test_names_dict[test_name]}"
+                        test_names_dict[test_name] += 1
                     else:
-                        yield test["test_name"], test["implementation"]
+                        test_names_dict[test_name] = 0
+                    if copy:
+                        yield test["test_name"], copy.deepcopy(test["implementation"]), test["implicitly_reliable"], location_or_origin_str
+                    else:
+                        yield test["test_name"], test["implementation"], test["implicitly_reliable"], location_or_origin_str
     
     def get_implementations(self, copy: bool = True) -> Generator[str, None, None]:
       if copy:

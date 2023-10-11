@@ -109,6 +109,15 @@ class TSLLib:
             for primitive in primitive_class:
                 yield primitive.declaration.name
 
+    def distinct_primitive_names(self) -> Generator[str, None, None]:
+        names: Set[str] = {}
+        for primitive_class in self.__primitive_class_set:
+            for primitive in primitive_class:
+                names.add(primitive.declaration.name)
+                names.add(primitive.declaration.functor_name)
+        for name in names:
+            yield name
+
     @property
     def known_primitives(self) -> Generator[Tuple[str, TSLPrimitive], None, None]:
         for primitive_class in self.__primitive_class_set:
