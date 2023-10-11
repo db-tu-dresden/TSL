@@ -14,10 +14,9 @@ class PrintablePrimitive:
         return f"{self.name}: {self.ctype_to_extension_dict}"
     
     def to_html(self, considered_types: list, considered_exts: list) -> str:
-        br = "<br/>"
-        primitive_button = f"""<div class="primitive"><button id ="{self.name}_link" onclick="togglePrimitive(event, '{self.name}')">{self.name}</button></div>"""
-        primitive_table_start = f"""<div id="{self.name}" class="primitiveinfo"><table border=1 cellpadding=10 cellspacing=0>"""
-        primitive_table_end = """</table></div>"""
+        primitive_button = f"""<div class="primitiveContainer"><div class="primitive"><button id ="{self.name}_link" onclick="togglePrimitive(event, '{self.name}')">{self.name}</button></div>"""
+        primitive_table_start = f"""<div id="{self.name}" class="primitiveinfo"><center><table border=1 cellpadding=10 cellspacing=0>"""
+        primitive_table_end = """</table></center></div><br/></div>"""
         
         top_left_corner = """<td style="border-top:0;border-left:0;"></td>"""
         ext_avail = """<td><div class="avail">+</div></td>"""
@@ -40,7 +39,7 @@ class PrintablePrimitive:
             row += """</tr>"""
             rows.append(row)
 
-        html = primitive_button + br + primitive_table_start + "".join(rows) + primitive_table_end
+        html = primitive_button + primitive_table_start + "".join(rows) + primitive_table_end
         print(f"My HTML: {html}")
         return html
 
@@ -118,9 +117,8 @@ body {font-family: Arial;}
 /* Style the tab */
 .primitive {
   overflow: hidden;
-  border: 1px solid #ccc;
+  border: 1px dashed #ccc;
   background-color: #f1f1f1;
-  width: max-content
 }
 
 /* Style the buttons inside the tab */
@@ -133,6 +131,7 @@ body {font-family: Arial;}
   padding: 14px 16px;
   transition: 0.3s;
   font-size: 17px;
+  width: 100%;
 }
 
 /* Change background color of buttons on hover */
@@ -148,14 +147,14 @@ body {font-family: Arial;}
 /* Style the tab content */
 .primitiveinfo {
   display: none;
-  padding: 6px 12px;
+  padding: 14px 16px;
   border: 1px solid #ccc;
-  width: max-content;
 }
 </style>
 
 </head>
-<body>"""
+<body>
+<input type="text" id="primitiveFilterInput" onkeyup="filterPrimitives()" placeholder="Search primitives"><br/>"""
 html_end = """<script>
 	function togglePrimitive(evt, primName) {
       if ( document.getElementById(primName).style.display == "block" ) {
@@ -165,6 +164,25 @@ html_end = """<script>
       } else {
         document.getElementById(primName).style.display = "block";
         evt.currentTarget.className += " active";
+      }
+    }
+
+    function filterPrimitives() {
+      var input, filterPredicate, primContainer;
+      input = document.getElementById('primitiveFilterInput');
+      filterPredicate = input.value.toUpperCase();
+      primContainer = document.getElementsByClassName("primitiveContainer");
+
+      // Loop through all list items, and hide those who don't match the search query
+      for (var i = 0; i < primContainer.length; i++) {
+        var primitive = primContainer[i].getElementsByTagName("button")[0];
+        txtValue = primitive.textContent;
+        console.log(txtValue);
+        if (txtValue.toUpperCase().indexOf(filterPredicate) > -1) {
+          primContainer[i].style.display = "";
+        } else {
+          primContainer[i].style.display = "none";
+        }
       }
     }
 </script>
@@ -207,6 +225,7 @@ for file in Path(primitive_config["root_path"] + "/" + primitive_config["primiti
             pP = PrintablePrimitive(get_functor_name( doc ), ctype_ext_dict)
             print( f"\t{pP}" )
             table_vis_file.write(pP.to_html( all_types, all_extensions ))
+    break
 
 table_vis_file.write(html_end)
 table_vis_file.close()
