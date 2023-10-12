@@ -93,7 +93,8 @@ class TSLDependencyGraph:
       self._primitive_name: str = name
       self._valid: bool = True
       self._safe: bool = True
-      self._invalidation_notes: Set[str] = {}
+      self._invalidation_notes: List[str] = []
+      self._warning_notes: List[str] = []
     def id(self) -> str:
       return self._primitive_name
     def __str__(self):
@@ -113,7 +114,8 @@ class TSLDependencyGraph:
       return self._valid
     def invalidate(self, invalidation_note: str) -> None:
       self._valid = False
-      self._invalidation_note.add(invalidation_note)
+      if invalidation_note not in self._invalidation_notes:
+        self._invalidation_note.append(invalidation_note)
     def invalidation_notes(self) -> Iterator[str]:
       yield from self._invalidation_notes
     @property
@@ -122,8 +124,12 @@ class TSLDependencyGraph:
     @property
     def safe(self) -> bool:
       return self._safe
-    def mark_unsafe(self) -> None:
+    def mark_unsafe(self, unsafe_note: str) -> None:
       self._safe = False
+      if unsafe_note not in self._warning_notes:
+        self._warning_notes.append(unsafe_note)
+    def warning_notes(self) -> Iterator[str]:
+      yield from self._warning_notes
     def __lt__(self, other: TSLDependencyGraph.PrimitiveNode) -> bool:
       # Sort by name using natural sorting
       if isinstance(other, TSLDependencyGraph.PrimitiveNode):
@@ -158,7 +164,7 @@ class TSLDependencyGraph:
       self._extension: str = extension
       self._ctype: str = ctype
       self._valid: bool = True
-      self._invalidation_notes: Set[str] = {}
+      self._invalidation_notes: List[str] = []
     def id(self) -> str:
       return f"{self._primitive_name}<{self._ctype}, {self._extension}>"
     def __str__(self):
@@ -191,7 +197,8 @@ class TSLDependencyGraph:
       return self._valid
     def invalidate(self, invalidation_note: str) -> None:
       self._valid = False
-      self._invalidation_note.add(invalidation_note)
+      if invalidation_note not in self._invalidation_notes:
+        self._invalidation_note.append(invalidation_note)
     def __lt__(self, other: TSLDependencyGraph.PrimitiveImplementationNode) -> bool:
       # Sort by name using natural sorting
       if isinstance(other, TSLDependencyGraph.PrimitiveImplementationNode):
@@ -224,9 +231,10 @@ class TSLDependencyGraph:
       self._primitive_name: str = primitive_name
       self._test_name: str = test_name
       self._valid: bool = True
-      self._invalidation_notes: Set[str] = {}
+      self._invalidation_notes: List[str] = []
       self._safe: bool = True
       self.__implicit_reliable: bool = implicit_reliable
+      self._warning_notes: List[str] = []
     def id(self) -> str:
       return f"{self._primitive_name}::{self._test_name}"
     def __str__(self):
@@ -250,16 +258,21 @@ class TSLDependencyGraph:
       return self._valid
     def invalidate(self, invalidation_note: str) -> None:
       self._valid = False
-      self._invalidation_note.add(invalidation_note)
+      if invalidation_note not in self._invalidation_notes:
+        self._invalidation_note.append(invalidation_note)
     @property
     def unsafe(self) -> bool:
       return not self._safe
     @property
     def safe(self) -> bool:
       return self._safe
-    def mark_unsafe(self) -> None:
+    def mark_unsafe(self, unsafe_note: str) -> None:
       if not self.__implicit_reliable:
         self._safe = False
+        if unsafe_note not in self._warning_notes:
+          self._warning_notes.append(unsafe_note)
+    def warning_notes(self) -> Iterator[str]:
+      yield from self._warning_notes
     def __lt__(self, other: TSLDependencyGraph.PrimitiveTestNode) -> bool:
       # Sort by name using natural sorting
       if isinstance(other, TSLDependencyGraph.PrimitiveTestNode):
@@ -295,8 +308,9 @@ class TSLDependencyGraph:
       self._extension: str = extension
       self._ctype: str = ctype
       self._valid: bool = True
-      self._invalidation_notes: Set[str] = {}
+      self._invalidation_notes: List[str] = []
       self._safe: bool = True
+      self._warning_notes: List[str] = []
     def id(self) -> str:
       return f"{self._primitive_name}::{self._test_name}<{self._ctype}, {self._extension}>"
     def __str__(self):
@@ -333,15 +347,20 @@ class TSLDependencyGraph:
       return self._valid
     def invalidate(self, invalidation_note: str) -> None:
       self._valid = False
-      self._invalidation_note.add(invalidation_note)
+      if invalidation_note not in self._invalidation_notes:
+        self._invalidation_note.append(invalidation_note)
     @property
     def unsafe(self) -> bool:
       return not self._safe
     @property
     def safe(self) -> bool:
       return self._safe
-    def mark_unsafe(self) -> None:
+    def mark_unsafe(self, warning_note: str) -> None:
       self._safe = False
+      if warning_note not in self._warning_notes:
+        self._warning_notes.append(warning_note)
+    def warning_notes(self) -> Iterator[str]:
+      yield from self._warning_notes
     def __lt__(self, other: TSLDependencyGraph.PrimitiveTestImplementationNode) -> bool:
       # Sort by name using natural sorting
       if isinstance(other, TSLDependencyGraph.PrimitiveTestImplementationNode):
@@ -392,6 +411,9 @@ class TSLDependencyGraph:
   def is_well_defined(self) -> bool:
     return self.__well_defined
   
+  def has_warnings(self) -> bool:
+    return self.__has_warnings
+  
   def log_errors(self) -> None:
     for primitive_node in self.nodes_by_type([TSLDependencyGraph.PrimitiveNode]):
       if not primitive_node.valid:
@@ -412,6 +434,23 @@ class TSLDependencyGraph:
         if not primitive_test_implementation_node.valid:
           for invalidity_note in primitive_test_implementation_node.invalidation_notes():
             self.log(logging.ERROR, f"{primitive_test_implementation_node}: {invalidity_note}")
+
+  def log_warnings(self) -> None:
+    for primitive_node in self.nodes_by_type([TSLDependencyGraph.PrimitiveNode]):
+      if not primitive_node.safe:
+        for warning_note in primitive_node.warning_notes():
+          self.log(logging.WARNING, f"{primitive_node}: {warning_note}")
+    if self.__level_of_detail.value >= TSLDependencyGraphLevelOfDetail.TEST.value:
+      for primitive_test_node in self.nodes_by_type([TSLDependencyGraph.PrimitiveTestNode]):
+        if not primitive_test_node.safe:
+          for warning_note in primitive_test_node.warning_notes():
+            self.log(logging.WARNING, f"{primitive_test_node}: {warning_note}")
+    if self.__level_of_detail.value >= TSLDependencyGraphLevelOfDetail.TEST_IMPLEMENTATION.value:
+      for primitive_test_implementation_node in self.nodes_by_type([TSLDependencyGraph.PrimitiveTestImplementationNode]):
+        if not primitive_test_implementation_node.safe:
+          for warning_note in primitive_test_implementation_node.warning_notes():
+            self.log(logging.ERROR, f"{primitive_test_implementation_node}: {warning_note}")
+  
 
   def roots(self, node_types_of_interest: list = None) -> Generator[NodeType, None, None]:
     '''
@@ -543,7 +582,7 @@ class TSLDependencyGraph:
           primitive_instantiation_node = self.__add_node(TSLDependencyGraph.PrimitiveImplementationNode, primitive_name, extension, ctype)
           self.__dependency_graph.add_edge(primitive_instantiation_node, primitive_node, label="concrete instantiation of")
 
-  def __try_add_primitive_implementation_dependencies(self, tsl_lib: TSLLib, primitive_pattern: re.Pattern, level_of_detail: TSLInspectionLevelOfDetail) -> None:
+  def __add_primitive_implementation_dependencies(self, tsl_lib: TSLLib, primitive_pattern: re.Pattern, level_of_detail: TSLInspectionLevelOfDetail) -> None:
     '''
     Default behaviour:
       Iterates over all definitions for every primitive.
@@ -622,7 +661,7 @@ class TSLDependencyGraph:
         test_node = self.__add_node(TSLDependencyGraph.PrimitiveTestNode, primitive_name, test_name, implicitly_reliable)
         self.__dependency_graph.add_edge(test_node, primitive_node, label="test of")
       if not has_tests:
-        primitive_node.mark_unsafe()
+        primitive_node.mark_unsafe("No tests specified.")
 
   def __add_primitive_tests_instantiations(self, tsl_lib: TSLLib) -> None:
     '''
@@ -770,7 +809,7 @@ class TSLDependencyGraph:
       #If all PrimitiveImplementationNodes of a PrimitiveNode are invalid, the PrimitiveNode is invalid as well.
       for primitive_node in self.nodes_by_type([TSLDependencyGraph.PrimitiveNode]):
         if not any(primitive_implementation_node.valid for primitive_implementation_node, _ in self.edges_by_label("concrete instantiation of", "in", [primitive_node])):
-          primitive_node.invalidate(f"All template instantiations of are invalid.")
+          primitive_node.invalidate(f"All template instantiations are invalid.")
           self.__well_defined = False
     #Go through all PrimitiveNodes that are root nodes and update the validity of the whole dependency chain
     #if level of detail < PRIMITIVE_INSTANTIATION, there will be no PrimitiveImplementationNodes as root nodes, however we can "filter" for them anyways.
@@ -814,7 +853,7 @@ class TSLDependencyGraph:
         for primitive_test_node in self.nodes_by_type([TSLDependencyGraph.PrimitiveTestNode]):
           #If all PrimitiveTestImplementationNodes of a PrimitiveTestNode are invalid, the PrimitiveTestNode is invalid as well.
           if not any(primitive_test_implementation_node.valid for primitive_test_implementation_node, _ in self.edges_by_label("concrete instantiation of", "in", [primitive_test_node])):
-            primitive_test_node.invalidate("All template instantiations of are invalid.")
+            primitive_test_node.invalidate("All template instantiations are invalid.")
       for primitive_test_node in self.roots([TSLDependencyGraph.PrimitiveTestNode, TSLDependencyGraph.PrimitiveTestImplementationNode]):
         if isinstance(primitive_test_node, TSLDependencyGraph.PrimitiveTestNode):
           visited_nodes = [primitive_test_node]
@@ -835,9 +874,48 @@ class TSLDependencyGraph:
 
   def __check_safety(self, level_of_detail: TSLInspectionLevelOfDetail) -> None:
     '''
-    A test is considered unsafe, if any of its required primitives
-    '''
-    for primitive_test_node in self.roots([TSLDependencyGraph.PrimitiveNode ])
+    Checks the test coverage of all primitives.
+
+    Default behaviour:
+      First, iterates over all PrimitiveNodes. If a PrimitiveNode has no associated TestCases it was marked as unsafe (through self.__ad_tests).
+      Since this function is executed __after__ self.__check_validity, it may be possible, that all TestCases of a Primitive were marked invalid.
+      In this case, the PrimitiveNode is marked unsafe as well. (This is just part of the hollistic reasoning. In fact, if a single PrimitiveNode
+      is marked as invalid, the TSL will not be generated anyways. However, this behaviour may help debugging.)
+
+    level_of_detail >= TEST_INSTANTIATION:
+      Before the default behaviour is executed, the safeness of all PrimitiveTestImplementationNodes is updated.
+      Iterates over all PrimitiveTestImplementationNodes that are root nodes (no incoming edges).
+      Starting from such a node, the dependency chain is traversed (breadth first) and the safety of all PrimitiveTestImplementationNodes are updated.
+      If a PrimitiveTestImplementationNode within the chain is unsafe, all following PrimitiveTestImplementationNodes are marked as unsafe as well.
+      Finally, all PrimitiveTestNodes are updated based on the safety of their associated PrimitiveTestImplementationNodes. If __any__ associated
+      PrimitiveTestImplementationNodes are unsafe, the PrimitiveTestNode is marked as unsafe as well.
+
+    '''    
+    if level_of_detail.value >= TSLInspectionLevelOfDetail.TEST_INSTANTIATION:
+      for primitive_test_instantation_node in self.roots([TSLDependencyGraph.PrimitiveTestImplementationNode]):
+        visited_nodes = [primitive_test_instantation_node]
+        chain_safe: bool = primitive_test_instantation_node.safe
+        if not chain_safe:
+          invalidation_notes = [f"{primitive_test_instantation_node} unsafe"]
+        else:
+          invalidation_notes = []
+        for current_node in self.traverse_by_type([primitive_test_instantation_node], [TSLDependencyGraph.PrimitiveTestImplementationNode], reversed=False, self_contained=False):
+          if current_node in visited_nodes:
+            raise ValueError(f"Cycle detected: [{' -> '.join(visited_nodes)}]")
+          visited_nodes.append(current_node)
+          chain_safe = chain_safe and current_node.safe
+          if not chain_safe:
+            current_node.mark_unsafe(" -> ".join(invalidation_notes))
+            invalidation_notes.append(f"{current_node} unsafe")
+            self.__has_warnings = True
+      for primitive_test_node in self.nodes_by_type([TSLDependencyGraph.PrimitiveTestNode]):
+        if not all(primitive_test_implementation_node.safe for primitive_test_implementation_node, _ in self.edges_by_label("concrete instantiation of", "in", [primitive_test_node])):
+          primitive_test_node.mark_unsafe("All template instantiations are unsafe.")
+          self.__has_warnings = True
+    for primitive_node in self.nodes_by_type([TSLDependencyGraph.PrimitiveNode]):
+      if not any(primitive_test_node.safe for primitive_test_node, _ in self.edges_by_label("test of", "in", [primitive_node])):
+        primitive_node.mark_unsafe("All specified tests are invalid.")
+        self.__has_warnings = True
 
   def __add_implicit_class_dependencies(self) -> None:
     '''
@@ -893,7 +971,7 @@ class TSLDependencyGraph:
       self.__add_primitive_instantiations(tsl_lib)
 
     # Step 5: Inspect Primitive implementations for dependencies
-    self.__try_add_primitive_implementation_dependencies(tsl_lib, primitive_pattern, level_of_detail)      
+    self.__add_primitive_implementation_dependencies(tsl_lib, primitive_pattern, level_of_detail)      
 
     if level_of_detail.value >= TSLInspectionLevelOfDetail.TEST.value:
       # Step 6 (may be omitted): If level of detail is greater or equal TEST, add tests to the dependency graph and connect them with their associated primitive

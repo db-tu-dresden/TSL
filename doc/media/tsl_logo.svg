@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="88.66494mm"
+   height="30.118387mm"
+   viewBox="0 0 88.66494 30.118387"
+   version="1.1"
+   id="svg538"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   sodipodi:docname="tsl_logo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview540"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.2102413"
+     inkscape:cx="-582.66382"
+     inkscape:cy="204.52689"
+     inkscape:window-width="1556"
+     inkscape:window-height="494"
+     inkscape:window-x="2010"
+     inkscape:window-y="90"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs535" />
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-16.074309,-94.428095)">
+    <g
+       id="g2403"
+       transform="translate(2.4155347,36.713009)">
+      <g
+         inkscape:label="Ebene 1"
+         id="g378"
+         transform="matrix(0.51340434,0,0,0.51340434,-20.647355,5.883886)">
+        <rect
+           style="fill:#3f3f3f;fill-opacity:1;stroke:none;stroke-width:7.56829;stroke-linecap:square;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+           id="rect368"
+           width="25"
+           height="25"
+           x="-174.2668"
+           y="-5.2321916"
+           transform="matrix(-0.70710678,-0.70710678,-0.70710678,0.70710678,0,0)" />
+        <rect
+           style="fill:#84cfed;fill-opacity:1;stroke:none;stroke-width:8.03608;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+           id="rect370"
+           width="35"
+           height="5"
+           x="144.2668"
+           y="24.767807"
+           transform="rotate(45)" />
+        <rect
+           style="fill:#009ba4;fill-opacity:1;stroke:none;stroke-width:5.19999;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+           id="rect372"
+           width="40"
+           height="5"
+           x="139.2668"
+           y="29.767807"
+           transform="rotate(45)" />
+        <rect
+           style="fill:#bccf00;fill-opacity:1;stroke:none;stroke-width:5.19999;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+           id="rect374"
+           width="45"
+           height="5"
+           x="134.2668"
+           y="34.767807"
+           transform="rotate(45)" />
+        <path
+           id="path376"
+           style="fill:#2b608b;stroke-width:5.48127;paint-order:stroke fill markers"
+           d="M 133.99627,119.52551 98.640811,154.88097 H 119.85399 L 144.60286,130.1321 V 119.52551 Z" />
+      </g>
+      <text
+         xml:space="preserve"
+         style="font-size:10.5833px;line-height:1.25;font-family:'open sans';-inkscape-font-specification:'open sans';stroke-width:0.264583"
+         x="56.119965"
+         y="65.755913"
+         id="text386"><tspan
+           sodipodi:role="line"
+           id="tspan384"
+           style="fill:#3f3f3f;fill-opacity:1;stroke-width:0.264583"
+           x="56.119965"
+           y="65.755913"><tspan
+   style="font-style:normal;font-variant:normal;font-weight:800;font-stretch:normal;font-family:'open sans';-inkscape-font-specification:'open sans Ultra-Bold';fill:#3f3f3f;fill-opacity:1"
+   id="tspan380">T</tspan>emplate</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:10.5833px;line-height:1.25;font-family:'open sans';-inkscape-font-specification:'open sans';stroke-width:0.264583"
+         x="55.846081"
+         y="75.520866"
+         id="text394"><tspan
+           sodipodi:role="line"
+           id="tspan392"
+           style="fill:#3f3f3f;fill-opacity:1;stroke-width:0.264583"
+           x="55.846081"
+           y="75.520866"><tspan
+   style="font-style:normal;font-variant:normal;font-weight:800;font-stretch:normal;font-family:'open sans';-inkscape-font-specification:'open sans Ultra-Bold';fill:#3f3f3f;fill-opacity:1"
+   id="tspan388">S</tspan>IMD</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:10.5833px;line-height:1.25;font-family:'open sans';-inkscape-font-specification:'open sans';stroke-width:0.264583"
+         x="55.380993"
+         y="85.291"
+         id="text402"><tspan
+           sodipodi:role="line"
+           id="tspan400"
+           style="fill:#3f3f3f;fill-opacity:1;stroke-width:0.264583"
+           x="55.380993"
+           y="85.291"><tspan
+   style="font-style:normal;font-variant:normal;font-weight:800;font-stretch:normal;font-family:'open sans';-inkscape-font-specification:'open sans Ultra-Bold';fill:#3f3f3f;fill-opacity:1"
+   id="tspan396">L</tspan>ibrary</tspan></text>
+    </g>
+  </g>
+</svg>
