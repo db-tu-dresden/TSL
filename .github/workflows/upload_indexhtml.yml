@@ -4,7 +4,7 @@ name: Deploy static content to Pages
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ["main", "primitive_table_vis"]
+    branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -31,6 +31,30 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: 'Install packages for generator'
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz-dev util-linux
+      -
+        name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m pip install --upgrade pip
+          pip3 install ruff
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+      - 
+        name: Try generating the whole TSL with python ${{ matrix.python-version }}
+        id: generate
+        continue-on-error: true
+        run: |
+          python main.py --print-outputs-only
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact

@@ -29,6 +29,7 @@ if __name__ == '__main__':
     file_config = get_config(Path("generator/config/default_conf.yaml"))
     args_dict = parse_args(known_types = file_config["configuration"]["relevant_types"])
     tsl_setup(file_config, args_dict)
+
     gen = TSLGenerator()
 
     if config.get_config_entry("clean"):
