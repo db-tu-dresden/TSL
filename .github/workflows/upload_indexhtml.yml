@@ -55,13 +55,17 @@ jobs:
         continue-on-error: true
         run: |
           python main.py --print-outputs-only
+      - name: Show path
+        run: |
+          echo ${{ github.workspace }}
+          ls -la ${{ github.workspace }}
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
           # Upload entire repository
-          path: './index.html'
+          path: ${{ github.workspace }}/index.html
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
