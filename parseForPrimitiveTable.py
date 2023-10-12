@@ -1,8 +1,14 @@
 from pathlib import Path
 import copy
+import os
+import sys
+from typing import List
 
+from generator.core.tsl_config import config, parse_args
+from generator.utils.dict_utils import dict_update
 from generator.utils.yaml_utils import yaml_load
 from generator.utils.yaml_utils import yaml_load_all
+from generator.core.ctrl.tsl_lib import TSLLib
 
 class PrintablePrimitive:
     def __init__(self, name: str, description: str, ctype_to_extension_dict: dict ) -> None:
@@ -73,45 +79,95 @@ def make_list_if_necessary( var: any ) -> list:
 def add_checkbox( name: str ) -> str:
     return f"""<input class="primitiveClassSelector" type="checkbox" value="{name}" id="checkbox_{name}" onclick="filterByCheckbox();"><label for="checkbox_{name}">{name}</label><br>"""
 
+def create_primitive_index_html(tsl_lib: TSLLib) -> None:
+  html_template_path = config.get_expansion_config("primitive_vis")["template_path"]
+  table_vis_file = open(config.get_expansion_config("primitive_vis")["target_path"], 'w')
 
-tsl_config = get_config(Path("generator/config/default_conf.yaml"))
-primitive_config = tsl_config["configuration_files"]["primitive_data"]
-html_template_path = tsl_config["configuration"]["expansions"]["primitive_vis"]["template_path"]
+  all_types: List[str] = config.relevant_types
+  all_extensions: List[str] = tsl_lib.extension_set.known_extensions
 
-all_types = extract_types( tsl_config )
-all_extensions = extract_extensions( primitive_config["root_path"] + "/" + primitive_config["extensions_path"] )
-all_extensions.sort()
-
-html_content = ""
-with open(html_template_path, 'r') as template:
+  html_content = ""
+  with open(html_template_path, 'r') as template:
     html_content = template.read()
 
-raw_primitive_dict = prepare_primitive_dict( all_types )
-table_vis_file = open( "primitives_table.html", 'w')
-checkbox_html = ""
-primitive_html = ""
-for file in Path(primitive_config["root_path"] + "/" + primitive_config["primitives_path"] ).rglob("*.yaml"):
+  raw_primitive_dict = prepare_primitive_dict(all_types)
+  checkbox_html = ""
+  primitive_html = ""
+  primitive_classes = [primitive_class for primitive_class in tsl_lib.primitive_class_set]
+  primitive_classes.sort(key=lambda primitive_class: primitive_class.name)
+  for primitive_class in sorted(tsl_lib.primitive_class_set, key=lambda primitive_class: primitive_class.name):
+    checkbox_html += add_checkbox(primitive_class.name)
+    primitive_html += f"""<div class="primitiveCategory" id="{primitive_class.name}">"""
+    for primitive in primitive_class:
+      name = primitive.declaration.functor_name
+      brief_description = primitive.declaration.data["brief_description"]
+      detailed_description = primitive.declaration.data["detailed_description"]
+      ctype_ext_dict = copy.deepcopy(raw_primitive_dict)
+      for definition in primitive.definitions:
+        for target_extension, ctype_list in primitive.specialization_dict().items():
+          for ctype in ctype_list:
+            ctype_ext_dict[ctype].add(target_extension)
+      pP = PrintablePrimitive(name, brief_description, ctype_ext_dict)
+      primitive_html += pP.to_html(all_types, all_extensions)
+    primitive_html += f"""</div>"""
+  html_content = html_content.replace("---filterBoxes---",checkbox_html)
+  html_content = html_content.replace("---content---",primitive_html)
+
+  table_vis_file.write(html_content)
+  table_vis_file.close()
+
+if __name__ == '__main__':
+  def get_config(config_path: Path) -> dict:
+    return yaml_load(config_path)
+
+  def tsl_setup(file_config, additional_config=None) -> None:
+    if additional_config is None:
+      additional_config = dict()
+    # overwrite / extend config file entries with additional config dict entries
+    merged_config = dict_update(file_config, additional_config)
+    config.setup(merged_config)
+  
+  os.chdir(Path(os.path.realpath(__file__)).parent)
+  file_config = get_config(Path("generator/config/default_conf.yaml"))
+  args_dict = parse_args(known_types = file_config["configuration"]["relevant_types"])
+  tsl_setup(file_config, args_dict)
+
+  html_template_path = config.get_expansion_config("primitive_vis")["template_path"]
+
+  all_types = config.relevant_types
+  all_extensions = extract_extensions(config.get_primitive_files_path("extensions_path"))
+  all_extensions.sort()
+
+  html_content = ""
+  with open(html_template_path, 'r') as template:
+    html_content = template.read()
+
+  raw_primitive_dict = prepare_primitive_dict( all_types )
+  table_vis_file = open(config.get_expansion_config("primitive_vis")["target_path"], 'w')
+  checkbox_html = ""
+  primitive_html = ""
+  for file in Path(config.get_primitive_files_path("primitives_path")).rglob("*.yaml"):
     checkbox_html += add_checkbox(file.stem)
     yaml_contents = yaml_load_all(file)
     primitive_html += f"""<div class="primitiveCategory" id="{file.stem}">"""
     for doc in yaml_contents:
-        if "primitive_name" in doc:
-            descr = doc["brief_description"] if "brief_description" in doc else ""
-            ctype_ext_dict = copy.deepcopy(raw_primitive_dict)
-            for definition in doc["definitions"]:
-                exts = make_list_if_necessary(definition["target_extension"])
-                ctypes = make_list_if_necessary(definition["ctype"])
-                
-                for ctype in ctypes:
-                    for ext in exts:
-                        ctype_ext_dict[ctype].add(ext)
+      if "primitive_name" in doc:
+        descr = doc["brief_description"] if "brief_description" in doc else ""
+        ctype_ext_dict = copy.deepcopy(raw_primitive_dict)
+        for definition in doc["definitions"]:
+          exts = make_list_if_necessary(definition["target_extension"])
+          ctypes = make_list_if_necessary(definition["ctype"])
+          
+          for ctype in ctypes:
+            for ext in exts:
+              ctype_ext_dict[ctype].add(ext)
 
-            pP = PrintablePrimitive(get_functor_name( doc ), descr, ctype_ext_dict)
-            primitive_html += pP.to_html( all_types, all_extensions )
+        pP = PrintablePrimitive(get_functor_name( doc ), descr, ctype_ext_dict)
+        primitive_html += pP.to_html( all_types, all_extensions )
     primitive_html += f"""</div>"""
 
-html_content = html_content.replace("---filterBoxes---",checkbox_html)
-html_content = html_content.replace("---content---",primitive_html)
+  html_content = html_content.replace("---filterBoxes---",checkbox_html)
+  html_content = html_content.replace("---content---",primitive_html)
 
-table_vis_file.write(html_content)
-table_vis_file.close()
+  table_vis_file.write(html_content)
+  table_vis_file.close()

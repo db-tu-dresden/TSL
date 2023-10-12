@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import List
 
+
 from generator.core.ctrl.tsl_libfile_generator import TSLFileGenerator
 from generator.expansions.tsl_cmake import TSLCMakeGenerator
 from generator.core.ctrl.tsl_lib import TSLLib
@@ -17,6 +18,7 @@ from generator.expansions.tsl_unit_test import TSLTestGenerator
 from generator.utils.log_utils import LogInit
 from generator.utils.requirement import requirement
 from generator.utils.yaml_utils import yaml_load, yaml_load_all, yaml_store
+from parseForPrimitiveTable import create_primitive_index_html
 
 
 class TSLGenerator:
@@ -187,6 +189,9 @@ class TSLGenerator:
             relevant_primitives_class_set = selected_relevant_primitives_class_set
 
         lib: TSLLib = TSLLib(relevant_extensions_set, relevant_primitives_class_set)
+
+        if config.expansion_enabled("primitive_vis"):
+          create_primitive_index_html(lib)
 
         dep_graph = TSLDependencyGraph(lib)
         if not dep_graph.is_acyclic():
