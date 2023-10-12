@@ -189,11 +189,14 @@ class TSLGenerator:
         lib: TSLLib = TSLLib(relevant_extensions_set, relevant_primitives_class_set)
 
         dep_graph = TSLDependencyGraph(lib)
-        if not dep_graph.is_acyclic():
-          self.log(logging.ERROR, "Dependency graph for primitive definitions is not acyclic. Please check your dependencies.")
-          for cycle in dep_graph.get_cycles_as_str():
-            self.log(logging.ERROR, f"Cycle: {cycle}")
-          return
+        if not dep_graph.is_well_defined():
+            dep_graph.log_errors()
+            raise ValueError("Dependency graph is not well defined. Could not generate TSL.")
+        if dep_graph.has_warnings():
+            dep_graph.log_warnings()
+        print("DONE WITH ANAYLSIS")
+        #uncomment the next line to start jaal server
+        #dep_graph.to_jaal()
 
         file_generator: TSLFileGenerator = TSLFileGenerator(lib, dep_graph)
         if not config.print_output_only:
@@ -215,8 +218,6 @@ class TSLGenerator:
                     tsl_translation_units.add_tu(path, tu)
             except Exception as e:
                 self.log(logging.ERROR, f"Error while generating test files. Exception: {str(e)}")
-                for cycle in dep_graph.get_cycles_as_str():
-                    self.log(logging.ERROR, f"Cycle: {cycle}")
                 raise e
 
             if cmake_config["enabled"]:

@@ -110,7 +110,7 @@ class TSLLib:
                 yield primitive.declaration.name
 
     def distinct_primitive_names(self) -> Generator[str, None, None]:
-        names: Set[str] = {}
+        names: Set[str] = set()
         for primitive_class in self.__primitive_class_set:
             for primitive in primitive_class:
                 names.add(primitive.declaration.name)

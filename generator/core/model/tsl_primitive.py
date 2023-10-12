@@ -28,6 +28,14 @@ class TSLPrimitive:
         @property
         def data(self) -> YamlDataType:
             return self.__data_dict
+        
+        @property
+        def yaml_line_of_origin_str(self) -> str:
+            if "yaml_origin_line" in self.__data_dict:
+                return f"{self.__data_dict['yaml_origin_line']}"
+            else:
+                return "UNKNOWN"
+
 
         @property
         def name(self) -> str:
@@ -117,9 +125,9 @@ class TSLPrimitive:
             return self.__data_dict
         
         @property
-        def location_of_origin_str(self) -> str:
-            if "yaml_origin_file" and "yaml_origin_file" in self.__data_dict:
-                return f"{self.__data_dict['yaml_origin_file']}:{self.__data_dict['yaml_origin_line']}"
+        def yaml_line_of_origin_str(self) -> str:
+            if "yaml_origin_line" in self.__data_dict:
+                return f"{self.__data_dict['yaml_origin_line']}"
             else:
                 return "UNKNOWN"
 
@@ -298,6 +306,12 @@ class TSLPrimitive:
         for definition in self.__definitions:
             yield definition
 
+    @property
+    def yaml_file_of_origin_str(self) -> str:
+        if "yaml_origin_file" in self.declaration.data:
+            return self.declaration.data["yaml_origin_file"]
+        else:
+            return "UNKNOWN"
 
     def has_test(self) -> bool:
         if "testing" in self.declaration.data:
@@ -316,7 +330,7 @@ class TSLPrimitive:
         if self.has_test():
             test_names_dict: Dict[str, int] = {}
             for test in self.declaration.data["testing"]:
-                if "yaml_origin_file" and "yaml_origin_file" in self.__data_dict:
+                if "yaml_origin_file" and "yaml_origin_file" in test:
                     location_or_origin_str = f"{test['yaml_origin_file']}:{test['yaml_origin_line']}"
                 else:
                     location_or_origin_str = "UNKNOWN"

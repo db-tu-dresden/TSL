@@ -11,7 +11,7 @@ handlers:
   console:
     class : logging.StreamHandler
     formatter: brief
-    level   : ERROR
+    level   : WARN
     stream  : ext://sys.stdout
   file:
     class : logging.handlers.RotatingFileHandler
