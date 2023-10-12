@@ -73,16 +73,18 @@ def make_list_if_necessary( var: any ) -> list:
 def add_checkbox( name: str ) -> str:
     return f"""<input class="primitiveClassSelector" type="checkbox" value="{name}" id="checkbox_{name}" onclick="filterByCheckbox();"><label for="checkbox_{name}">{name}</label><br>"""
 
-html_content = ""
-with open("primitive_table.template", 'r') as template:
-    html_content = template.read()
 
 tsl_config = get_config(Path("generator/config/default_conf.yaml"))
 primitive_config = tsl_config["configuration_files"]["primitive_data"]
+html_template_path = tsl_config["configuration"]["expansions"]["primitive_vis"]["template_path"]
 
 all_types = extract_types( tsl_config )
 all_extensions = extract_extensions( primitive_config["root_path"] + "/" + primitive_config["extensions_path"] )
 all_extensions.sort()
+
+html_content = ""
+with open(html_template_path, 'r') as template:
+    html_content = template.read()
 
 raw_primitive_dict = prepare_primitive_dict( all_types )
 table_vis_file = open( "primitives_table.html", 'w')

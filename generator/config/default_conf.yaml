@@ -23,6 +23,8 @@ configuration:
          primitive_definitions:   "definitions"
    silent_warnings:               ["-Wno-ignored-attributes", "-Wno-attributes"]
    expansions:
+      primitive_vis:
+         template_path:           "generator/config/generator/tsl_templates/expansions/primitive_table.template"
       cmake:
          enabled:                 True
          minimum_version:         "3.13"
