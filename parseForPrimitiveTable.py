@@ -81,7 +81,10 @@ def add_checkbox( name: str ) -> str:
 
 def create_primitive_index_html(tsl_lib: TSLLib) -> None:
   html_template_path = config.get_expansion_config("primitive_vis")["template_path"]
-  table_vis_file = open(config.get_expansion_config("primitive_vis")["target_path"], 'w')
+  target_path = Path(config.get_expansion_config("primitive_vis")["target_path"])
+  target_path.mkdir(parents=True, exist_ok=True)
+  target_file = target_path.joinpath(config.get_expansion_config("primitive_vis")["target_index"])
+  table_vis_file = open(target_file, 'w')
 
   all_types: List[str] = config.relevant_types
   all_extensions: List[str] = tsl_lib.extension_set.known_extensions
@@ -143,7 +146,10 @@ if __name__ == '__main__':
     html_content = template.read()
 
   raw_primitive_dict = prepare_primitive_dict( all_types )
-  table_vis_file = open(config.get_expansion_config("primitive_vis")["target_path"], 'w')
+  target_path = Path(config.get_expansion_config("primitive_vis")["target_path"])
+  target_path.mkdir(parents=True, exist_ok=True)
+  target_file = target_path.joinpath(config.get_expansion_config("primitive_vis")["target_index"])
+  table_vis_file = open(target_file, 'w')
   checkbox_html = ""
   primitive_html = ""
   for file in Path(config.get_primitive_files_path("primitives_path")).rglob("*.yaml"):

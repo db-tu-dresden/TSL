@@ -26,7 +26,8 @@ configuration:
       primitive_vis:
          enabled:                 True
          template_path:           "generator/config/generator/tsl_templates/expansions/primitive_table.template"
-         target_path:             "./doc/www/index.html"
+         target_path:             "./doc/www"
+         target_index:            "index.html"
       cmake:
          enabled:                 True
          minimum_version:         "3.13"
