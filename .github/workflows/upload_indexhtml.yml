@@ -58,7 +58,7 @@ jobs:
       - name: Show path
         run: |
           echo ${{ github.workspace }}
-          ls -la ${{ github.workspace }}
+          ls -la ${{ github.workspace }}/doc/www
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
