@@ -4,28 +4,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body {font-family: sans-serif;}
-.checkmark {
-      display: inline-block;
-      transform: rotate(45deg);
-      height: 12px;
-      width: 5px;
-      border-bottom: 6px solid #78b13f;
-      border-right: 5px solid #78b13f;
-}
-.dot_yes {
-  height: 25px;
-  width: 25px;
-  background-color: rgb(51, 208, 51);
-  border-radius: 50%;
-  display: inline-block;
-}
-.dot_no {
-  height: 25px;
-  width: 25px;
-  background-color: rgb(187, 40, 40);
-  border-radius: 50%;
-  display: inline-block;
-}
 .avail {
   color: rgb(51, 208, 51);
   font-weight: bolder;
