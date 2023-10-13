@@ -51,21 +51,30 @@ jobs:
         run: |
           # stop the build if there are Python syntax errors or undefined names
           set -x
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           PYTHONV="py${{ matrix.python-version }}"
           CURRENT_VERSION=$(echo $PYTHONV | sed 's/\.//')
           echo $CURRENT_VERSION
           ruff --format=github --select=E9,F63,F7,F82 --target-version="${CURRENT_VERSION}" -v .
       -
         name: 'Install python dependencies for primitive data'
-        run: pip install yamllint
+        run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
+          pip install yamllint
       -
         name: 'Lint primitive data'
-        run: yamllint -d relaxed ./primitive_data
+        run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
+          yamllint -d relaxed ./primitive_data
   generate:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
+    needs: [lint]
     steps:
       -
         uses: actions/checkout@v3
@@ -95,12 +104,13 @@ jobs:
           python -m venv ./.venv
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
-          pip install ruff
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         if: steps.cache-venv.outputs.cache-hit != 'true'
       - 
         name: Try generating the whole TSL with python ${{ matrix.python-version }}
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python main.py -o tmp
 
   build-and-test:
@@ -152,6 +162,8 @@ jobs:
         env:
           CXX: ${{ matrix.compiler }}
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           cmake -S . -B tsl
       -
         name: 'Upload generated TSL as artifact'
@@ -224,13 +236,15 @@ jobs:
         name: 'Run CMake'
         id: cmake
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           HW_LIST=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ';')
           IFS=";" read -ra TARGET_FLAGS <<< "${{ matrix.target_flags }}"
           IFS=";" read -ra HW_FLAGS <<< "${HW_LIST}"
           ANY_TARGET_FLAG_FOUND=0
           for i in "${TARGET_FLAGS[@]}"; do
             if [[ " ${HW_FLAGS[*]} " =~ " ${i} " ]]; then
-              echo "Seems to be an intel CPU sinc ${i} is supported."
+              echo "Seems to be an intel CPU since ${i} is supported."
               ANY_TARGET_FLAG_FOUND=1
               break
             fi
@@ -297,7 +311,10 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         env:
           CXX: ${{ matrix.compiler }}
-        run: cmake -S . -B tsl
+        run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
+          cmake -S . -B tsl
       -
         name: 'Build TSL'
         if: env.MERGE_FAILED != '1'
