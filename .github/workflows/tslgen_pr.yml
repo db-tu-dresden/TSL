@@ -24,16 +24,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install graphviz-dev util-linux
       -
-        name: Set up Python 3.11
+        name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
+      - 
+        name: Cache virtualenv
+        uses: actions/cache@v4
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-venv-
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           pip install ruff
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       - 
         name: 'Lint with ruff'
         run: |
@@ -68,13 +80,24 @@ jobs:
         name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}        
+          python-version: ${{ matrix.python-version }}      
+      - name: Cache virtualenv
+        uses: actions/cache@v4
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-venv-  
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           pip install ruff
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       - 
         name: Try generating the whole TSL with python ${{ matrix.python-version }}
         run: |
@@ -102,11 +125,22 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip"
+      - name: Cache virtualenv
+        uses: actions/cache@v4
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-3.10-venv-
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Install packages for generated code'
         run: |
@@ -165,11 +199,22 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip"
+      - name: Cache virtualenv
+        uses: actions/cache@v4
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-3.10-venv-
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Install packages for generated code'
         run: |
@@ -223,10 +268,21 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip"
+      - name: Cache virtualenv
+        if: env.MERGE_FAILED != '1'
+        uses: actions/cache@v4
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-3.10-venv-
       -
         name: 'Install python dependencies for generator'
-        if: env.MERGE_FAILED != '1'
+        if: env.MERGE_FAILED != '1' && steps.cache-venv.outputs.cache-hit != 'true'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
       -
