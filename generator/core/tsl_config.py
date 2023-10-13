@@ -438,7 +438,8 @@ def parse_args(**kwargs) -> dict:
                         help="", metavar="ExOutPath")
 
     parser.add_argument('--generate-readme-files', dest='configuration:expansions:readme_md:enabled', action="store_true", required=False, help="Add README.md generation step.")
-    parser.add_argument('--generate-index-html', dest='configuration:expansions:primitive_vis:enabled', action="store_false", required=False, help="Add README.md generation step.")
+    parser.add_argument('--generate-index-html', dest='configuration:expansions:primitive_vis:enabled', action="store_false", required=False, help="Generates index.html with all primitives.")
+    parser.add_argument('--copy-additional-www-files', dest='configuration:expansions:primitive_vis:copy_media', action="store_true", required=False, help="This flag is necessary for index.html deployment.")
 
     parser.add_argument('--no-debug-info', dest='configuration:debug_generator', action='store_false', required=False)
     add_bool_arg(parser, 'workaround-warnings', 'configuration:emit_workaround_warnings', "Enable ", "Disable ", True, help='workaround warnings', required=False)

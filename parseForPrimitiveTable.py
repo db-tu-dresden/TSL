@@ -2,6 +2,7 @@ from pathlib import Path
 import copy
 import os
 import sys
+import shutil
 from typing import List
 
 from generator.core.tsl_config import config, parse_args
@@ -82,8 +83,15 @@ def add_checkbox( name: str ) -> str:
 def create_primitive_index_html(tsl_lib: TSLLib) -> None:
   html_template_path = config.get_expansion_config("primitive_vis")["template_path"]
   target_path = Path(config.get_expansion_config("primitive_vis")["target_path"])
-  target_path.mkdir(parents=True, exist_ok=True)
+  logo_path = Path(config.get_expansion_config("primitive_vis")["media_path"])
+  target_path.mkdir(parents=True, exist_ok=True)  
   target_file = target_path.joinpath(config.get_expansion_config("primitive_vis")["target_index"])
+  if config.get_expansion_config("primitive_vis")["copy_media"]:
+    media_path = target_path.joinpath(config.get_expansion_config("primitive_vis")["target_media_path"])
+    shutil.copytree(logo_path, media_path, dirs_exist_ok=True)
+    relative_logo_path = Path(os.path.relpath(media_path, target_path)).joinpath(config.get_expansion_config("primitive_vis")["logo_file"])
+  else:
+    relative_logo_path = Path(os.path.relpath(logo_path, target_path)).joinpath(config.get_expansion_config("primitive_vis")["logo_file"])
   table_vis_file = open(target_file, 'w')
 
   all_types: List[str] = config.relevant_types
@@ -115,6 +123,7 @@ def create_primitive_index_html(tsl_lib: TSLLib) -> None:
     primitive_html += f"""</div>"""
   html_content = html_content.replace("---filterBoxes---",checkbox_html)
   html_content = html_content.replace("---content---",primitive_html)
+  html_content = html_content.replace("---logo_relative_path---", str(relative_logo_path))
 
   table_vis_file.write(html_content)
   table_vis_file.close()
