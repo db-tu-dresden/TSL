@@ -144,7 +144,7 @@ body {font-family: sans-serif;}
 </head>
 <body>
   <div class="container">
-    <div class="corner"><img src="./doc/media/tsl_logo_small.png" width="120%"></div>
+    <div class="corner"><img src="---logo_relative_path---" width="120%"></div>
     <div class="search"><input class="bar" type="text" id="primitiveFilterInput" onkeyup="filterPrimitives()" placeholder="Search primitives by name or keywords in their brief description"></div>
     <div class="box">Check to filter by primitive category. If all are unchecked, no filters are applied.<br><br>---filterBoxes---<br><button class="resetButton" role="button" onclick="resetBoxesAndSearch()">Reset</button></div>
     <div class="box">---content---</div>

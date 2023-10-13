@@ -28,6 +28,10 @@ configuration:
          template_path:           "generator/config/generator/tsl_templates/expansions/primitive_table.template"
          target_path:             "./doc/www"
          target_index:            "index.html"
+         target_media_path:       "media"
+         copy_media:              False
+         media_path:               "./doc/media"
+         logo_file:               "tsl_logo_small.png"
       cmake:
          enabled:                 True
          minimum_version:         "3.13"
