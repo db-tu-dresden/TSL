@@ -149,7 +149,7 @@ definitions:
 ...
 ---
 primitive_name: "binary_or"
-brief_description: "Binary ANDs two vector registers."
+brief_description: "Binary ORs two vector registers."
 parameters:
   - ctype: "const typename Vec::register_type"
     name: "a"

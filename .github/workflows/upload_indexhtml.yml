@@ -54,7 +54,7 @@ jobs:
         id: generate
         continue-on-error: true
         run: |
-          python main.py --print-outputs-only
+          python main.py --print-outputs-only --copy-additional-www-files
       - name: Show path
         run: |
           echo ${{ github.workspace }}
