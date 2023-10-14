@@ -51,7 +51,6 @@ jobs:
         run: |
           # stop the build if there are Python syntax errors or undefined names
           set -x
-          python -m venv ./.venv
           source ./.venv/bin/activate
           PYTHONV="py${{ matrix.python-version }}"
           CURRENT_VERSION=$(echo $PYTHONV | sed 's/\.//')
@@ -60,13 +59,11 @@ jobs:
       -
         name: 'Install python dependencies for primitive data'
         run: |
-          python -m venv ./.venv
           source ./.venv/bin/activate
           pip install yamllint
       -
         name: 'Lint primitive data'
         run: |
-          python -m venv ./.venv
           source ./.venv/bin/activate
           yamllint -d relaxed ./primitive_data
   generate:
@@ -109,7 +106,6 @@ jobs:
       - 
         name: Try generating the whole TSL with python ${{ matrix.python-version }}
         run: |
-          python -m venv ./.venv
           source ./.venv/bin/activate
           python main.py -o tmp
 
@@ -162,7 +158,6 @@ jobs:
         env:
           CXX: ${{ matrix.compiler }}
         run: |
-          python -m venv ./.venv
           source ./.venv/bin/activate
           cmake -S . -B tsl
       -
@@ -236,7 +231,6 @@ jobs:
         name: 'Run CMake'
         id: cmake
         run: |
-          python -m venv ./.venv
           source ./.venv/bin/activate
           HW_LIST=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ';')
           IFS=";" read -ra TARGET_FLAGS <<< "${{ matrix.target_flags }}"
@@ -312,7 +306,6 @@ jobs:
         env:
           CXX: ${{ matrix.compiler }}
         run: |
-          python -m venv ./.venv
           source ./.venv/bin/activate
           cmake -S . -B tsl
       -
