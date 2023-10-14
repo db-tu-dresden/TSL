@@ -462,17 +462,35 @@ definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
     lscpu_flags: ["avx512f"]
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     implementation: "return (~mask);"
   #INTEL - AVX2
   - target_extension: "avx2"
     lscpu_flags: ["avx2"]
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "float"]
     implementation: "return (~mask);"
   - target_extension: "avx2"
     lscpu_flags: ["avx2"]
-    ctype: ["int64_t", "uint64_t"]
+    ctype: ["int64_t", "uint64_t", "double"]
     implementation: "return (~mask)&(0b1111);"
+  #INTEL - SSE
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["sse"]
+    implementation: "return (~mask);"
+  - target_extension: ["sse"]
+    ctype: ["uint32_t", "int32_t", "float"]
+    lscpu_flags: ["sse"]
+    implementation: "return (~mask)&(0b1111);"
+  - target_extension: ["sse"]
+    ctype: ["uint64_t", "int64_t", "double"]
+    lscpu_flags: ["sse"]
+    implementation: "return (~mask)&(0b11);"
+  #SCALAR
+  - target_extension: ["scalar"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: [] 
+    implementation: "return (~mask);"
 ...
 ---
 primitive_name: "mask_binary_not"
@@ -571,6 +589,11 @@ definitions:
                vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(second)
             )
          );
+  #SCARLAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: [ ]
+    implementation: "return first & second;"
 ...
 ---
 primitive_name: "mask_binary_and"
@@ -603,6 +626,11 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: [ 'neon' ]
     implementation: "return first & second;"
+  #SCARLAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: [ ]
+    implementation: "return (first & second) & 0b1;"
 ...
 ---
 primitive_name: "mask_binary_or"
