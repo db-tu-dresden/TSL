@@ -158,7 +158,9 @@ jobs:
         env:
           CXX: ${{ matrix.compiler }}
         run: |
+          which python3
           source ./.venv/bin/activate
+          which python3
           cmake -S . -B tsl
       -
         name: 'Upload generated TSL as artifact'
@@ -231,7 +233,9 @@ jobs:
         name: 'Run CMake'
         id: cmake
         run: |
+          which python3
           source ./.venv/bin/activate
+          which python3
           HW_LIST=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ';')
           IFS=";" read -ra TARGET_FLAGS <<< "${{ matrix.target_flags }}"
           IFS=";" read -ra HW_FLAGS <<< "${HW_LIST}"
