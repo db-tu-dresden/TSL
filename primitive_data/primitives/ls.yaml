@@ -84,10 +84,9 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T reg; //initialize the result
-      auto mem = assume_aligned<Vec::vector_alignment()>(memory);
       #pragma unroll
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
-        reg[idx] = mem[idx];
+        reg[idx] = memory[idx];
       }
       return reg;
 ...
@@ -253,6 +252,16 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: []
     implementation: "*memory = data;"
+#FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      #pragma unroll
+      for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+        memory[idx] = data[idx];
+      }
 ...
 ---
 primitive_name: "storeu"
@@ -551,6 +560,19 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_setzero_{{ intrin_tp_full[ctype] }}();"
+#FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result; //initialize the result
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = 0;
+      }
+      return result;
   #SCALAR
   - target_extension: ["scalar"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -676,7 +698,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (((T)(sizeof...(Is) - 1 - Is)))...
+          (T)(((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -691,7 +713,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (((T)(sizeof...(Is) - 1 - Is)))...
+          (T)(((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -706,7 +728,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (((T)(sizeof...(Is) - 1 - Is)))...
+          (T)(((T)(sizeof...(Is) - 1 - Is)))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -789,7 +811,7 @@ definitions:
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
       return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -804,7 +826,7 @@ definitions:
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
       return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -819,7 +841,7 @@ definitions:
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          ((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
         );
       };
       return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -1455,7 +1477,7 @@ definitions:
         *memory = data_array[i];
         memory += (mask>>i)&0b1;
       }
-      if(((mask>>Vec::vector_element_count())&0b1) == 0) {
+      if(((mask>>(Vec::vector_element_count()-1))&0b1) == 0) {
         *memory = safe[memory-orig_mem];
       }
   #INTEL - AVX2
@@ -1474,7 +1496,7 @@ definitions:
         *memory = data_array[i];
         memory += (mask>>i)&0b1;
       }
-      if(((mask>>Vec::vector_element_count())&0b1) == 0) {
+      if(((mask>>(Vec::vector_element_count()-1))&0b1) == 0) {
         *memory = safe[memory-orig_mem];
       }
   - target_extension: "avx2"
@@ -1509,7 +1531,7 @@ definitions:
     lscpu_flags: []
     implementation: |
       if(mask){
-        *memory = tsl::extract_value<Vec, 0>(data);
+        *memory = data;
       }
 ...
 ---

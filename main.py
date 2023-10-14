@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import time
 
 from generator.core.tsl_config import config, parse_args
@@ -60,6 +61,7 @@ if __name__ == '__main__':
             sys.stdout.flush()
             exit(0)
     else:
+        print(f"Generating for {args_dict['targets']}")
         gen.generate(args_dict["targets"])
 
     print("Generation needed %.2f seconds." % (time.time() - st))

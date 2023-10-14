@@ -21,6 +21,8 @@ class TSLHeaderFile:
     def __init__(self, filename: Path, data_dict: YamlDataType) -> None:
         self.__filename = filename
         self.__data_dict = copy.deepcopy(data_dict)
+        if "tsl_predefined_file_includes" not in self.__data_dict:
+            self.__data_dict["tsl_predefined_file_includes"] = []
 
     @property
     def data(self) -> YamlDataType:
@@ -46,6 +48,10 @@ class TSLHeaderFile:
     def add_file_include(self, header_file: TSLHeaderFile) -> None:
         if header_file not in self.__data_dict["tsl_file_includes"]:
             self.__data_dict["tsl_file_includes"].append(header_file)
+    
+    def add_predefined_tsl_file_include(self, header_file_str: str) -> None:
+        if header_file_str not in self.__data_dict["tsl_predefined_file_includes"]:
+            self.__data_dict["tsl_predefined_file_includes"].append(header_file_str)
 
     def add_include(self, include: str) -> None:
         if include not in self.__data_dict["includes"]:
@@ -70,6 +76,7 @@ class TSLHeaderFile:
         current_path: Path = self.file_name.parent
         tsl_file_includes = [f"\"{Path(os.path.relpath(Path(included_file.file_name), current_path))}\"" for included_file in self.__data_dict["tsl_file_includes"]]
         self.__data_dict["includes"].extend([tsl_include for tsl_include in tsl_file_includes if tsl_include not in self.__data_dict["includes"]])
+        self.__data_dict["includes"].extend(self.__data_dict["tsl_predefined_file_includes"])
         return config.get_template("core::header_file").render(self.__data_dict)
 
     def render_to_file(self) -> None:

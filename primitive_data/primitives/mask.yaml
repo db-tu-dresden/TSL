@@ -56,6 +56,46 @@ testing: #optional
         allOk &= (matches == i);
       }
       return allOk;
+  - test_name: "mask_match_alternate"
+    requires: ["loadu", "set1", "storeu"]
+    includes: ["<cstddef>", "<array>", "<iostream>", "<bitset>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      bool allOk = true;
+      if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
+        std::cerr << "implement me" << std::endl;
+        return true;
+      } else if constexpr (std::is_same_v<typename Vec::mask_type, typename Vec::imask_type>) {
+        //we don't need to do anything here since it is a NOP.
+        return true;
+      } else {
+          //e.g., SSE, AVX2, ...
+          auto data_create_lambda = [](T* data, std::size_t element_count) {
+            for (size_t i = 0; i < element_count; ++i) {
+              data[i] = i % 2 == 0 ? -1 : 0;
+            }
+          };
+          testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), Vec::vector_element_count(), false, data_create_lambda};
+          tsl::storeu<Vec>(test_helper.result_target(), tsl::set1<Vec>(0));
+          auto reference_result_ptr = reinterpret_cast<typename Vec::imask_type*>(test_helper.result_ref());
+          typename Vec::imask_type expected_result = 0;
+          for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
+            expected_result |= i % 2 == 0 ? 0b1 << i : 0;
+          }
+          *reference_result_ptr = expected_result;
+          auto test_data_ptr = test_helper.data_target();
+          auto test_result_ptr = reinterpret_cast<typename Vec::imask_type*>(test_helper.result_target());
+          auto vec_mask = loadu<Vec>(test_data_ptr);
+          auto mask_integral = to_integral<Vec>(vec_mask);
+          *test_result_ptr = mask_integral;
+          test_helper.synchronize();
+          /*std::cerr << tsl::type_name<Vec>() << std::endl;
+          std::cerr << "expected_result: " << std::bitset<64>{(unsigned long long)expected_result} << std::endl;
+          std::cerr << "test_result: " << std::bitset<64>{(unsigned long long)mask_integral} << std::endl;
+          std::cerr << "Same values? " << ((expected_result == mask_integral) ? "True" : "False")<< std::endl;
+          std::cerr << "Same values? " << ((test_helper.validate()) ? "True" : "False")<< std::endl;*/
+          return test_helper.validate();
+      }
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
@@ -348,8 +388,8 @@ definitions:
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["int8_t", "uint8_t"]
-    lscpu_flags: ['avx2']
-    specialization_comment: "@todo: Verify!"
+    lscpu_flags: ['sse4_2', 'avx', 'avx2']
+    specialization_comment: "We use sse4_2 here to trick the generator into thinking that this variant is 'more' specialized than the ('sse2','avx') variant."
     implementation: |
       auto const permute_vec = _mm256_set_epi64x(0x303030303030303, 0x202020202020202, 0x101010101010101, 0x0);
       auto const data_vec = _mm256_set1_epi32(mask);
@@ -359,8 +399,24 @@ definitions:
       auto result = _mm256_cmpeq_epi8(and_shuffled_vec, and_vec);
       return result;
   - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ['sse2', 'avx']
+    implementation: |
+      using sse_type = simd<typename Vec::base_type, sse>;
+      auto tmp128_lo = to_mask<sse_type, Idof>::apply(mask);
+      auto tmp128_hi = to_mask<sse_type, Idof>::apply(mask >> sse_type::vector_element_count());
+      return _mm256_set_m128i(tmp128_hi, tmp128_lo);
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ['sse2', 'avx']
+    implementation: |
+      using sse_type = simd<typename Vec::base_type, sse>;
+      auto tmp128_lo = to_mask<sse_type, Idof>::apply(mask);
+      auto tmp128_hi = to_mask<sse_type, Idof>::apply(mask >> sse_type::vector_element_count());
+      return _mm256_castsi256_{{ intrin_tp[ctype][1] }}(_mm256_set_m128i(tmp128_hi, tmp128_lo));
+  - target_extension: "avx2"
     ctype: ["int16_t", "uint16_t"]
-    lscpu_flags: ['avx2']
+    lscpu_flags: ['sse4_2', 'avx', 'avx2']
     implementation: |
       auto const and_vec = _mm256_set_epi64x(0x8000400020001000, 0x800040002000100, 0x80004000200010, 0x8000400020001);
       auto const data_vec = _mm256_set1_epi16(mask);
@@ -368,7 +424,7 @@ definitions:
       return _mm256_cmpeq_epi16(anded_vec, and_vec);
   - target_extension: "avx2"
     ctype: ["int32_t", "uint32_t"]
-    lscpu_flags: ['avx2']
+    lscpu_flags: ['sse4_2', 'avx', 'avx2']
     implementation: |
       auto const and_vec = _mm256_set_epi64x(0x8000000040, 0x2000000010, 0x800000004, 0x200000001);
       auto const data_vec = _mm256_set1_epi32(mask);
@@ -376,7 +432,7 @@ definitions:
       return _mm256_cmpeq_epi32(anded_vec, and_vec);
   - target_extension: "avx2"
     ctype: ["float"]
-    lscpu_flags: ['avx2']
+    lscpu_flags: ['sse4_2', 'avx', 'avx2']
     implementation: |
       auto const and_vec = _mm256_set_epi64x(0x8000000040, 0x2000000010, 0x800000004, 0x200000001);
       auto const data_vec = _mm256_set1_epi32(mask);
@@ -384,7 +440,7 @@ definitions:
       return _mm256_castsi256_ps(_mm256_cmpeq_epi32(anded_vec, and_vec));
   - target_extension: "avx2"
     ctype: ["int64_t", "uint64_t"]
-    lscpu_flags: ['avx2']
+    lscpu_flags: ['sse4_2', 'avx', 'avx2']
     implementation: |
       auto const and_vec = _mm256_set_epi64x(0x8, 0x4, 0x2, 0x1);
       auto const data_vec = _mm256_set1_epi64x(mask);
@@ -392,7 +448,7 @@ definitions:
       return _mm256_cmpeq_epi64(anded_vec, and_vec);
   - target_extension: "avx2"
     ctype: ["double"]
-    lscpu_flags: ['avx2']
+    lscpu_flags: ['sse4_2', 'avx', 'avx2']
     implementation: |
       auto const and_vec = _mm256_set_epi64x(0x8, 0x4, 0x2, 0x1);
       auto const data_vec = _mm256_set1_epi64x(mask);
@@ -433,6 +489,14 @@ definitions:
       return _mm_castsi128_ps(_mm_cmpeq_epi32(anded_vec, and_vec));
   - target_extension: ["sse"]
     ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi32(0x2, 0x2, 0x1, 0x1);
+      auto const data_vec = _mm_set1_epi32(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_cmpeq_epi32(anded_vec, and_vec);
+  - target_extension: ["sse"]
+    ctype: ["uint64_t", "int64_t"]
     lscpu_flags: ["sse2", "sse4_1"]
     implementation: |
       auto const and_vec = _mm_set_epi64x(0x2, 0x1);
@@ -447,6 +511,14 @@ definitions:
       auto const data_vec = _mm_set1_epi64x(mask);
       auto const anded_vec = _mm_and_si128(data_vec, and_vec);
       return _mm_castsi128_pd(_mm_cmpeq_epi64(anded_vec, and_vec));
+  - target_extension: ["sse"]
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto const and_vec = _mm_set_epi32(0x2, 0x2, 0x1, 0x1);
+      auto const data_vec = _mm_set1_epi32(mask);
+      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
+      return _mm_castsi128_pd(_mm_cmpeq_epi32(anded_vec, and_vec));
 ...
 ---
 primitive_name: "mask_binary_not"
@@ -1089,6 +1161,31 @@ definitions:
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: []
     implementation: return false;
+...
+---
+primitive_name: "load_mask"
+brief_description: "Loads data from memory to a mask."
+parameters:
+  - ctype: "typename Vec::imask_type const*"
+    name: "memory"
+    description: "Memory where the mask data should be loaded from."
+returns:
+  ctype: "typename Vec::mask_type"
+  name: "result"
+  description: "Mask containing the loaded data."
+definitions:
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return *memory;"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return tsl::to_mask<Vec>(*memory);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return tsl::to_mask<Vec>(*memory);"
 ...
 #---
 #primitive_name: "mask_reduce"

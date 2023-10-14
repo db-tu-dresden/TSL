@@ -11,7 +11,81 @@ includes:
   - '<limits>'
   - '<iostream>'
   - '<tuple>'
+  - '<climits>'
 implementations:
+  - |
+    #if ((__cplusplus >= 202002L) && (__has_include(<bit>)))
+    #include <bit>
+    namespace details {
+      template<typename T, typename RetT>
+        constexpr RetT clz(T data) {
+          return std::countl_zero<std::make_unsigned_t<T>>(data);
+        }
+    }
+    #else
+    namespace details {
+      template <typename T, typename RetT>
+        RetT clz(T data) {
+          static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+          if constexpr(std::is_unsigned_v<T>) {
+            if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+              return data == 0 ? std::numeric_limits<T>::digits : __builtin_clz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+              return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+              return data == 0 ? std::numeric_limits<T>::digits : __builtin_clzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            }
+          } else {
+            using UT = std::make_unsigned_t<T>;
+            if constexpr(sizeof(UT) <= sizeof(unsigned int)) {
+              return data == 0 ? std::numeric_limits<UT>::digits : __builtin_clz(static_cast<UT>(data)) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+              return data == 0 ? std::numeric_limits<UT>::digits : __builtin_clzl(static_cast<UT>(data)) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+              return data == 0 ? std::numeric_limits<UT>::digits : __builtin_clzll(static_cast<UT>(data)) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            }
+          }
+        }
+    }
+    #endif
+  - |
+    namespace details {
+      template<typename T, typename RetT>
+        struct clz_recursive;
+      template<typename RetT>
+        struct clz_recursive<uint8_t, RetT> {
+          __attribute__((always_inline)) inline static auto apply(uint8_t x) -> RetT {
+            static constexpr uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+            auto upper = x >> 4;
+            auto lower = x & 0x0F;
+            return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
+          }
+        };
+      template<typename RetT>
+        struct clz_recursive<uint16_t, RetT> {
+          __attribute__((always_inline)) inline static auto apply(uint16_t x) -> RetT {
+            auto upper = uint8_t(x >> 8);
+            auto lower = uint8_t(x & 0xFF);
+            return upper ? clz_recursive<uint8_t, RetT>::apply(upper) : 8 + clz_recursive<uint8_t, RetT>::apply(lower);
+          }
+        };
+      template<typename RetT>
+        struct clz_recursive<uint32_t, RetT> {
+          __attribute__((always_inline)) inline static auto apply(uint32_t x) -> RetT  {
+            auto upper = uint16_t(x >> 16);
+            auto lower = uint16_t(x & 0xFFFF);
+            return upper ? clz_recursive<uint16_t, RetT>::apply(upper) : 16 + clz_recursive<uint16_t, RetT>::apply(lower);
+          }
+        };
+      template<typename RetT>
+        struct clz_recursive<uint64_t, RetT> {
+          __attribute__((always_inline)) inline static auto apply(uint64_t x) -> RetT  {
+            auto upper = uint32_t(x >> 32);
+            auto lower = uint32_t(x & 0xFFFFFFFF);
+            return upper ? clz_recursive<uint32_t, RetT>::apply(upper) : 32 + clz_recursive<uint32_t, RetT>::apply(lower);
+          }
+        };
+    }
   - |
     namespace reducer {
       template<int N, int CurrentStage>

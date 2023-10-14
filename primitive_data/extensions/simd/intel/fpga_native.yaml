@@ -18,6 +18,6 @@ required_supplementary_libraries:
     cmakelists_path: "oneApiFPGA"
     library_create_function: "create_one_api_fpga_library"
     include_path: "oneApiFPGA/include"
-
+runtime_headers: ["oneApiFPGA/include/tslOneAPIrt.hpp"]
 #simdT_mask_type: "std::bitset<VectorSizeInBits/sizeof(BaseType)>" #the mask-type should contain a bit for every entry within the register_type. maybe we can substitute the bitset with an integral value at some point
 ...
