@@ -126,6 +126,7 @@ jobs:
         id: generate
         continue-on-error: true
         run: |
+          source ./.venv/bin/activate
           python main.py -o tmp
       - 
         name: Setup Git Creds
@@ -216,12 +217,16 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         continue-on-error: true
         id: build
-        run: CXX=${{ matrix.compiler }} cmake -S . -B tsl && make -j -C tsl
+        run: |
+          source ./.venv/bin/activate
+          python main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' ') -o tsl_lib
+          CXX=${{ matrix.compiler }} cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
+          cmake --build tsl -j
       -
         name: 'Run Tests'
         id: test
         continue-on-error: true
-        run: ./tsl/generator_output/build/src/test/tsl_test
+        run: ./tsl/tsl_lib/build/src/test/tsl_test
       - 
         name: Setup Git Creds
         run: |

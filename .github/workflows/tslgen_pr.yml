@@ -324,4 +324,4 @@ jobs:
       -
         name: 'Run Tests'
         if: env.MERGE_FAILED != '1'
-        run: ./tsl/generator_output/build/src/test/tsl_test
+        run: ./tsl/tsl_lib/build/src/test/tsl_test
