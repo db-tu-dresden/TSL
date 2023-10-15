@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from copy import deepcopy
 from pathlib import Path
-from typing import Set, List
+from typing import Set, List, Tuple
 
 from generator.core.tsl_config import config
 from generator.utils.log_utils import LogInit
@@ -24,6 +24,10 @@ class TSLExtension:
     @property
     def name(self) -> str:
         return self.__data_dict["extension_name"]
+
+    @property
+    def sort_keys(self) -> Tuple[str, int, str]:
+        return (self.__data_dict["vendor"], int(self.__data_dict["simdT_default_size_in_bits"]), self.__data_dict["extension_name"])
 
     @property
     def file_name(self) -> Path:
@@ -76,7 +80,7 @@ class TSLExtensionSet:
 
     @property
     def known_extensions(self) -> List[str]:
-        return sorted([extension.name for extension in self.__extensions])
+        return [extension.name for extension in sorted([extension for extension in self.__extensions], key=lambda extension: extension.sort_keys)]
 
     @requirement(extension="NotNone")
     def add_extension(self, extension: TSLExtension, logLevel=logging.INFO) -> None:
