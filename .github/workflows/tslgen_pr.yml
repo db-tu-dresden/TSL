@@ -158,9 +158,7 @@ jobs:
         env:
           CXX: ${{ matrix.compiler }}
         run: |
-          which python3
           source ./.venv/bin/activate
-          which python3
           python main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' ') -o tsl_lib
           cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
       -
