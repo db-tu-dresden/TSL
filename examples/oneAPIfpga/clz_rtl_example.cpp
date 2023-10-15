@@ -19,13 +19,13 @@ int main(void) {
 
   using namespace tsl;
   executor<runtime::cpu> cpu_executor;
-  using cpu_simd = simd<uint32_t, avx512>;
+  using cpu_simd = simd<uint32_t, typename runtime::cpu::max_width_extension_t>;
 
   executor<runtime::oneAPI_default_fpga> fpga_executor{
       sycl::property_list{sycl::property::queue::enable_profiling()}
     };
   using fpga_simd = simd<uint32_t, oneAPIfpgaRTL, 512>;
-
+  
   auto expected_result     = cpu_executor.allocate<uint32_t>(128);
   // allocate memory on host
   auto host_mem_data       = cpu_executor.allocate<uint32_t>(128);

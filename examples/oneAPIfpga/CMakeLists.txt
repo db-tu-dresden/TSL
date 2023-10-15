@@ -29,7 +29,7 @@ include(${TSLROOT}/tsl.cmake)
 create_tsl(
   TSLGENERATOR_DIRECTORY "${TSLROOT}"
   DESTINATION "${CMAKE_BINARY_DIR}/tsl"
-	TARGETS_FLAGS "sse;sse2;ssse3;sse4_1;sse4_2;avx;avx2;avx512f;avx512dq;avx512cd;avx512bw;avx512vl;avx512_vnni;bmi1;bmi2;oneAPIfpgaDev"
+  APPEND_TARGETS_FLAGS "oneAPIfpgaDev"
   USE_CONCEPTS
 	LINK_OPTIONS ${fpga_link_options}
 )
