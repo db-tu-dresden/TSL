@@ -196,7 +196,7 @@ jobs:
         id: cache-venv
         with:
           path: ./.venv/
-          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-3.10-venv-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-3.10-venv-
       -
@@ -326,7 +326,7 @@ jobs:
         id: cache-venv
         with:
           path: ./.venv/
-          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-3.10-venv-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-3.10-venv-
       -
@@ -350,6 +350,7 @@ jobs:
       -
         name: Update Readme files
         run: |
+          source ./.venv/bin/activate
           python3 main.py --print-outputs-only --generate-readme-files --no-debug-info
       -
         name: 'Update readme files'
