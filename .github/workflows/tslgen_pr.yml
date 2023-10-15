@@ -161,7 +161,8 @@ jobs:
           which python3
           source ./.venv/bin/activate
           which python3
-          cmake -S . -B tsl
+          python main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' ') -o tsl_lib
+          cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
       -
         name: 'Upload generated TSL as artifact'
         uses: actions/upload-artifact@v3
@@ -235,7 +236,6 @@ jobs:
         run: |
           which python3
           source ./.venv/bin/activate
-          which python3
           HW_LIST=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ';')
           IFS=";" read -ra TARGET_FLAGS <<< "${{ matrix.target_flags }}"
           IFS=";" read -ra HW_FLAGS <<< "${HW_LIST}"
@@ -248,7 +248,10 @@ jobs:
             fi
           done
           if [ $ANY_TARGET_FLAG_FOUND -eq 1 ]; then
-            cmake -S . -B tsl -DTARGETS_FLAGS="${{ matrix.target_flags }}"
+            FLAGS=$(echo "${{ matrix.target_flags }}//;/ ")
+            echo "Generation for $FLAGS"
+            python main.py --targets $FLAGS -o tsl_lib
+            cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
           else
             echo "GENERATED=SKIPPED" >> $GITHUB_OUTPUT
           fi
@@ -311,7 +314,8 @@ jobs:
           CXX: ${{ matrix.compiler }}
         run: |
           source ./.venv/bin/activate
-          cmake -S . -B tsl
+          python main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' ') -o tsl_lib
+          cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
       -
         name: 'Build TSL'
         if: env.MERGE_FAILED != '1'
