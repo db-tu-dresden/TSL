@@ -10,6 +10,9 @@ namespace tsl {
   namespace runtime {
     class cpu {
       public:
+        using max_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|max] }};
+        using min_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|min] }};
+      public:
         cpu() = default;
       public:
         template<typename T>
