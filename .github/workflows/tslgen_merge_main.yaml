@@ -315,6 +315,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install graphviz-dev util-linux
+      - 
+        name: Setup Git Creds
+        run: |
+          git reset --hard && git clean -fxd
+          git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+          git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+          git checkout main          
       -
         name: Set up Python 3.10
         uses: actions/setup-python@v4
@@ -337,13 +344,6 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
         if: steps.cache-venv.outputs.cache-hit != 'true'
-      - 
-        name: Setup Git Creds
-        run: |
-          git reset --hard && git clean -fxd
-          git config --global user.email "johannes.pietrzyk@tu-dresden.de"
-          git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
-          git checkout main
       -
         name: 'Mkdir badges folder'
         run: mkdir -p ./doc/badges
