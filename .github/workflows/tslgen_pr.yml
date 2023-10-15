@@ -175,7 +175,7 @@ jobs:
         run: make -j -C tsl
       -
         name: 'Run Tests'
-        run: ./tsl/generator_output/build/src/test/tsl_test
+        run: ./tsl/tsl_lib/build/src/test/tsl_test
 
   validate-lscpu-flags:
     runs-on: ubuntu-latest
@@ -248,7 +248,8 @@ jobs:
             fi
           done
           if [ $ANY_TARGET_FLAG_FOUND -eq 1 ]; then
-            FLAGS=$(echo "${{ matrix.target_flags }}//;/ ")
+            ORIG_FLAGS="${{ matrix.target_flags }}"
+            FLAGS="${ORIG_FLAGS//;/ }"
             echo "Generation for $FLAGS"
             python main.py --targets $FLAGS -o tsl_lib
             cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
