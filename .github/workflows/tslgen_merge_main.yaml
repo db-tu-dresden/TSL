@@ -104,17 +104,29 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Cache virtualenv
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-venv-
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           pip3 install ruff
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       - 
         name: Try generating the whole TSL with python ${{ matrix.python-version }}
         id: generate
         continue-on-error: true
         run: |
+          source ./.venv/bin/activate
           python main.py -o tmp
       - 
         name: Setup Git Creds
@@ -179,11 +191,22 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip"
+      - name: Cache virtualenv
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-3.10-venv-
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Install packages for generated code'
         run: |
@@ -194,12 +217,16 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         continue-on-error: true
         id: build
-        run: CXX=${{ matrix.compiler }} cmake -S . -B tsl && make -j -C tsl
+        run: |
+          source ./.venv/bin/activate
+          python main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' ') -o tsl_lib
+          CXX=${{ matrix.compiler }} cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
+          cmake --build tsl -j
       -
         name: 'Run Tests'
         id: test
         continue-on-error: true
-        run: ./tsl/generator_output/build/src/test/tsl_test
+        run: ./tsl/tsl_lib/build/src/test/tsl_test
       - 
         name: Setup Git Creds
         run: |
@@ -294,11 +321,22 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip"
+      - name: Cache virtualenv
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-3.10-venv-
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       - 
         name: Setup Git Creds
         run: |
