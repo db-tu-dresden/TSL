@@ -104,9 +104,18 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+          cache: "pip"
+      - name: Cache virtualenv
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           pip3 install ruff
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
@@ -115,6 +124,7 @@ jobs:
         id: generate
         continue-on-error: true
         run: |
+          source ./.venv/bin/activate
           python main.py -o tmp
       - 
         name: Setup Git Creds
@@ -179,11 +189,20 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip"
+      - name: Cache virtualenv
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-3.10-venv-${{ hashFiles('requirements.txt') }}
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Install packages for generated code'
         run: |
@@ -194,12 +213,16 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         continue-on-error: true
         id: build
-        run: CXX=${{ matrix.compiler }} cmake -S . -B tsl && make -j -C tsl
+        run: |
+          source ./.venv/bin/activate
+          python main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' ') -o tsl_lib
+          CXX=${{ matrix.compiler }} cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
+          cmake --build tsl -j
       -
         name: 'Run Tests'
         id: test
         continue-on-error: true
-        run: ./tsl/generator_output/build/src/test/tsl_test
+        run: ./tsl/tsl_lib/build/src/test/tsl_test
       - 
         name: Setup Git Creds
         run: |
@@ -288,30 +311,40 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install graphviz-dev util-linux
-      -
-        name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-          cache: "pip"
-      -
-        name: 'Install python dependencies for generator'
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
       - 
         name: Setup Git Creds
         run: |
           git reset --hard && git clean -fxd
           git config --global user.email "johannes.pietrzyk@tu-dresden.de"
           git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
-          git checkout main
+          git checkout main          
+      -
+        name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+      - name: Cache virtualenv
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-3.10-venv-${{ hashFiles('requirements.txt') }}
+      -
+        name: 'Install python dependencies for generator'
+        run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Mkdir badges folder'
         run: mkdir -p ./doc/badges
       -
         name: Update Readme files
         run: |
+          source ./.venv/bin/activate
           python3 main.py --print-outputs-only --generate-readme-files --no-debug-info
       -
         name: 'Update readme files'

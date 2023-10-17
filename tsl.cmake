@@ -1,8 +1,9 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.15)
 
+set(Python_FIND_VIRTUALENV FIRST)
 find_package(Python3 REQUIRED)
 
-
+message(STATUS "Found python at ${Python3_EXECUTABLE}")
 function(create_tsl)
   set(options WORKAROUND_WARNINGS USE_CONCEPTS CREATE_TESTS DRAW_TEST_DEPENDENCIES)
   set(oneValueArgs TSLGENERATOR_DIRECTORY DESTINATION)

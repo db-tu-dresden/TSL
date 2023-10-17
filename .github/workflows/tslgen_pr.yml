@@ -24,36 +24,54 @@ jobs:
           sudo apt-get update
           sudo apt-get install graphviz-dev util-linux
       -
-        name: Set up Python 3.11
+        name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
+      - 
+        name: Cache virtualenv
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-venv-
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           pip install ruff
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       - 
         name: 'Lint with ruff'
         run: |
           # stop the build if there are Python syntax errors or undefined names
           set -x
+          source ./.venv/bin/activate
           PYTHONV="py${{ matrix.python-version }}"
           CURRENT_VERSION=$(echo $PYTHONV | sed 's/\.//')
           echo $CURRENT_VERSION
           ruff --format=github --select=E9,F63,F7,F82 --target-version="${CURRENT_VERSION}" -v .
       -
         name: 'Install python dependencies for primitive data'
-        run: pip install yamllint
+        run: |
+          source ./.venv/bin/activate
+          pip install yamllint
       -
         name: 'Lint primitive data'
-        run: yamllint -d relaxed ./primitive_data
+        run: |
+          source ./.venv/bin/activate
+          yamllint -d relaxed ./primitive_data
   generate:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
+    needs: [lint]
     steps:
       -
         uses: actions/checkout@v3
@@ -68,16 +86,27 @@ jobs:
         name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}        
+          python-version: ${{ matrix.python-version }}      
+      - name: Cache virtualenv
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-${{ matrix.python-version }}-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-venv-  
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
-          pip install ruff
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       - 
         name: Try generating the whole TSL with python ${{ matrix.python-version }}
         run: |
+          source ./.venv/bin/activate
           python main.py -o tmp
 
   build-and-test:
@@ -102,11 +131,22 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip"
+      - name: Cache virtualenv
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-3.10-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-3.10-venv-
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Install packages for generated code'
         run: |
@@ -118,7 +158,9 @@ jobs:
         env:
           CXX: ${{ matrix.compiler }}
         run: |
-          cmake -S . -B tsl
+          source ./.venv/bin/activate
+          python main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' ') -o tsl_lib
+          cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
       -
         name: 'Upload generated TSL as artifact'
         uses: actions/upload-artifact@v3
@@ -131,7 +173,7 @@ jobs:
         run: make -j -C tsl
       -
         name: 'Run Tests'
-        run: ./tsl/generator_output/build/src/test/tsl_test
+        run: ./tsl/tsl_lib/build/src/test/tsl_test
 
   validate-lscpu-flags:
     runs-on: ubuntu-latest
@@ -165,11 +207,22 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip"
+      - name: Cache virtualenv
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-3.10-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-3.10-venv-
       -
         name: 'Install python dependencies for generator'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Install packages for generated code'
         run: |
@@ -179,19 +232,25 @@ jobs:
         name: 'Run CMake'
         id: cmake
         run: |
+          which python3
+          source ./.venv/bin/activate
           HW_LIST=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ';')
           IFS=";" read -ra TARGET_FLAGS <<< "${{ matrix.target_flags }}"
           IFS=";" read -ra HW_FLAGS <<< "${HW_LIST}"
           ANY_TARGET_FLAG_FOUND=0
           for i in "${TARGET_FLAGS[@]}"; do
             if [[ " ${HW_FLAGS[*]} " =~ " ${i} " ]]; then
-              echo "Seems to be an intel CPU sinc ${i} is supported."
+              echo "Seems to be an intel CPU since ${i} is supported."
               ANY_TARGET_FLAG_FOUND=1
               break
             fi
           done
           if [ $ANY_TARGET_FLAG_FOUND -eq 1 ]; then
-            cmake -S . -B tsl -DTARGETS_FLAGS="${{ matrix.target_flags }}"
+            ORIG_FLAGS="${{ matrix.target_flags }}"
+            FLAGS="${ORIG_FLAGS//;/ }"
+            echo "Generation for $FLAGS"
+            python main.py --targets $FLAGS -o tsl_lib
+            cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
           else
             echo "GENERATED=SKIPPED" >> $GITHUB_OUTPUT
           fi
@@ -223,10 +282,21 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip"
+      - name: Cache virtualenv
+        if: env.MERGE_FAILED != '1'
+        uses: actions/cache@v3
+        id: cache-venv
+        with:
+          path: ./.venv/
+          key: ${{ runner.os }}-3.10-venv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-3.10-venv-
       -
         name: 'Install python dependencies for generator'
-        if: env.MERGE_FAILED != '1'
+        if: env.MERGE_FAILED != '1' && steps.cache-venv.outputs.cache-hit != 'true'
         run: |
+          python -m venv ./.venv
+          source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
       -
@@ -241,7 +311,10 @@ jobs:
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
         env:
           CXX: ${{ matrix.compiler }}
-        run: cmake -S . -B tsl
+        run: |
+          source ./.venv/bin/activate
+          python main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' ') -o tsl_lib
+          cmake -S . -B tsl -DUSE_EXISTING_TSL_PATH=./tsl_lib
       -
         name: 'Build TSL'
         if: env.MERGE_FAILED != '1'
@@ -249,4 +322,4 @@ jobs:
       -
         name: 'Run Tests'
         if: env.MERGE_FAILED != '1'
-        run: ./tsl/generator_output/build/src/test/tsl_test
+        run: ./tsl/tsl_lib/build/src/test/tsl_test
