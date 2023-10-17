@@ -916,17 +916,53 @@ definitions:
     }
     lscpu_flags: ['avx512f']
     implementation: "return _mm512_i{{ intrin_tp[additional_simd_template_base_type][1] }}gather_{{ intrin_tp_full[ctype].replace('epu', 'epi') }}(index, memory, N);"
-  #INTEL - AVX512 / AVX2
-  - target_extension: "avx512"
-    additional_simd_template_extension: "avx2"
-    ctype: ["uint64_t", "int64_t", "double"]
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
     additional_simd_template_base_type_mapping_dict: {
-      "uint64_t": ["int32_t", "uint32_t"],
-      "int64_t":  ["int32_t", "uint32_t"],
-      "double":   ["int32_t", "uint32_t"],
+      "int8_t":   ["int8_t", "uint8_t"],
+      "uint8_t":  ["int8_t", "uint8_t"],
+      "int16_t":  ["int16_t", "uint16_t"],
+      "uint16_t": ["int16_t", "uint16_t"],
     }
-    lscpu_flags: ['avx512f']
-    implementation: "return _mm512_i{{ intrin_tp[additional_simd_template_base_type][1] }}gather_{{ intrin_tp_full[ctype].replace('epu', 'epi') }}(index, memory, N);"
+    implementation: |
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
+      auto const idx_array = tsl::to_array<IndicesType>(index);
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
+      }
+      return tsl::load<Vec>(result.data());
+  #INTEL - AVX2
+  - target_extension: ["avx2"]
+    ctype: ["uint64_t", "int64_t", "uint32_t", "int32_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {
+      "uint32_t": ["int32_t", "uint32_t"],
+      "int32_t":  ["int32_t", "uint32_t"],
+      "float":    ["int32_t", "uint32_t"],
+      "uint64_t": ["int64_t", "uint64_t"],
+      "int64_t":  ["int64_t", "uint64_t"],
+      "double":   ["int64_t", "uint64_t"],
+    }
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_i{{ intrin_tp[additional_simd_template_base_type][1] }}gather_{{ intrin_tp_full[ctype].replace('epu', 'epi') }}(memory, index, N);"
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    additional_simd_template_base_type_mapping_dict: {
+      "int8_t":   ["int8_t", "uint8_t"],
+      "uint8_t":  ["int8_t", "uint8_t"],
+      "int16_t":  ["int16_t", "uint16_t"],
+      "uint16_t": ["int16_t", "uint16_t"],
+    }
+    implementation: |
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
+      auto const idx_array = tsl::to_array<IndicesType>(index);
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
+      }
+      return tsl::load<Vec>(result.data());
   #INTEL - SSE
   - target_extension: "sse"
     additional_simd_template_extension: "sse"
@@ -949,7 +985,7 @@ definitions:
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
       auto const idx_array = tsl::to_array<IndicesType>(index);
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-          result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
+        result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
       }
       return tsl::load<Vec>(result.data());
   #ARM - NEON
