@@ -45,7 +45,7 @@ jobs:
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        if: steps.cache-venv.outputs.cache-hit != 'true'
+        #if: steps.cache-venv.outputs.cache-hit != 'true'
       - 
         name: 'Lint with ruff'
         run: |
@@ -100,7 +100,7 @@ jobs:
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        if: steps.cache-venv.outputs.cache-hit != 'true'
+        #if: steps.cache-venv.outputs.cache-hit != 'true'
       - 
         name: Try generating the whole TSL with python ${{ matrix.python-version }}
         run: |
@@ -144,7 +144,7 @@ jobs:
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
-        if: steps.cache-venv.outputs.cache-hit != 'true'
+        #if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Install packages for generated code'
         run: |
@@ -220,7 +220,7 @@ jobs:
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
-        if: steps.cache-venv.outputs.cache-hit != 'true'
+        #if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Install packages for generated code'
         run: |

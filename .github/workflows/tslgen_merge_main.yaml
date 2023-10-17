@@ -202,7 +202,7 @@ jobs:
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
-        if: steps.cache-venv.outputs.cache-hit != 'true'
+        #if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Install packages for generated code'
         run: |
@@ -337,7 +337,7 @@ jobs:
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
-        if: steps.cache-venv.outputs.cache-hit != 'true'
+        #if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Mkdir badges folder'
         run: mkdir -p ./doc/badges
