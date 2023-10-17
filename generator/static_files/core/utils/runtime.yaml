@@ -6,6 +6,9 @@ includes:
   - "<utility>"
 implementations:
   - |
+    struct MEMORY_ON_HOST{};
+    struct MEMORY_ON_DEVICE{};
+
     template<class ExecTarget>
       class executor {
         private:

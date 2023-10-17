@@ -31,12 +31,11 @@ int main(void) {
   auto host_mem_data       = cpu_executor.allocate<uint32_t>(128);
   auto host_mem_result     = cpu_executor.allocate<uint32_t>(128);
   // allocate memory accessible from host and FPGA device
-  // WATCH OUT: oneAPI::MEMORY_ON_HOST and oneAPI::MEMORY_ON_DEVICE will soon be moved up in the namespace hierarchy
-  auto usm_host_mem_data   = fpga_executor.allocate<uint32_t>(128, oneAPI::MEMORY_ON_HOST{});
-  auto usm_host_mem_result = fpga_executor.allocate<uint32_t>(128, oneAPI::MEMORY_ON_HOST{});
+  auto usm_host_mem_data   = fpga_executor.allocate<uint32_t>(128, MEMORY_ON_HOST{});
+  auto usm_host_mem_result = fpga_executor.allocate<uint32_t>(128, MEMORY_ON_HOST{});
   // allocate memory on FPGA device
-  auto usm_dev_mem_data    = fpga_executor.allocate<uint32_t>(128, oneAPI::MEMORY_ON_DEVICE{});
-  auto usm_dev_mem_result  = fpga_executor.allocate<uint32_t>(128, oneAPI::MEMORY_ON_DEVICE{});
+  auto usm_dev_mem_data    = fpga_executor.allocate<uint32_t>(128, MEMORY_ON_DEVICE{});
+  auto usm_dev_mem_result  = fpga_executor.allocate<uint32_t>(128, MEMORY_ON_DEVICE{});
 
   // initialize input data
   host_mem_data[0] = 0;
