@@ -23,3 +23,7 @@ generator/config/generator/tsl_templates/expansions/.twing/
 
 supplementary/*/*.o
 supplementary/*/*.a
+
+.venv/
+
+doc/www/
