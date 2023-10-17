@@ -28,6 +28,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+          cache: "pip"
       - 
         name: Cache virtualenv
         uses: actions/cache@v3
@@ -43,7 +44,6 @@ jobs:
           python -m venv ./.venv
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
-          pip install ruff
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         if: steps.cache-venv.outputs.cache-hit != 'true'
       - 
@@ -52,19 +52,16 @@ jobs:
           # stop the build if there are Python syntax errors or undefined names
           set -x
           source ./.venv/bin/activate
+          pip install ruff
           PYTHONV="py${{ matrix.python-version }}"
           CURRENT_VERSION=$(echo $PYTHONV | sed 's/\.//')
           echo $CURRENT_VERSION
           ruff --format=github --select=E9,F63,F7,F82 --target-version="${CURRENT_VERSION}" -v .
       -
-        name: 'Install python dependencies for primitive data'
-        run: |
-          source ./.venv/bin/activate
-          pip install yamllint
-      -
         name: 'Lint primitive data'
         run: |
           source ./.venv/bin/activate
+          pip install yamllint
           yamllint -d relaxed ./primitive_data
   generate:
     runs-on: ubuntu-latest
@@ -86,7 +83,8 @@ jobs:
         name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}      
+          python-version: ${{ matrix.python-version }
+          cache: "pip"
       - name: Cache virtualenv
         uses: actions/cache@v3
         id: cache-venv
