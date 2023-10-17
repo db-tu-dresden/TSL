@@ -56,7 +56,7 @@ jobs:
           PYTHONV="py${{ matrix.python-version }}"
           CURRENT_VERSION=$(echo $PYTHONV | sed 's/\.//')
           echo $CURRENT_VERSION
-          ruff --format=github --select=E9,F63,F7,F82 --target-version="${CURRENT_VERSION}" -v .
+          ruff -- --format=github --select=E9,F63,F7,F82 --target-version="${CURRENT_VERSION}" -v .
       -
         name: 'Lint primitive data'
         run: |
