@@ -1380,6 +1380,39 @@ definitions:
       return result;
 ...
 ---
+primitive_name: 'mod'
+functor_name: 'mod_colwise'
+brief_description: 'Operates the modulo operation on one datavector modulo another data vector.'
+parameters:
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_data'
+    description: 'Input Vector'
+  - ctype: 'const typename Vec::register_type'
+    name: 'vec_mod'
+    description: 'Modulo Vector'
+returns:
+  ctype: 'typename Vec::register_type'
+  description: 'Resulting Vector'
+definitions:
+  - target_extension: 'scalar'
+    ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t' ]
+    lscpu_flags: [ ]
+    implementation: return vec_data % vec_mod;
+# FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result; //initialize the result
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = vec_data[i] % vec_mod[i];
+      }
+      return result;
+...
+---
 primitive_name: "hmax"
 brief_description: "Reduces the elements to the maximum value."
 parameters:
