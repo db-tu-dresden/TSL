@@ -323,6 +323,7 @@ class TSLDependencyGraph:
     while True:
       try:
         Jaal(edge_df, node_df).plot(directed=True,port=port)
-      except:
+      except Exception as err:
+        print(f"Unexpected {err.__class__.__name__} while trying to start Jaal on port {port}")
         port+=1
 

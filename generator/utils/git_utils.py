@@ -72,5 +72,6 @@ class GitUtils:
                 submodules.append(GitUtils.get_git_data())
                 os.chdir(local_path)
             return GitUtils(local_path, remote_url, branch, abbrev_hash, hash, submodules)
-        except:
+        except Exception as err:
+            print(f"Error while trying to get git data: {err}")
             return GitUtils(local_path, "unknown url", "unknown branch", "unknown commit", "unknown commit", [])

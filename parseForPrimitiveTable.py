@@ -141,8 +141,6 @@ def create_primitive_index_html(tsl_lib: TSLLib) -> None:
   table_vis_file.close()
 
 if __name__ == '__main__':
-  def get_config(config_path: Path) -> dict:
-    return yaml_load(config_path)
 
   def tsl_setup(file_config, additional_config=None) -> None:
     if additional_config is None:

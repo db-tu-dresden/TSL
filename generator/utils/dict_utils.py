@@ -7,7 +7,8 @@ def dict_update(left: dict, right: dict) -> dict:
         if left_key not in right:
             result[left_key] = left_value
         else:
-            if type(left_value) != type(right[left_key]):
+            #if type(left_value) != type(right[left_key]):
+            if not isinstance(left_value, type(right[left_key])):
                 result[left_key] = right[left_key]
             else:
                 if isinstance(left_value, dict):
@@ -29,25 +30,25 @@ def intersects(left: set, right: set) -> bool:
 
 def remove_from_list(alist: list, to_remove: list, in_place = True):
     if in_place:
-        l = alist
+        tmp_list = alist
     else:
-        l = copy.deepcopy(alist)
+        tmp_list = copy.deepcopy(alist)
     for e in to_remove:
         while e in alist:
             alist.remove(e)
-    return l
+    return tmp_list
 
 def keep_in_list(alist: list, to_keep: list, in_place = True):
     if in_place:
-        l = alist
+        tmp_list = alist
     else:
-        l = copy.deepcopy(alist)
-    idx_l = [idx for idx in range(len(l)) if l[idx] not in to_keep]
+        tmp_list = copy.deepcopy(alist)
+    idx_l = [idx for idx in range(len(tmp_list)) if tmp_list[idx] not in to_keep]
     idx_l.sort(reverse=True)
     for idx in idx_l:
-        l.pop(idx)
+        tmp_list.pop(idx)
+    return tmp_list
 
-    return l
 def remove_from_set(aset: set, to_remove: list, in_place = True):
     if in_place:
         s = aset
