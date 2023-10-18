@@ -117,7 +117,6 @@ jobs:
           python -m venv ./.venv
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
-          pip3 install ruff
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
       - 
         name: Try generating the whole TSL with python ${{ matrix.python-version }}
@@ -202,7 +201,7 @@ jobs:
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
-        if: steps.cache-venv.outputs.cache-hit != 'true'
+        #if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Install packages for generated code'
         run: |
@@ -337,7 +336,7 @@ jobs:
           source ./.venv/bin/activate
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
-        if: steps.cache-venv.outputs.cache-hit != 'true'
+        #if: steps.cache-venv.outputs.cache-hit != 'true'
       -
         name: 'Mkdir badges folder'
         run: mkdir -p ./doc/badges

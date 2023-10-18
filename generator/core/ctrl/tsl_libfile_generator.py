@@ -48,8 +48,8 @@ class TSLFileGenerator:
 
     @property
     def out_pathes(self) -> Generator[Path, None, None]:
-        def get_fnames(l):
-            return [f.file_name.parent for f in l]
+        def get_fnames(file_list):
+            return [f.file_name.parent for f in file_list]
 
         pathes = set(get_fnames(self.static_files) + get_fnames(self.extension_files) + get_fnames(
             self.primitive_declaration_files) + get_fnames(self.primitive_definition_files))

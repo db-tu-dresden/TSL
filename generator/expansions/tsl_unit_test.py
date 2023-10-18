@@ -581,7 +581,7 @@ class TSLTestGenerator:
                     primitive_test = tslPrimTest
                     break
 
-            if primitive_test == None:
+            if primitive_test is None:
                 primitive_test = TSLPrimitiveTest(case.associated_primitive_name,declaration_dict[case.associated_primitive_class_name][case.associated_primitive_name])
                 primitive_class.add_primitive_test( primitive_test )
             primitive_test.add_case( case )

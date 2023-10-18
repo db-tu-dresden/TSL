@@ -76,9 +76,6 @@ namespace tsl {
       sycl::ext::intel::tsl_helper_loop_fuse_independent<N>(f, 0);
     }
 
-    struct MEMORY_ON_HOST{};
-    struct MEMORY_ON_DEVICE{};
-
     namespace details {      
       template <typename T, typename = void>
       struct multi_ptr_base_type {
@@ -177,7 +174,7 @@ namespace tsl {
         }
       public:
         template<typename _T>
-          auto allocate(size_t element_count, ::tsl::oneAPI::MEMORY_ON_HOST, size_t alignment = 0) {
+          auto allocate(size_t element_count, ::tsl::MEMORY_ON_HOST, size_t alignment = 0) {
             using T = std::remove_pointer_t<std::remove_reference_t<_T>>;
             T * buffer;
             if (alignment == 0) {
@@ -194,7 +191,7 @@ namespace tsl {
             return sycl::host_ptr<T>{buffer};
           }
         template<typename _T>
-          auto allocate(size_t element_count, ::tsl::oneAPI::MEMORY_ON_DEVICE, size_t alignment = 0) {
+          auto allocate(size_t element_count, ::tsl::MEMORY_ON_DEVICE, size_t alignment = 0) {
             using T = std::remove_pointer_t<std::remove_reference_t<_T>>;
             T * buffer;
             if (alignment == 0) {

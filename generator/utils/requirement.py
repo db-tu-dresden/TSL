@@ -20,7 +20,7 @@ def requirement(_func=None, **requirement_kwargs):
                 isType = True
                 try:
                     eval(f"{con}")
-                except:
+                except Exception as _:
                     isType = False
                 if isType:
                     if inspect.isclass(eval(f"{con}")):
