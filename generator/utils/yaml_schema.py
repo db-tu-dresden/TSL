@@ -183,7 +183,7 @@ class Schema:
                                 casted_data = [data]
                         else:
                             casted_data = eval(self.__type)(data)
-                    except:
+                    except Exception as _:
                         raise Schema.TypeCastError("Cast was not possible.",
                                                    {"data": data, "cast candidate": data, "target type": self.__type})
                 if self.__entry_type is not None:
