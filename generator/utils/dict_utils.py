@@ -8,7 +8,7 @@ def dict_update(left: dict, right: dict) -> dict:
             result[left_key] = left_value
         else:
             #if type(left_value) != type(right[left_key]):
-            if isinstance(left_value, type(right[left_key])):
+            if not isinstance(left_value, type(right[left_key])):
                 result[left_key] = right[left_key]
             else:
                 if isinstance(left_value, dict):
