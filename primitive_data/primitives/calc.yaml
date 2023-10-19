@@ -1389,8 +1389,28 @@ parameters:
 returns:
   ctype: "typename Vec::base_type"
   description: "Scalar value after adding all elements in the vector."
+testing:
+  - test_name: "default"
+    requires: ["loadu"]
+    includes: ["<algorithm>"]
+    implementation: |
+      size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto reference_data_ptr = test_helper.data_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto test_data_ptr = test_helper.data_target();
+      bool allOk = true;
+      for(size_t i = 0; i < element_count; i += Vec::vector_element_count()){
+        *reference_result_ptr = *std::max_element(reference_data_ptr + i, reference_data_ptr + i + Vec::vector_element_count());
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        *test_result_ptr = hmax<Vec>(vec);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
-#INTEL - FPGA
+  #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
     lscpu_flags: ["oneAPIfpgaDev"]
@@ -1399,10 +1419,124 @@ definitions:
       {% import 'core/definition_macro_helper_oneAPI.template' as helpers %}
       {{ helpers.tree_like_reduce_ternary_auto("Vec", "result_vec", "data", ">") }}
       return result_vec[Vec::vector_element_count()-2];
+  #INTEL - AVX512
+  - target_extension: ["avx512"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_reduce_max_{{intrin_tp_full[ctype]}}(data);"
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    includes: ["<algorithm>"]
+    implementation: |
+      auto arr = tsl::to_array<Vec>(data);
+      return *std::max_element(arr.begin(), arr.end());
+  #INTEL - AVX2
+  - target_extension: ["axv2"]
+    ctype: ["uint32_t", "int32_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      __m256i y, max1, max2, max3, max4;
+      y = _mm256_permute4x64_epi64(data, _MM_SHUFFLE(1, 0, 3, 2));
+      max1 = _mm256_max_{{intrin_tp[ctype][1]}}(data, y);
+      y = _mm256_shuffle_epi32(max1, _MM_SHUFFLE(1, 0, 3, 2));
+      max2 = _mm256_max_{{intrin_tp[ctype][1]}}(max1, y);
+      y = _mm256_shuffle_epi32(max2, _MM_SHUFFLE(2, 3, 0, 1));
+      max3 = _mm256_max_{{intrin_tp[ctype][1]}}(max2, y);
+      y = _mm256_permute4x64_epi64(max3, _MM_SHUFFLE(2, 3, 0, 1));
+      max4 = _mm256_max_{{intrin_tp[ctype][1]}}(max3, y);
+      return tsl::extract_value<Vec, 0>(max4);
+  - target_extension: ["avx2"]
+    ctype: ["float"]
+    lscpu_flags: [avx2]
+    implementation: |
+      __m256 y, max1, max2, max3, max4;
+      y = _mm256_permute2f128_ps(data, data, 1);
+      max1 = _mm256_max_ps(data, y);
+      y = _mm256_permute_ps(max1, 0b10110001);
+      max2 = _mm256_max_ps(max1, y);
+      y = _mm256_permute_ps(max2, 0b01001110);
+      max3 = _mm256_max_ps(max2, y);
+      y = _mm256_permute2f128_ps(max3, max3, 1);
+      max4 = _mm256_max_ps(max3, y);
+      return tsl::extract_value<Vec, 0>(max4);
+  - target_extension: ["avx2"]
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      typename Vec::register_type y, max1, max2, max3;
+      y = _mm256_permute4x64_epi64(data, _MM_SHUFFLE(1, 0, 3, 2));
+      auto mask = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(data, y);
+      max1 = _mm256_blendv_epi8(y, data, mask);
+      y = _mm256_shuffle_epi32(max1, _MM_SHUFFLE(1, 0, 3, 2));
+      mask = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(max1, y);
+      max2 = _mm256_blendv_epi8(y, max1, mask);
+      y = _mm256_permute4x64_epi64(max2, _MM_SHUFFLE(2, 3, 0, 1));
+      mask = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(max2, y);
+      max3 = _mm256_blendv_epi8(y, max2, mask);
+      return tsl::extract_value<Vec, 0>(max3);
+  - target_extension: ["avx2"]
+    ctype: ["double"]
+    lscpu_flags: [avx2]
+    implementation: |
+      auto y = _mm256_permute2f128_pd(data, data, 1);
+      auto m1 = _mm256_max_pd(data, y);
+      auto m2 = _mm256_permute_pd(m1, 5);
+      auto m = _mm256_max_pd(m1, m2);
+      return tsl::extract_value<Vec, 0>(m);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "double", "float"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    includes: ["<algorithm>"]
+    implementation: |
+      auto arr = tsl::to_array<Vec>(data);
+      return *std::max_element(arr.begin(), arr.end());
+  #INTEL - SSE
+  - target_extension: ["sse"]
+    ctype: ["uint32_t", "int32_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      __m128i y, max1, max2;
+      y = _mm_shuffle_epi32(data, _MM_SHUFFLE(0, 3, 2, 1));
+      max1 = _mm_max_epi32(data, y);
+      y = _mm_shuffle_epi32(max1, _MM_SHUFFLE(3, 2, 0, 1));
+      max2 = _mm_max_epi32(max1, y);
+      return tsl::extract_value<Vec, 0>(max2);
+  - target_extension: ["sse"]
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      __m128i y, cmp, max_val;
+      y = _mm_shuffle_epi32(data, _MM_SHUFFLE(1, 0, 3, 2));
+      cmp = _mm_cmpgt_epi64(data, y);
+      max_val = _mm_blendv_epi8(y, data, cmp);
+      return tsl::extract_value<Vec, 0>(max_val):
+  - target_extension: ["sse"]
+    ctype: ["double", "float"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      auto y = _mm_shuffle_pd(data, data, 1);
+      max1 = _mm_max_pd(data, y);
+      return tsl::extract_value<Vec, 0>(max1);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["sse"]
+    is_native: False
+    includes: ["<algorithm>"]
+    implementation: |
+      auto arr = tsl::to_array<Vec>(data);
+      return *std::max_element(arr.begin(), arr.end());
+  #SCALAR
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: 
+    implementation: return data;
 ...
 ---
 primitive_name: "hmin"
-brief_description: "Reduces the elements to the maximum value."
+brief_description: "Reduces the elements to the minimum value."
 parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
@@ -1410,8 +1544,29 @@ parameters:
 returns:
   ctype: "typename Vec::base_type"
   description: "Scalar value after adding all elements in the vector."
+testing:
+  - test_name: "default"
+    requires: ["loadu"]
+    includes: ["<algorithm>"]
+    implementation: |
+      size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto reference_data_ptr = test_helper.data_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto test_data_ptr = test_helper.data_target();
+      bool allOk = true;
+
+      for(size_t i = 0; i < element_count; i += Vec::vector_element_count()){
+        *reference_result_ptr = *std::min_element(reference_data_ptr + i, reference_data_ptr + i + Vec::vector_element_count());
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        *test_result_ptr = hmin<Vec>(vec);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
-#INTEL - FPGA
+  #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
     lscpu_flags: ["oneAPIfpgaDev"]
@@ -1420,4 +1575,238 @@ definitions:
       {% import 'core/definition_macro_helper_oneAPI.template' as helpers %}
       {{ helpers.tree_like_reduce_ternary_auto("Vec", "result_vec", "data", "<") }}
       return result_vec[Vec::vector_element_count()-2];
+  #INTEL - AVX512
+  - target_extension: ["avx512"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_reduce_min_{{intrin_tp_full[ctype]}}(data);"
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    includes: ["<algorithm>"]
+    implementation: |
+      auto arr = tsl::to_array<Vec>(data);
+      return *std::min_element(arr.begin(), arr.end());
+  #INTEL - AVX2
+  - target_extension: ["axv2"]
+    ctype: ["uint32_t", "int32_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      __m256i y, min1, min2, min3, min4;
+      y = _mm256_permute4x64_epi64(data, _MM_SHUFFLE(1, 0, 3, 2));
+      min1 = _mm256_min_{{intrin_tp[ctype][1]}}(data, y);
+      y = _mm256_shuffle_epi32(min1, _MM_SHUFFLE(1, 0, 3, 2));
+      min2 = _mm256_min_{{intrin_tp[ctype][1]}}(min1, y);
+      y = _mm256_shuffle_epi32(min2, _MM_SHUFFLE(2, 3, 0, 1));
+      min3 = _mm256_min_{{intrin_tp[ctype][1]}}(min2, y);
+      y = _mm256_permute4x64_epi64(min3, _MM_SHUFFLE(2, 3, 0, 1));
+      min4 = _mm256_min_{{intrin_tp[ctype][1]}}(min3, y);
+      return tsl::extract_value<Vec, 0>(min4);
+  - target_extension: ["avx2"]
+    ctype: ["float"]
+    lscpu_flags: [avx2]
+    implementation: |
+      __m256 y, min1, min2, min3, min4;
+      y = _mm256_permute2f128_ps(data, data, 1);
+      min1 = _mm256_min_ps(data, y);
+      y = _mm256_permute_ps(min1, 0b10110001);
+      min2 = _mm256_min_ps(min1, y);
+      y = _mm256_permute_ps(min2, 0b01001110);
+      min3 = _mm256_min_ps(min2, y);
+      y = _mm256_permute2f128_ps(min3, min3, 1);
+      min4 = _mm256_min_ps(min3, y);
+      return tsl::extract_value<Vec, 0>(min4);
+  - target_extension: ["avx2"]
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      typename Vec::register_type y, min1, min2, min3;
+      y = _mm256_permute4x64_epi64(data, _MM_SHUFFLE(1, 0, 3, 2));
+      auto mask = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(data, y);
+      min1 = _mm256_blendv_epi8(y, data, mask);
+      y = _mm256_shuffle_epi32(min1, _MM_SHUFFLE(1, 0, 3, 2));
+      mask = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(min1, y);
+      min2 = _mm256_blendv_epi8(y, min1, mask);
+      y = _mm256_permute4x64_epi64(min2, _MM_SHUFFLE(2, 3, 0, 1));
+      mask = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(min2, y);
+      min3 = _mm256_blendv_epi8(y, min2, mask);
+      return tsl::extract_value<Vec, 0>(min3);
+  - target_extension: ["avx2"]
+    ctype: ["double"]
+    lscpu_flags: [avx2]
+    implementation: |
+      auto y = _mm256_permute2f128_pd(data, data, 1);
+      auto m1 = _mm256_min_pd(data, y);
+      auto m2 = _mm256_permute_pd(m1, 5);
+      auto m = _mm256_min_pd(m1, m2);
+      return tsl::extract_value<Vec, 0>(m);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["avx2"]
+    is_native: False
+    includes: ["<algorithm>"]
+    implementation: |
+      auto arr = tsl::to_array<Vec>(data);
+      return *std::min_element(arr.begin(), arr.end());
+  #INTEL - SSE
+  - target_extension: ["sse"]
+    ctype: ["uint32_t", "int32_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      __m128i y, min1, min2;
+      y = _mm_shuffle_epi32(data, _MM_SHUFFLE(0, 3, 2, 1));
+      min1 = _mm_min_epi32(data, y);
+      y = _mm_shuffle_epi32(min1, _MM_SHUFFLE(3, 2, 0, 1));
+      min2 = _mm_min_epi32(min1, y);
+      return tsl::extract_value<Vec, 0>(min2);
+  - target_extension: ["sse"]
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      __m128i y, cmp, min_val;
+      y = _mm_shuffle_epi32(data, _MM_SHUFFLE(1, 0, 3, 2));
+      cmp = _mm_cmpgt_epi64(data, y);
+      min_val = _mm_blendv_epi8(y, data, cmp);
+      return tsl::extract_value<Vec, 0>(min_val):
+  - target_extension: ["sse"]
+    ctype: ["double", "float"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      auto y = _mm_shuffle_pd(data, data, 1);
+      min1 = _mm_min_pd(data, y);
+      return tsl::extract_value<Vec, 0>(min1);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["sse"]
+    is_native: False
+    includes: ["<algorithm>"]
+    implementation: |
+      auto arr = tsl::to_array<Vec>(data);
+      return *std::min_element(arr.begin(), arr.end());
+  #SCALAR
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: 
+    implementation: return data;
+...
+---
+primitive_name: "max"
+brief_description: "compares the values of 2 vectors and returns a vector with the maximum of each corrisponding values"
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector"
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector"
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the comparison"
+testing:
+  - test_name: "default"
+    requires: ["loadu", "storeu"]
+    implementation: |
+      using base_t = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+      auto vec_count = Vec::vector_element_count();
+      size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, vec_count, false};
+      auto reference_result_ptr = test_helper.result_ref();
+      auto reference_data_ptr = test_helper.data_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto test_data_ptr = test_helper.data_target();
+      bool allOk = true;
+
+      for(size_t i = 0; i < element_count; i += 2*vec_count){
+        base_t arr[vec_count];
+        for(size_t j = 0; j < vec_count; j++){
+          (reference_data_ptr[i+j] < reference_data_ptr[i+j+vec_count]) ? arr[j] = reference_data_ptr[i+j+vec_count] : arr[j] = reference_data_ptr[i+j];
+        }
+        auto ref_result = loadu<Vec>(arr);
+
+        auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+        auto vec_b = loadu<Vec>(&test_data_ptr[i+vec_count]);
+        auto result = max<Vec>(vec_a, vec_b);
+
+        storeu<Vec>(test_result_ptr, result);
+        storeu<Vec>(reference_result_ptr, ref_result);
+
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+definitions:
+  # INTEL - AVX512
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b)"
+  - target_extension: ["avx512"]
+    ctype: ["uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b)"
+  # INTEL - AVX2
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: ["avx2"]
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: ["avx2"]
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      auto mask = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(vec_a, vec_b);
+      return _mm256_blendv_epi8(vec_b, vec_a, mask);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["avx"]
+    is_native: False
+    implementation: |
+      auto arr_a = tsl::to_array<Vec>(vec_a);
+      auto arr_b = tsl::to_array<Vec>(vec_b);
+      typename Vec::base_type result[Vec::vector_element_count()];
+      for(size_t i = 0; i < Vec::vector_element_count(); i++){
+        (arr_a[i] < arr_b [i]) ? result[i] = arr_b[i] : result[i] = arr_a[i];
+      }
+      return tsl::loadu<Vec>(result);
+  # INTEL - SSE
+  - target_extension: ["sse"]
+    ctype: ["int16_t", "uint8_t", "double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: ["sse"]
+    ctype: ["float"]
+    lscpu_flags: ["sse"]
+    implementation: "return _mm_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: ["sse"]
+    ctype: ["int32_t", "int8_t", "uint16_t", "uint32_t"]
+    lscpu_flags: ["sse4_1"]
+    implementation: "return _mm_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: ["sse"]
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["sse4_1", "sse4_2"]
+    implementation: |
+      auto mask = _mm_cmpgt_epi{{intrin_tp[ctype][1]}}(vec_a, vec_b);
+      return _mm_blendv_epi8(vec_b, vec_a, mask);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: ["sse"]
+    is_native: False
+    implementation: |
+      auto arr_a = tsl::to_array<Vec>(vec_a);
+      auto arr_b = tsl::to_array<Vec>(vec_b);
+      typename Vec::base_type result[Vec::vector_element_count()];
+      for(size_t i = 0; i < Vec::vector_element_count(); i++){
+        (arr_a[i] < arr_b [i]) ? result[i] = arr_b[i] : result[i] = arr_a[i];
+      }
+      return tsl::loadu<Vec>(result);
+  # SCALAR
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
+    lscpu_flags: 
+    implementation: "return (vec_a > vec_b) ? vec_a : vec_b;"
 ...
