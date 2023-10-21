@@ -1193,6 +1193,33 @@ definitions:
       return details::clz_recursive<typename Vec::base_type, typename Vec::offset_base_type>::apply(data);
 ...
 ---
+primitive_name: "lzc_alt"
+brief_description: "Leading zeros counter."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "First vector."
+returns:
+  ctype: "typename Vec::offset_base_register_type"
+  description: "Vector containing leading zeros number."
+definitions:
+  - target_extension: "oneAPIfpga"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    vector_length_agnostic: True
+    specialization_comment: |
+      Calls a recursive function.
+    implementation: |
+      typename Vec::offset_base_register_type result{};
+      using base_t = typename Vec::base_type;
+      #pragma unroll
+      for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+        result[idx] = details::clz_recursive<base_type, typename Vec::offset_base_type>::apply(data[idx]);
+      }
+      return result;
+...
+---
 primitive_name: "lzc_alt1"
 brief_description: "Leading zeros counter."
 parameters:
@@ -1391,6 +1418,7 @@ definitions:
         {% endfilter%}
         {% endif %}
         {% endmacro %}
+        [[intel::fpga_register]] uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
         result[idx] = 
         {% filter indent(width=2) %}
           {{ clz_ternary_impl("data[idx]", type_size_in_bits[ctype], 0) }};
