@@ -1215,7 +1215,7 @@ definitions:
       using base_t = typename Vec::base_type;
       #pragma unroll
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
-        result[idx] = details::clz_recursive<base_type, typename Vec::offset_base_type>::apply(data[idx]);
+        result[idx] = details::clz_recursive<base_t, typename Vec::offset_base_type>::apply(data[idx]);
       }
       return result;
 ...
