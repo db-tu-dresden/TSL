@@ -655,6 +655,131 @@ returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing result of the multiplication."
 definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mul_{{ intrin_tp_full[ctype] }}(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "avx512"
+    ctype: ["uint16_t"]
+    lscpu_flags: ["avx512bw"]
+    specialization_comment: "Signed multiplication."
+    implementation: "return _mm512_mullo_epi16(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "avx512"
+    ctype: ["int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_mullo_epi16(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t"]
+    lscpu_flags: ["avx512f"]
+    specialization_comment: "Signed multiplication."
+    implementation: "return _mm512_mullo_epi32(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "avx512"
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["avx512dq"]
+    specialization_comment: "Signed multiplication."
+    implementation: "return _mm512_mullo_epi64(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    includes: ["<array>", "<cstddef>"]
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+      _mm512_store_si512(reinterpret_cast<void*>(buffer_a.data()), vec_a);
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          buffer_a[i] *= mul_var;
+      }
+      return _mm512_load_si512(reinterpret_cast<void const *>(buffer_a.data()));
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_mul_{{ intrin_tp_full[ctype] }}(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "avx2"
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: ["avx2"]
+    specialization_comment: "Signed multiplication."
+    implementation: "return _mm256_mullo_epi16(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t"]
+    lscpu_flags: ["avx2"]
+    specialization_comment: "Signed multiplication."
+    implementation: "return _mm256_mullo_epi32(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "avx2"
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["avx512dq", "avx512vl"]
+    specialization_comment: "Signed multiplication."
+    implementation: "return _mm256_mullo_epi64(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    is_native: False
+    includes: ["<array>", "<cstddef>"]
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+      _mm256_store_si256(reinterpret_cast<__m256i*>(buffer_a.data()), vec_a);
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          buffer_a[i] *= mul_var;
+      }
+      return _mm256_load_si256(reinterpret_cast<__m256i const *>(buffer_a.data()));
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse"]
+    implementation: "return _mm_mul_ps(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_mul_pd(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "sse"
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: ["sse2"]
+    specialization_comment: "Signed multiplication."
+    implementation: "return _mm_mullo_epi16(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "sse"
+    ctype: ["uint32_t", "int32_t"]
+    lscpu_flags: ["sse4_1"]
+    specialization_comment: "Signed multiplication."
+    implementation: "return _mm_mullo_epi32(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "sse"
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: ["avx512dq", "avx512vl"]
+    specialization_comment: "Signed multiplication."
+    implementation: "return _mm_mullo_epi64(vec_a, tsl::set1<Vec>(mul_var));"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    is_native: False
+    includes: ["<array>", "<cstddef>"]
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer_a;
+      _mm_store_si128(reinterpret_cast<__m128i*>(buffer_a.data()), vec_a);
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          buffer_a[i] *= mul_var;
+      }
+      return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
+#ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t", "float", "double"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vmulq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );"
+  - target_extension: "neon"
+    ctype: ["uint64_t", "int64_t"]
+    lscpu_flags: [ 'neon' ]
+    is_native: False
+    implementation: |
+      //Found this on stackoverflow. This seems like an overkill. Maybe an extract and scalar multiply would do the trick more efficient.
+      //@todo: benchmark this.
+      const auto ac = vmovn_{{ intrin_tp[ctype][0] }}64(vec_a);
+      const auto pr = vmovn_{{ intrin_tp[ctype][0] }}64(tsl::set1<Vec>(mul_var));
+      const auto hi = vmulq_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_b), vrev64q_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_a)));
+      return vmlal_{{ intrin_tp[ctype][0] }}32(vshlq_n_{{ intrin_tp[ctype][0] }}64(vpaddlq_{{ intrin_tp[ctype][0] }}32(hi), 32), ac, pr);
+#SCALAR
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    lscpu_flags: [ ]
+    implementation: "return vec_a * vec_b;"
 # FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -1191,7 +1316,192 @@ definitions:
       return result;
 ...
 ---
+primitive_name: "mod"
+brief_description: "Operates the modulo operation on one datavector modulo another data vector."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "vec_data"
+    description: "Input Vector"
+  - ctype: "const typename Vec::register_type"
+    name: "vec_mod"
+    description: "Modulo Vector"
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Resulting Vector"
+definitions:
+# INTEL - AVX512
+  - target_extension: 'avx512'
+    ctype: [ 'uint8_t', 'int8_t', 'uint16_t', 'int16_t' ]
+    lscpu_flags: [ "avx512f" ]
+    includes: [ "<array>", "<cstddef>", "<cmath>" ]
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer1;
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer2;
+      _mm512_store_si512(reinterpret_cast<__m512i*>(buffer1.data()), vec_data);
+      _mm512_store_si512(reinterpret_cast<__m512i*>(buffer2.data()), vec_mod);
+      for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        buffer1[i] = buffer1[i] % buffer2[i];
+      }
+      return _mm512_load_si512(reinterpret_cast<__m512i const*>(buffer1.data()));
+  - target_extension: 'avx512'
+    ctype: [ "int32_t", "uint32_t" ]
+    lscpu_flags: [ "avx512f" ]
+    includes: []
+    implementation: |
+      using T = float;
+
+      __m512 vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_data);
+      __m512 val_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_mod);
+
+      __m512 temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm512_roundscale_ps(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm512_mul_ps(temp, val_d);
+      temp = _mm512_sub_ps(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+  - target_extension: 'avx512'
+    ctype: [ "int64_t", "uint64_t" ]
+    lscpu_flags: [ "avx512f", "avx512dq" ]
+    includes: []
+    implementation: |
+      using T = double;
+
+      __m512d vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_data);
+      __m512d val_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_mod);
+
+      __m512d temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm512_roundscale_pd(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm512_mul_pd(temp, val_d);
+      temp = _mm512_sub_pd(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+# INTEL - AVX2
+  - target_extension: 'avx2'
+    ctype: [ "uint8_t", "int8_t", "uint16_t", "int16_t" ]
+    lscpu_flags: [ "avx2" ]
+    includes: ["<array>", "<cstddef>", "<cmath>"]
+    is_native: false
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer1;
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer2;
+      _mm256_store_si256(reinterpret_cast<__m256i*>(buffer1.data()), vec_data);
+      _mm256_store_si256(reinterpret_cast<__m256i*>(buffer2.data()), vec_mod);
+      for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        buffer1[i] = buffer1[i] % buffer2[i];
+      }
+      return _mm256_load_si256(reinterpret_cast<__m256i const*>(buffer1.data()));
+  - target_extension: 'avx2'
+    ctype: [ "uint32_t", "int32_t" ]
+    lscpu_flags: [ "avx2" ]
+    includes: [ ]
+    implementation: |
+      using T = float;
+
+      __m256 vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_data);
+      __m256 val_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_mod);
+
+      __m256 temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm256_round_ps(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm256_mul_ps(temp, val_d);
+      temp = _mm256_sub_ps(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+  - target_extension: 'avx2'
+    ctype: [ "uint64_t", "int64_t" ]
+    lscpu_flags: [ "avx2" ]
+    includes: [ ]
+    implementation: |
+      using T = double;
+
+      __m256d vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_data);
+      __m256d val_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_mod);
+
+      __m256d temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm256_round_pd(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm256_mul_pd(temp, val_d);
+      temp = _mm256_sub_pd(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+# INTEL - SSE
+  - target_extension: 'sse'
+    ctype: [ "uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: [ "sse2" ]
+    includes: ["<array>", "<cstddef>", "<cmath>"]
+    is_native: false
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer1;
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> buffer2;
+      _mm_store_si128(reinterpret_cast<__m128i*>(buffer1.data()), vec_data);
+      _mm_store_si128(reinterpret_cast<__m128i*>(buffer2.data()), vec_mod);
+      for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        buffer1[i] = buffer1[i] % buffer2[i];
+      }
+      return _mm_load_si128(reinterpret_cast<__m128i const*>(buffer1.data()));
+  - target_extension: 'sse'
+    ctype: [ "int32_t", "uint32_t" ]
+    lscpu_flags: [ "sse2", "sse4_1" ]
+    includes: []
+    implementation: |
+      using T = float;
+      __m128 vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_data);
+      __m128 val_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_mod);
+
+      __m128 temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm_round_ps(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm_mul_ps(temp, val_d);
+      temp = _mm_sub_ps(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+  - target_extension: 'sse'
+    ctype: [ "int64_t", "uint64_t" ]
+    lscpu_flags: [ "sse2", "sse4_1" ]
+    includes: []
+    implementation: |
+      using T = double;
+
+      __m128d vec_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_data);
+      __m128d val_d = tsl::cast<Vec, typename Vec::template transform_extension<T>>(vec_mod);
+
+      __m128d temp = tsl::div<typename Vec::template transform_extension<T>>(vec_d, val_d);
+      temp = _mm_round_pd(temp, _MM_FROUND_TO_ZERO);
+      temp = _mm_mul_pd(temp, val_d);
+      temp = _mm_sub_pd(vec_d, temp);
+
+      return tsl::cast<typename Vec::template transform_extension<T>,Vec>(temp);
+  - target_extension: "scalar"
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t" ]
+    lscpu_flags: [ ]
+    implementation: return vec_data % vec_mod;
+# FPGA
+# we split up oneAPIfpga and oneAPIfpgaRTL just to compare the performance of the two implementations for CIDR
+  - target_extension: ["oneAPIfpga"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result; //initialize the result
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = vec_data[i] % vec_mod[i];
+      }
+      return result;
+  - target_extension: ["oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result; //initialize the result
+      #pragma unroll
+      for(int i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = vec_data[i] - ((vec_data[i] / vec_mod[i]) * vec_mod[i]);
+      }
+      return result;
+...
+---
 primitive_name: 'mod'
+functor_name: "mod_constant"
 brief_description: 'Operates the modulo operation on one datavector modulo one input value.'
 parameters:
   - ctype: 'const typename Vec::register_type'
@@ -1394,8 +1704,9 @@ definitions:
     ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t' ]
     lscpu_flags: [ ]
     implementation: return vec % val;
-# FPGA
-  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+# FPGA 
+# we split up oneAPIfpga and oneAPIfpgaRTL just to compare the performance of the two implementations for CIDR
+  - target_extension: ["oneAPIfpga"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
@@ -1407,28 +1718,7 @@ definitions:
         result[i] = vec[i] % val;//vec[i] - ((vec[i] / val) * val);
       }
       return result;
-...
----
-primitive_name: "mod"
-functor_name: "mod_colwise"
-brief_description: "Operates the modulo operation on one datavector modulo another data vector."
-parameters:
-  - ctype: "const typename Vec::register_type"
-    name: "vec_data"
-    description: "Input Vector"
-  - ctype: "const typename Vec::register_type"
-    name: "vec_mod"
-    description: "Modulo Vector"
-returns:
-  ctype: "typename Vec::register_type"
-  description: "Resulting Vector"
-definitions:
-  - target_extension: "scalar"
-    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t" ]
-    lscpu_flags: [ ]
-    implementation: return vec_data % vec_mod;
-# FPGA
-  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+  - target_extension: ["oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
@@ -1437,7 +1727,7 @@ definitions:
       T result; //initialize the result
       #pragma unroll
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
-        result[i] = vec_data[i] % vec_mod[i];
+        result[i] = vec[i] - ((vec[i] / val) * val);
       }
       return result;
 ...
