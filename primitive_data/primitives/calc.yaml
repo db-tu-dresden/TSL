@@ -1475,7 +1475,7 @@ definitions:
       int threshold_value = 16777216;
       auto threshold = _mm512_set1_epi32(threshold_value);
       auto cmp_result = _mm512_cmpgt_epi32_mask(vec, threshold);
-      if(mask){
+      if(cmp_result){
         auto arr = tsl::to_array<Vec>(vec);
         typename Vec::base_type result[Vec::vector_element_count()];
         for(int i = 0; i < Vec::vector_element_count(); i++){
@@ -2014,11 +2014,11 @@ definitions:
   - target_extension: ["avx512"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx512bw"]
-    implementation: "return _mm512_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b)"
+    implementation: "return _mm512_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
   - target_extension: ["avx512"]
     ctype: ["uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
     lscpu_flags: ["avx512f"]
-    implementation: "return _mm512_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b)"
+    implementation: "return _mm512_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
   # INTEL - AVX2
   - target_extension: ["avx2"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t"]
