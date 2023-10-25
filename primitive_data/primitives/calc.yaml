@@ -1431,7 +1431,7 @@ testing:
         allOk &= test_helper.validate();
       }
       return allOk;
-  - test_name: "check_float_limits" 
+  - test_name: "check_float_limits"
     requires: ["custom_sequence"]
     implementation: |
       using base_t = typename Vec::base_type;
@@ -1792,7 +1792,7 @@ definitions:
   #SCALAR
   - target_extension: ["scalar"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-    lscpu_flags: 
+    lscpu_flags: []
     implementation: return data;
 ...
 ---
@@ -1960,7 +1960,7 @@ definitions:
   #SCALAR
   - target_extension: ["scalar"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-    lscpu_flags: 
+    lscpu_flags: []
     implementation: return data;
 ...
 ---
@@ -2067,7 +2067,7 @@ definitions:
       return _mm_blendv_epi8(vec_b, vec_a, mask);
   - target_extension: ["sse"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
-    lscpu_flags: ["sse"]
+    lscpu_flags: ["sse", "sse2"]
     is_native: False
     implementation: |
       auto arr_a = tsl::to_array<Vec>(vec_a);
