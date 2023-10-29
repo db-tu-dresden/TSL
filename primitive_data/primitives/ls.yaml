@@ -2084,7 +2084,7 @@ definitions:
 # INTEL - AVX512
   - target_extension: ["avx512"]
     ctype: ["int8_t", "uint8_t"]
-    lscpu_flags: []
+    lscpu_flags: ["avx512bw"]
     implementation: |
       return data[Index];
       /*__m512i idx = _mm512_set1_epi8(Index);
@@ -2092,14 +2092,14 @@ definitions:
       return ({{ctype}})_mm_extract_epi8(_mm512_castsi512_si128(result), 0);*/
   - target_extension: ["avx512"]
     ctype: ["uint16_t", "int16_t"]
-    lscpu_flags: []
+    lscpu_flags: ["avx512bw"]
     implementation: |
       return data[Index];
       /*__m128i lane = _mm512_extracti32x4_epi32(data, Index / 8);
       return ({{ctype}})_mm_extract_epi16(lane, Index % 8);*/
   - target_extension: ["avx512"]
     ctype: ["uint32_t", "int32_t", "float"]
-    lscpu_flags: []
+    lscpu_flags: ["avx512f"]
     implementation: |
       return data[Index];
       /*__m512i mask = _mm512_set_epi32(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Index);
@@ -2113,7 +2113,7 @@ definitions:
       {% endif %}*/
   - target_extension: ["avx512"]
     ctype: ["uint64_t", "int64_t", "double"]
-    lscpu_flags: []
+    lscpu_flags: ["avx512f"]
     implementation: |
       return data[Index];
       /*__m512i mask = _mm512_set_epi64(0, 0, 0, 0, 0, 0, 0, Index);
@@ -2128,26 +2128,26 @@ definitions:
 # INTEL - AVX2
   - target_extension: ["avx2"]
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
-    lscpu_flags: [ ]
+    lscpu_flags: ["avx" ]
     implementation: |
       return data[Index];
       //return _mm256_extract_epi{{intrin_tp[ctype][1]}}(data, Index);
   - target_extension: ["avx2"]
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
-    lscpu_flags: [ ]
+    lscpu_flags: ["avx" ]
     implementation: |
       return data[Index];
       //return _mm256_extract_epi{{intrin_tp[ctype][1]}}(data, Index);
   - target_extension: ["avx2"]
     ctype: ["float"]
-    lscpu_flags: [ ]
+    lscpu_flags: ["avx" ]
     implementation: |
       return data[Index];
       /*__m256 temp = _mm256_permute_ps(data, _MM_SHUFFLE(Index, Index, Index, Index));
       return _mm256_cvtss_f32(temp);*/
   - target_extension: ["avx2"]
     ctype: ["double"]
-    lscpu_flags: [ ]
+    lscpu_flags: ["avx" ]
     implementation: |
       return data[Index];
       /*__m256d temp = _mm256_permute4x64_pd(data, _MM_SHUFFLE(Index, Index, Index, Index));
@@ -2155,26 +2155,26 @@ definitions:
 # INTEL - SSE
   - target_extension: ["sse"]
     ctype: ["uint8_t", "uint32_t", "uint64_t", "int8_t", "int32_t", "int64_t"]
-    lscpu_flags: []
+    lscpu_flags: ["sse"]
     implementation: |
       return data[Index];
       //return _mm_extract_epi{{intrin_tp[ctype][1]}}(data, Index);
   - target_extension: ["sse"]
     ctype: ["uint16_t", "int16_t"]
-    lscpu_flags: []
+    lscpu_flags: ["sse"]
     implementation: |
       return data[Index];
       //return _mm_extract_epi{{intrin_tp[ctype][1]}}(data, Index);
   - target_extension: ["sse"]
     ctype: ["float"]
-    lscpu_flags: []
+    lscpu_flags: ["sse"]
     implementation: |
       return data[Index];
       /*__m128 temp = _mm_shuffle_ps(data, data, _MM_SHUFFLE(Index, Index, Index, Index));
       return _mm_cvtss_f32(temp);*/
   - target_extension: ["sse"]
     ctype: ["double"]
-    lscpu_flags: []
+    lscpu_flags: ["sse"]
     implementation: |
       return data[Index];
       /*__m128d temp = _mm_shuffle_pd(data, data, Index);
