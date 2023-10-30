@@ -1772,7 +1772,7 @@ definitions:
       y = _mm_shuffle_epi32(data, _MM_SHUFFLE(1, 0, 3, 2));
       cmp = _mm_cmpgt_epi64(data, y);
       max_val = _mm_blendv_epi8(y, data, cmp);
-      return tsl::extract_value<Vec, 0>(max_val):
+      return tsl::extract_value<Vec, 0>(max_val);
   - target_extension: ["sse"]
     ctype: ["double"]
     lscpu_flags: ["sse2"]
@@ -1940,7 +1940,7 @@ definitions:
       y = _mm_shuffle_epi32(data, _MM_SHUFFLE(1, 0, 3, 2));
       cmp = _mm_cmpgt_epi64(data, y);
       min_val = _mm_blendv_epi8(y, data, cmp);
-      return tsl::extract_value<Vec, 0>(min_val):
+      return tsl::extract_value<Vec, 0>(min_val);
   - target_extension: ["sse"]
     ctype: ["double"]
     lscpu_flags: ["sse2"]
