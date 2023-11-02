@@ -948,6 +948,15 @@ definitions:
     implementation: |
       typename Vec::register_type mask = _mm256_cmpgt_epi64(vec_a, vec_b);
       return _mm256_blendv_epi8(vec_a, vec_b, mask);
+  - target_extension: ["avx2"]
+    ctype: ["uint64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      auto offset = _mm256_set1_epi64x(1ull << 63);
+      auto vec_a_signed = _mm256_sub_epi64(vec_a, offset);
+      auto vec_b_signed = _mm256_sub_epi64(vec_b, offset);
+      auto mask = _mm256_cmpgt_epi64(vec_a_signed, vec_b_signed);
+      return _mm256_blendv_epi8(vec_a, vec_b, mask);
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["float"]
@@ -961,6 +970,22 @@ definitions:
     ctype: ["int8_t", "uint16_t", "uint32_t", "int32_t"]
     lscpu_flags: ['sse4_1']
     implementation: "return _mm_min_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
+  - target_extension: ["sse"]
+    ctype: ["int64_t"]
+    lscpu_flags: ["sse4_1", "sse4_2"]
+    implementation: |
+      auto mask = _mm_cmpgt_epi{{intrin_tp[ctype][1]}}(vec_a, vec_b);
+      return _mm_blendv_epi8(vec_a, vec_b, mask);
+  - target_extension: ["sse"]
+    ctype: ["uint64_t"]
+    lscpu_flags: ["sse2", "sse4_1", "sse4_2"]
+    is_native: false
+    implementation: |
+      auto offset = _mm_set1_epi64x(1ull << 63);
+      auto vec_a_signed = _mm_sub_epi64(vec_a, offset);
+      auto vec_b_signed = _mm_sub_epi64(vec_b, offset);
+      auto mask = _mm_cmpgt_epi64(vec_a_signed, vec_b_signed);
+      return _mm_blendv_epi8(vec_a, vec_b, mask);
 #ARM - NEON
   - target_extension: "neon"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "int8_t", "int32_t", "double", "float" ]
@@ -970,10 +995,8 @@ definitions:
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: []
-    includes: []
     implementation: |
-        if (vec_a > vec_b) return vec_b;
-        return vec_a;
+      return (vec_a < vec_b) ? vec_a : vec_b;
 # FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -1402,7 +1425,7 @@ testing:
       auto test_result_ptr = test_helper.result_target();
       auto vec = set1<Vec>(0);
       storeu<Vec>(reference_result_ptr, vec);
-      storeu<Vec>(test_result_ptr, mod<Vec>(vec, 1));
+      storeu<Vec>(test_result_ptr, mod_safe<Vec>(vec, 1));
       test_helper.synchronize();
       return test_helper.validate();
   - test_name: "with_modulo_rand"
@@ -1425,17 +1448,19 @@ testing:
         }
         auto vec = loadu<Vec>(&test_data_ptr[i]);
         auto val = test_data_ptr[offset];
-        auto vec_result = mod<Vec>(vec, val);
+        auto vec_result = mod_safe<Vec>(vec, val);
         storeu<Vec>(test_result_ptr, vec_result);
         test_helper.synchronize();
         allOk &= test_helper.validate();
       }
       return allOk;
   - test_name: "check_float_limits"
-    requires: ["custom_sequence"]
+    requires: ["custom_sequence", "storeu"]
     implementation: |
       using base_t = typename Vec::base_type;
-      if constexpr(std::is_same_v<uint32_t, base_t> || std::is_same_v<int32_t, base_t>){
+      if constexpr(!(std::is_same_v<uint32_t, base_t> || std::is_same_v<int32_t, base_t>)){
+        return true;
+      }else{
         testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
         auto ref_result_ptr = test_helper.result_ref();
         auto test_result_ptr = test_helper.result_target();
@@ -1450,8 +1475,6 @@ testing:
         storeu<Vec>(test_result_ptr, mod_safe<Vec>(vec, mod));
         test_helper.synchronize();
         return test_helper.validate();
-      }else{
-        return true;
       }
 definitions:
 # INTEL - AVX512
@@ -2029,10 +2052,19 @@ definitions:
     lscpu_flags: ["avx"]
     implementation: "return _mm256_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
   - target_extension: ["avx2"]
-    ctype: ["uint64_t", "int64_t"]
+    ctype: ["int64_t"]
     lscpu_flags: ["avx2"]
     implementation: |
       auto mask = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(vec_a, vec_b);
+      return _mm256_blendv_epi8(vec_b, vec_a, mask);
+  - target_extension: ["avx2"]
+    ctype: ["uint64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      auto offset = _mm256_set1_epi64x(1ull << 63);
+      auto vec_a_signed = _mm256_sub_epi64(vec_a, offset);
+      auto vec_b_signed = _mm256_sub_epi64(vec_b, offset);
+      auto mask = _mm256_cmpgt_epi{{intrin_tp[ctype][1]}}(vec_a_signed, vec_b_signed);
       return _mm256_blendv_epi8(vec_b, vec_a, mask);
   - target_extension: ["avx2"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
@@ -2060,10 +2092,19 @@ definitions:
     lscpu_flags: ["sse4_1"]
     implementation: "return _mm_max_{{intrin_tp_full[ctype]}}(vec_a, vec_b);"
   - target_extension: ["sse"]
-    ctype: ["uint64_t", "int64_t"]
+    ctype: ["int64_t"]
     lscpu_flags: ["sse4_1", "sse4_2"]
     implementation: |
       auto mask = _mm_cmpgt_epi{{intrin_tp[ctype][1]}}(vec_a, vec_b);
+      return _mm_blendv_epi8(vec_b, vec_a, mask);
+  - target_extension: ["sse"]
+    ctype: ["uint64_t"]
+    lscpu_flags: ["sse2", "sse4_1", "sse4_2"]
+    implementation: |
+      auto offset = _mm_set1_epi64x(1ull << 63);
+      auto vec_a_signed = _mm_sub_epi64(vec_a, offset);
+      auto vec_b_signed = _mm_sub_epi64(vec_b, offset);
+      auto mask = _mm_cmpgt_epi64(vec_a_signed, vec_b_signed);
       return _mm_blendv_epi8(vec_b, vec_a, mask);
   - target_extension: ["sse"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
