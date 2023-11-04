@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(tslgen)
 
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse -msse2 -mavx -mavx2 -mbmi2 -msse3 -mssse3 -msse4.1 -msse4.2")
+  # target_compile_options(tslgen PRIVATE -march=armv8-a+sve)
+endif()
+
 if (DEFINED USE_EXISTING_TSL_PATH)
   file(COPY ${USE_EXISTING_TSL_PATH} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
   set(TSL_INCLUDE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${USE_EXISTING_TSL_PATH}/include")
