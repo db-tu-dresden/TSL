@@ -49,6 +49,41 @@ implementations:
     }
     #endif
   - |
+    #if ((__cplusplus >= 202002L) && (__has_include(<bit>)))
+    #include <bit>
+    namespace details {
+      template<typename T, typename RetT>
+        constexpr RetT ctz(T data) {
+          return std::countr_zero<std::make_unsigned_t<T>>(data);
+        }
+    }
+    #else
+    namespace details {
+      template <typename T, typename RetT>
+        RetT ctz(T data) {
+          static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+          if constexpr(std::is_unsigned_v<T>) {
+            if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+              return data == 0 ? std::numeric_limits<T>::digits : __builtin_ctz(data) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+              return data == 0 ? std::numeric_limits<T>::digits : __builtin_ctzl(data) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+              return data == 0 ? std::numeric_limits<T>::digits : __builtin_ctzll(data) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            }
+          } else {
+            using UT = std::make_unsigned_t<T>;
+            if constexpr(sizeof(UT) <= sizeof(unsigned int)) {
+              return data == 0 ? std::numeric_limits<UT>::digits : __builtin_ctz(static_cast<UT>(data)) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+              return data == 0 ? std::numeric_limits<UT>::digits : __builtin_ctzl(static_cast<UT>(data)) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+              return data == 0 ? std::numeric_limits<UT>::digits : __builtin_ctzll(static_cast<UT>(data)) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT);
+            }
+          }
+        }
+    }
+    #endif
+  - |
     namespace details {
       template<typename T, typename RetT>
         struct clz_recursive;

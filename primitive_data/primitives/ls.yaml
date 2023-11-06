@@ -179,6 +179,66 @@ definitions:
       return reg;
 ...
 ---
+primitive_name: "loadu"
+functor_name: "maskz_loadu"
+brief_description: "Loads data from (un)aligned memory into a vector register depending on a mask. Zero otherwise."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Vector mask register indicating which elements should be loaded."
+  - ctype: "const typename Vec::base_type*"
+    name: "memory"
+    description: "(Un)aligned memory which should be transferred into a vector register."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing the loaded data."
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_maskz_loadu_{{ intrin_tp_full[ctype] }}(mask, reinterpret_cast<void const *>(memory));"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm256_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm256_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm256_maskz_loadu_{{ intrin_tp_full[ctype] }}(mask, reinterpret_cast<void const *>(memory));"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm_maskz_loadu_{{ intrin_tp_full[ctype] }}(mask, reinterpret_cast<void const *>(memory));"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (mask)? *memory : 0;"
+...
+---
 primitive_name: "store"
 brief_description: "Stores data from a vector register to aligned memory."
 parameters:
@@ -345,6 +405,86 @@ definitions:
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         memory[idx] = data[idx];
       }
+...
+---
+primitive_name: "storeu"
+functor_name: "mask_loadu"
+brief_description: "Stores data from a vector register to (un)aligned memory."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Vector mask register indicating which elements that should be saved."
+  - ctype: "typename Vec::base_type*"
+    name: "memory"
+    description: "(Un)aligned memory where the data should be stored into."
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Vector containing the data."
+testing:
+  - requires: ["set1"]
+    includes: ["<cstddef>", "<cstring>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+            reference_result_ptr[j-i] = i;
+        }
+        auto loaded = set1<Vec>(i);
+        storeu<Vec>(test_result_ptr, loaded);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "if(mask){*memory = data;}"
 ...
 ---
 primitive_name: "to_array"

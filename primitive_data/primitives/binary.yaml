@@ -1193,6 +1193,63 @@ definitions:
       return details::clz_recursive<typename Vec::base_type, typename Vec::offset_base_type>::apply(data);
 ...
 ---
+primitive_name: "tzc"
+functor_name: "tzc_scalar"
+parameters:
+  - ctype: "const typename Vec::base_type"
+    name: "data"
+    description: "Value."
+returns:
+  ctype: "typename Vec::offset_base_type"
+  description: "Number of leading zeros."
+testing:
+  - test_name: "test_zero"
+    includes: ["<cstddef>", "<climits>", "<iostream>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      T data = 0;
+      return tzc<Vec>(data) == (sizeof(T)*CHAR_BIT);
+  - test_name: "test_one"
+    includes: ["<cstddef>", "<climits>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      T data = 1;
+      return tzc<Vec>(data) == 0;
+  - test_name: "test_msb"
+    includes: ["<cstddef>", "<climits>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      T data = (T)1 << ((T)sizeof(T)*CHAR_BIT-1);
+      return tzc<Vec>(data) == (sizeof(T)*CHAR_BIT-1);
+definitions:
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: |
+      return details::ctz<typename Vec::base_type, typename Vec::offset_base_type>(data);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      return details::ctz<typename Vec::base_type, typename Vec::offset_base_type>(data);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      return details::ctz<typename Vec::base_type, typename Vec::offset_base_type>(data);
+  - target_extension: ["neon"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["neon"]
+    implementation: |
+      return details::ctz<typename Vec::base_type, typename Vec::offset_base_type>(data);
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: |
+      return details::ctz<typename Vec::base_type, typename Vec::offset_base_type>(data);
+
+...
+---
 primitive_name: "hor"
 brief_description: "Operates horizontal OR on vector register"
 parameters:
