@@ -30,8 +30,6 @@ else()
     set(DTD "DRAW_TEST_DEPENDENCIES")
   endif()
 
-  set(TARGETS_FLAGS "sve")
-
   create_tsl(
     ${WAW}
     ${UC}
