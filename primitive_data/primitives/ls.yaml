@@ -114,7 +114,7 @@ testing:
       auto test_result_ptr = test_helper.result_target();
       for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); ++i) {
         for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
-            reference_result_ptr[j-i] = reference_data_ptr[j];
+          reference_result_ptr[j-i] = reference_data_ptr[j];
         }
         auto loaded = loadu<Vec>(&test_data_ptr[i]);
         storeu<Vec>(test_result_ptr, loaded);
@@ -123,6 +123,11 @@ testing:
       }
       return allOk;
 definitions:
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: "return svld1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), memory);"
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -294,6 +299,11 @@ testing:
       }
       return allOk;
 definitions:
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: "svst1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), memory, data);"
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -452,6 +462,11 @@ testing:
       allOk &= test_helper.validate_simd_register(max_vec);
       return allOk;
 definitions:
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: "return svdup_{{intrin_tp_full[ctype]}}(value);"
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -612,6 +627,18 @@ testing:
       }
       return allOk;
 definitions:
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    is_native: False
+    implementation: |
+      // Note: This is a basic approach and might not be the most efficient for SVE.
+      typename Vec::register_type reg;
+      auto* reg_ptr = reinterpret_cast<typename Vec::base_type*>(&reg);
+      size_t i = 0;
+      ((reg_ptr[i++] = args), ...);
+      return reg;
   #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]

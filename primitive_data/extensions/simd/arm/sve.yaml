@@ -2,7 +2,9 @@
 description: "Definition of the SIMD TargetExtension sve."
 vendor: "arm"
 extension_name: "sve"
-lscpu_flags: ["sve", "sve2"]
+lscpu_flags: ["sve"] # add sve2
+needs_arch_flags: true
+arch_flags: {sve: "arch=armv8-a+sve"}
 includes: ['<arm_sve.h>']
 simdT_name: "sve"
 simdT_mask_type: "svbool_t"
@@ -26,14 +28,14 @@ simdT_register_type: |-
                         ),
                         TSL_DEP_TYPE(
                            (sizeof( BaseType ) == 1),
-                           svint8t,
+                           svint8_t,
                            TSL_DEP_TYPE(
                               (sizeof( BaseType ) == 2),
-                              svint16t,
+                              svint16_t,
                               TSL_DEP_TYPE(
                                  (sizeof( BaseType ) == 4),
-                                 svint32t,
-                                 svint64t
+                                 svint32_t,
+                                 svint64_t
                               )
                            )
                         )
