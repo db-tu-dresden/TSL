@@ -94,6 +94,18 @@ definitions:
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
     implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vandq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'sve' ]
+    implementation: "return svand_{{ intrin_tp_full[ctype] }}_z(svptrue_b{{intrin_tp[ctype][1]}}(), a, b );"
+  - target_extension: "sve"
+    ctype: ["float", "double"]
+    lscpu_flags: [ 'sve' ]
+    implementation: |
+      auto t1 = svreinterpret_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(a);
+      auto t2 = svreinterpret_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(b);
+      return svreinterpret_{{intrin_tp_full[ctype]}}_u{{intrin_tp[ctype][1]}}(svand_u{{intrin_tp[ctype][1]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), t1, t2));
 #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -229,6 +241,18 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vorq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'sve' ]
+    implementation: "return svorr_{{ intrin_tp_full[ctype] }}_z(svptrue_b{{intrin_tp[ctype][1]}}(), a, b );"
+  - target_extension: "sve"
+    ctype: ["float", "double"]
+    lscpu_flags: [ 'sve' ]
+    implementation: |
+      auto t1 = svreinterpret_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(a);
+      auto t2 = svreinterpret_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(b);
+      return svreinterpret_{{intrin_tp_full[ctype]}}_u{{intrin_tp[ctype][1]}}(svorr_u{{intrin_tp[ctype][1]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), t1, t2));
 #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -357,6 +381,18 @@ definitions:
         veorq_u{{ intrin_tp[ctype][1] }}(
           vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
           vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'sve' ]
+    implementation: "return sveor_{{ intrin_tp_full[ctype] }}_z(svptrue_b{{intrin_tp[ctype][1]}}(), a, b );"
+  - target_extension: "sve"
+    ctype: ["float", "double"]
+    lscpu_flags: [ 'sve' ]
+    implementation: |
+      auto t1 = svreinterpret_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(a);
+      auto t2 = svreinterpret_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(b);
+      return svreinterpret_{{intrin_tp_full[ctype]}}_u{{intrin_tp[ctype][1]}}(sveor_u{{intrin_tp[ctype][1]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), t1, t2));
   #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -457,6 +493,11 @@ definitions:
         vshlq_n_{{ intrin_tp[ctype][1] }}(
           vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
           vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'sve' ]
+    implementation: "return svlsl_n_{{ intrin_tp_full[ctype] }}_z(svptrue_b{{intrin_tp[ctype][1]}}(), data, shift);"
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -1409,6 +1450,11 @@ definitions:
     lscpu_flags: [ ]
     implementation: "return vec;"
 #ARM - NEON
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'sve' ]
+    implementation: "return svorv_{{ intrin_tp_full[ctype] }}(svptrue_b{{intrin_tp[ctype][1]}}(), vec);"
 #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
