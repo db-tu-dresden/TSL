@@ -112,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        compiler: ["clang++", "g++"]
+        compiler: ["clang++-17", "g++"]
     needs: [lint, generate]
     steps:
       -
