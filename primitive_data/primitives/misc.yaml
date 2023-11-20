@@ -307,6 +307,41 @@ parameters:
 returns:
   ctype: "typename Vec::register_type"
   description: "Vector containing blended data."
+testing:
+  - test_name: "default"
+    requires: ["loadu", "storeu", "to_mask", "to_array"]
+    implementation: |
+      using base_t = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+      auto vec_count = Vec::vector_element_count();
+      size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, vec_count, false};
+      auto ref_result_ptr = test_helper.result_ref();
+      auto ref_data_ptr = test_helper.data_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto test_data_ptr = test_helper.data_target();
+      bool allOk = true;
+
+      for(size_t i = 0; i < element_count; i += 2*vec_count){
+        typename Vec::imask_type mask;
+        testing::rnd_init(&mask, 1);
+        base_t arr[vec_count];
+        for(size_t j = 0; j < vec_count; j++){
+          (mask & (1 << j)) ? arr[j] = ref_data_ptr[i+j+vec_count] : arr[j] = ref_data_ptr[j+i];
+        }
+        auto ref_result = loadu<Vec>(arr);
+
+        auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+        auto vec_b = loadu<Vec>(&test_data_ptr[i+vec_count]);
+        auto result = blend<Vec>(to_mask<Vec>(mask), vec_a, vec_b);
+
+        storeu<Vec>(test_result_ptr, result);
+        storeu<Vec>(ref_result_ptr, ref_result);
+
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
   #INTEL - AVX512
   - target_extension: "avx512"
@@ -334,7 +369,7 @@ definitions:
     implementation: "return _mm256_or_{{ intrin_tp_full[ctype] }}(_mm256_andnot_{{ intrin_tp_full[ctype] }}(control, left), _mm256_and_{{ intrin_tp_full[ctype] }}(control,right));"
   #INTEL - SSE
   - target_extension: "sse"
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    ctype: ["uint8_t" , "int8_t","uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ['sse2']
     implementation: "return _mm_or_si128(_mm_andnot_si128(control, left), _mm_and_si128(control,right));"
   - target_extension: "sse"
@@ -343,6 +378,11 @@ definitions:
     #implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}(control), left), _mm_and_{{ intrin_tp_full[ctype] }}(_mm_castsi128_{{ intrin_tp_full[ctype] }}
     #(control),right));"
     implementation: "return _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(control, left), _mm_and_{{ intrin_tp_full[ctype] }}(control,right));"
+  # SCALAR
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return ((bool)control)? right : left;"
 ...
 ---
 primitive_name: "blend_add"

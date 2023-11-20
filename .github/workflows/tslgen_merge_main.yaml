@@ -169,7 +169,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        compiler: ["clang++", "g++"]
+        compiler: ["clang++-17", "g++"]
         # generator_opts: ["", "--no-concepts"]
     steps:
       - 
@@ -206,7 +206,11 @@ jobs:
         name: 'Install packages for generated code'
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential cmake g++ clang
+          sudo apt-get install build-essential cmake g++ lsb-release wget software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          sudo chmod +x llvm.sh
+          sudo ./llvm.sh 17
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
       -
         name: 'Build TSL'
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"

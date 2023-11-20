@@ -120,6 +120,14 @@ definitions:
     lscpu_flags: ['sse4_1']
     specialization_comment: "Signed comparison."
     implementation: "return _mm_cmpeq_epi64(vec_a,vec_b);"
+  - target_extension: ["sse"]
+    ctype: ["float"]
+    lscpu_flags: ["sse"]
+    implementation: "return _mm_cmpeq_ps(vec_a, vec_b);"
+  - target_extension: ["sse"]
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_cmpeq_pd(vec_a, vec_b);"
 #ARM - NEON
   - target_extension: "neon"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
