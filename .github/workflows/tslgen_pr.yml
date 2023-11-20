@@ -65,7 +65,7 @@ jobs:
           pip install yamllint
           yamllint -d relaxed ./primitive_data
   generate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
@@ -109,7 +109,7 @@ jobs:
           python main.py -o tmp
 
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         compiler: ["clang++", "g++"]
@@ -175,7 +175,7 @@ jobs:
         run: ./tsl/tsl_lib/build/src/test/tsl_test
 
   validate-lscpu-flags:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         target_flags: 
@@ -259,7 +259,7 @@ jobs:
         run: make -j -C tsl
 
   integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [validate-lscpu-flags, build-and-test, generate]
     steps:
       -
