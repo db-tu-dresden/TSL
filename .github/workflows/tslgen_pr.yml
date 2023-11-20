@@ -150,12 +150,11 @@ jobs:
         name: 'Install packages for generated code'
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential cmake g++
-          apt install -y lsb-release wget software-properties-common gnupg
+          sudo apt-get install build-essential cmake g++ lsb-release wget software-properties-common gnupg
           wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          yes "" | ./llvm.sh 17
-          update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
+          sudo chmod +x llvm.sh
+          yes "" | sudo ./llvm.sh 17
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
       -
         name: 'Run CMake'
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
@@ -231,12 +230,11 @@ jobs:
         name: 'Install packages for generated code'
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential cmake g++
-          apt install -y lsb-release wget software-properties-common gnupg
+          sudo apt-get install build-essential cmake g++ lsb-release wget software-properties-common gnupg
           wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          yes "" | ./llvm.sh 17
-          update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
+          sudo chmod +x llvm.sh
+          yes "" | sudo ./llvm.sh 17
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
       -
         name: 'Run CMake'
         id: cmake
@@ -313,12 +311,11 @@ jobs:
         if: env.MERGE_FAILED != '1'
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential cmake g++
-          apt install -y lsb-release wget software-properties-common gnupg
+          sudo apt-get install build-essential cmake g++ lsb-release wget software-properties-common gnupg
           wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          yes "" | ./llvm.sh 17
-          update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
+          sudo chmod +x llvm.sh
+          yes "" | sudo ./llvm.sh 17
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
       -
         name: 'Run CMake'
         if: env.MERGE_FAILED != '1'
