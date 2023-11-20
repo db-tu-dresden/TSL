@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
@@ -65,7 +65,7 @@ jobs:
           pip install yamllint
           yamllint -d relaxed ./primitive_data
   generate:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
@@ -109,7 +109,7 @@ jobs:
           python main.py -o tmp
 
   build-and-test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         compiler: ["clang++", "g++"]
@@ -150,7 +150,12 @@ jobs:
         name: 'Install packages for generated code'
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential cmake g++ clang
+          sudo apt-get install build-essential cmake g++
+          apt install -y lsb-release wget software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          yes "" | ./llvm.sh 17
+          update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
       -
         name: 'Run CMake'
         # "-DTSL_GENERATOR_OPTS=--no-workaround-warnings;${{ matrix.generator_opts }}"
@@ -175,7 +180,7 @@ jobs:
         run: ./tsl/tsl_lib/build/src/test/tsl_test
 
   validate-lscpu-flags:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         target_flags: 
@@ -226,7 +231,12 @@ jobs:
         name: 'Install packages for generated code'
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential cmake g++ clang
+          sudo apt-get install build-essential cmake g++
+          apt install -y lsb-release wget software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          yes "" | ./llvm.sh 17
+          update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
       -
         name: 'Run CMake'
         id: cmake
@@ -259,7 +269,7 @@ jobs:
         run: make -j -C tsl
 
   integration:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: [validate-lscpu-flags, build-and-test, generate]
     steps:
       -
@@ -303,7 +313,12 @@ jobs:
         if: env.MERGE_FAILED != '1'
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential cmake g++ clang
+          sudo apt-get install build-essential cmake g++
+          apt install -y lsb-release wget software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          yes "" | ./llvm.sh 17
+          update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
       -
         name: 'Run CMake'
         if: env.MERGE_FAILED != '1'
