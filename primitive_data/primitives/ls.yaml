@@ -71,6 +71,11 @@ definitions:
     ctype: "int64_t"
     lscpu_flags: ["neon"]
     implementation: "return vld1q_{{ intrin_tp_full[ctype] }}(assume_aligned<Vec::vector_alignment()>(memory));"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: "return svld1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), assume_aligned<Vec::vector_alignment()>(memory));"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -123,11 +128,6 @@ testing:
       }
       return allOk;
 definitions:
-#ARM - SVE
-  - target_extension: "sve"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    lscpu_flags: ["sve"]
-    implementation: "return svld1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), memory);"
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -164,6 +164,11 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: [ 'neon' ]
     implementation: "return vld1q_{{ intrin_tp_full[ctype] }}(memory);"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: "return svld1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), memory);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -252,6 +257,11 @@ definitions:
     ctype: "int64_t"
     lscpu_flags: ["neon"]
     implementation: "vst1q_{{ intrin_tp_full[ctype] }}(assume_aligned<Vec::vector_alignment()>(memory), data);"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: "svst1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), reinterpret_cast<typename Vec::base_type*>(assume_aligned<Vec::vector_alignment()>(memory)), data);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -299,11 +309,6 @@ testing:
       }
       return allOk;
 definitions:
-#ARM - SVE
-  - target_extension: "sve"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    lscpu_flags: ["sve"]
-    implementation: "svst1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), memory, data);"
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -340,6 +345,11 @@ definitions:
     ctype: "int64_t"
     lscpu_flags: ["neon"]
     implementation: "vst1q_{{ intrin_tp_full[ctype] }}(memory, data);"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: "svst1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), memory, data);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -395,6 +405,14 @@ testing:
       }
       return allOk;
 definitions:
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+      tsl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
+      return tmp;
   #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -462,11 +480,6 @@ testing:
       allOk &= test_helper.validate_simd_register(max_vec);
       return allOk;
 definitions:
-#ARM - SVE
-  - target_extension: "sve"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    lscpu_flags: ["sve"]
-    implementation: "return svdup_{{intrin_tp_full[ctype]}}(value);"
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -511,6 +524,11 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: [ 'neon' ]
     implementation: "return vdupq_n_{{ intrin_tp_full[ctype] }}( value );"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: "return svdup_{{intrin_tp_full[ctype]}}(value);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -548,6 +566,11 @@ testing:
       test_helper.synchronize();
       return test_helper.validate();
 definitions:
+  #ARM - SVE
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return svdup_n_{{intrin_tp_full[ctype]}}(0);"
   #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
@@ -618,7 +641,7 @@ testing:
       auto test_result_ptr = test_helper.result_target();
       for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
         for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
-            reference_result_ptr[j-i] = reference_data_ptr[j];
+          reference_result_ptr[j-i] = reference_data_ptr[j];
         }
         auto loaded = testing::set_call_helper_t<Vec>::call_set(&test_data_ptr[i]);
         storeu<Vec>(test_result_ptr, loaded);
@@ -631,14 +654,15 @@ definitions:
   - target_extension: "sve"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["sve"]
-    is_native: False
+    includes: ["<array>", "<algorithm>"]
     implementation: |
-      // Note: This is a basic approach and might not be the most efficient for SVE.
-      typename Vec::register_type reg;
-      auto* reg_ptr = reinterpret_cast<typename Vec::base_type*>(&reg);
-      size_t i = 0;
-      ((reg_ptr[i++] = args), ...);
-      return reg;
+      using T = typename Vec::base_type;
+      auto invert_fun=[](auto& array){
+        std::reverse(array.begin(), array.end());
+        return &array[0];
+      };
+      std::array<T, Vec::vector_element_count()> temp = {args...};
+      return svld1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), invert_fun(temp));
   #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -714,6 +738,21 @@ testing:
       test_helper.synchronize();
       return test_helper.validate();
 definitions:
+#  ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
+      auto seq_fun= []<sequence_type... Is>(
+        std::integer_sequence<sequence_type, Is...>
+      ) {
+        return tsl::set<Vec>(
+          (T)(((T)(sizeof...(Is) - 1 - Is)))...
+        );
+      };
+      return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
 #  INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -827,6 +866,21 @@ testing:
       }
       return allOk;
 definitions:
+  #  ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
+      auto seq_fun= []<sequence_type... Is>(
+        T const init, T const sw, std::integer_sequence<sequence_type, Is...>
+      ) {
+        return tsl::set<Vec>(
+          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+        );
+      };
+      return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
   #  INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -1025,6 +1079,39 @@ definitions:
       auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
       auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : mem[ index[ 0 ][ 0 ] ] );
       return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : mem[ index[ 0 ][ 1 ] ] ), tmp, 1 );
+  #ARM - SVE
+  - target_extension: "sve"
+    additional_simd_template_extension: "sve"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {
+      "int32_t":  ["int32_t", "uint32_t"],
+      "uint32_t": ["int32_t", "uint32_t"],
+      "int64_t":  ["int64_t", "uint64_t"],
+      "uint64_t": ["int64_t", "uint64_t"],
+      "float":    ["int32_t", "uint32_t"],
+      "double":   ["int64_t", "uint64_t"]
+    }
+    lscpu_flags: ['sve']
+    implementation: |
+      using base_t = typename Vec::base_type;
+      return svld1_gather_{{intrin_tp_full[additional_simd_template_base_type]}}index_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), reinterpret_cast<const base_t *>(memory), index);
+  - target_extension: ["sve"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["sve"]
+    is_native: False
+    additional_simd_template_base_type_mapping_dict: {
+      "int8_t":   ["int8_t", "uint8_t"],
+      "uint8_t":  ["int8_t", "uint8_t"],
+      "int16_t":  ["int16_t", "uint16_t"],
+      "uint16_t": ["int16_t", "uint16_t"],
+    }
+    implementation: |
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
+      auto const idx_array = tsl::to_array<IndicesType>(index);
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
+      }
+      return tsl::load<Vec>(result.data());
   #SCALAR
   - target_extension: "scalar"
     additional_simd_template_extension: "scalar"
@@ -1153,6 +1240,22 @@ definitions:
       auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
       auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : mem[ index[ 0 ][ 0 ] ] );
       return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : mem[ index[ 0 ][ 1 ] ] ), tmp, 1 );
+  #ARM - SVE
+  - target_extension: "sve"
+    additional_simd_template_extension: "sve"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {
+      "int32_t":  ["int32_t", "uint32_t"],
+      "uint32_t": ["int32_t", "uint32_t"],
+      "int64_t":  ["int64_t", "uint64_t"],
+      "uint64_t": ["int64_t", "uint64_t"],
+      "float":    ["int32_t", "uint32_t"],
+      "double":   ["int64_t", "uint64_t"]
+    }
+    lscpu_flags: ['sve']
+    implementation: |
+      using base_t = typename Vec::base_type;
+      return svld1_gather_{{intrin_tp_full[additional_simd_template_base_type]}}index_{{intrin_tp_full[ctype]}}(mask, reinterpret_cast<const base_t *>(memory), index);
   #SCALAR
   - target_extension: "scalar"
     additional_simd_template_extension: "scalar"
@@ -1267,6 +1370,19 @@ definitions:
           }
         }
       }
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ['sve']
+    implementation: |
+      using base_t = typename Vec::base_type;
+      return svst1_scatter_{{intrin_tp_full[ctype]}}index_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), reinterpret_cast<const base_t *>(memory), index, data);
+  - target_extension: "sve"
+    ctype: ["float", "double"]
+    lscpu_flags: ['sve']
+    implementation: |
+      using base_t = typename Vec::base_type;
+      return svst1_scatter_u{{intrin_tp[ctype][1]}}index_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), reinterpret_cast<const base_t *>(memory), index, data);
   #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
@@ -1404,6 +1520,19 @@ definitions:
           }
         }
       }
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ['sve']
+    implementation: |
+      using base_t = typename Vec::base_type;
+      return svst1_scatter_{{intrin_tp_full[ctype]}}index_{{intrin_tp_full[ctype]}}(mask, reinterpret_cast<const base_t *>(memory), index, data);
+  - target_extension: "sve"
+    ctype: ["float", "double"]
+    lscpu_flags: ['sve']
+    implementation: |
+      using base_t = typename Vec::base_type;
+      return svst1_scatter_u{{intrin_tp[ctype][1]}}index_{{intrin_tp_full[ctype]}}(mask, reinterpret_cast<const base_t *>(memory), index, data);
   #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
@@ -1897,6 +2026,13 @@ definitions:
      implementation: "return _mm_castsi128_pd(_mm_mask_set1_epi64(_mm_castpd_si128(src), mask, *reinterpret_cast<const int64_t*>(&value)));"
 #NEON
   # TODO
+#ARM - SVE
+   - target_extension: "sve"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: [ "sve" ]
+     implementation: |
+      auto temp = svdup_n_{{intrin_tp_full[ctype]}}(value);
+      return svsel_{{intrin_tp_full[ctype]}}(tsl::to_mask<Vec>(mask), temp, src);
 #SCALAR
    - target_extension: "scalar"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -1980,6 +2116,13 @@ definitions:
      implementation: "return _mm_maskz_mov_{{ intrin_tp_full[ctype] }}(mask, src);"
 #NEON
   # TODO
+#ARM - SVE
+   - target_extension: "sve"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ["sve"]
+     implementation: |
+      auto zero = svdup_n_{{intrin_tp_full[ctype]}}(0);
+      return svsel_{{intrin_tp_full[ctype]}}(tsl::to_mask<Vec>(mask), src, zero);
 #SCALAR
    - target_extension: "scalar"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -1999,7 +2142,6 @@ parameters:
    - ctype: "const typename Vec::register_type"
      name: "data"
      description: "Vector to pick elements from if mask bit is 1"
-
 returns:
    ctype: "typename Vec::register_type"
    description: "Base Vector, with the elements specified by mask changed to value."
@@ -2068,6 +2210,11 @@ definitions:
      implementation: "return _mm_mask_mov_{{ intrin_tp_full[ctype] }}(src, mask, data);"
 #NEON
   # TODO
+#ARM - SVE
+   - target_extension: "sve"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: ["sve"]
+     implementation: "return svsel_{{intrin_tp_full[ctype]}}(tsl::to_mask<Vec>(mask), data, src);"
 #SCALAR
    - target_extension: "scalar"
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -2206,6 +2353,15 @@ definitions:
       return data[Index];
       /*__m128d temp = _mm_shuffle_pd(data, data, Index);
       return _mm_cvtsd_f64(temp);*/
+# ARM - SVE
+  - target_extension: ["sve"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    is_native: False
+    implementation: |
+      typename Vec::base_type temp[Vec::vector_element_count()];
+      svst1(svptrue_b{{intrin_tp[ctype][1]}}(), temp, data);
+      return temp[Index];
 # SCALAR
   - target_extension: ["scalar"]
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
