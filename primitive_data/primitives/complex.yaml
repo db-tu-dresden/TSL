@@ -73,12 +73,11 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
-    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>", "<type_traits>"]
     implementation: |
       static_assert(BitReadOffset % Bitwidth == 0, "BitReadOffset must be a multiple of Bitwidth.")
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       BigIntT result;
-      using ElementT = ac_int<Bitwidth, false>;
       /**
        * read_count_t: number of elements from data that can be used to fully fill the corresponding values in result.
        * 
@@ -95,11 +94,11 @@ definitions:
       >;
       #pragma unroll read_count_t::value
       for (auto idx = 0; idx < read_count_t::value; ++idx) {
-        ElementT element = data.template slc<Bitwidth>(idx*Bitwidth + BitReadOffset);
+        auto element = data.template slc<Bitwidth>(idx*Bitwidth + BitReadOffset);
         result.set_slc(idx*CHAR_BIT*sizeof(typename Vec::base_type), element);
       }
       if constexpr (partial_read_bits_count_t::value != 0) {
-        ElementT element = data.template slc<partial_read_bits_count_t::value>(read_count_t::value*Bitwidth + BitReadOffset);
+        auto element = data.template slc<partial_read_bits_count_t::value>(read_count_t::value*Bitwidth + BitReadOffset);
         result.set_slc(read_count_t::value*CHAR_BIT*sizeof(typename Vec::base_type), element);
       }
       return result;
@@ -129,33 +128,33 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
-    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>", "<type_traits>"]
     implementation: |
-      using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
-      if constexpr (BitWriteOffset % Bitwidth != 0) {
-        // we need only to merge the first element
-        ElementT element = data.template slc<BitWriteOffset % Bitwidth>(0);
-        source.set_slc(BitWriteOffset, element);
-      }
-      using write_start_element_idx_t = std::conditional_t<
-        BitWriteOffset % Bitwidth != 0,
-        std::integral_constant<int, 1>,
-        std::integral_constant<int, 0>
-      >;
-      using read_offset_t = std::conditional_t<
-        BitWriteOffset % Bitwidth != 0,
-        std::integral_constant<int, BitWriteOffset % Bitwidth>,
-        std::integral_constant<int, 0>
-      >;
-      using write_count_t = std::integral_constant<
-        int,
-        (Vec::vector_size_b() - BitWriteOffset) / Bitwidth
-      >;
-      if constexpr (write_count_t::value > write_start_element_idx_t::value) {
-        #pragma unroll write_count_t::value - write_start_element_idx_t::value
-        for (auto idx = write_start_element_idx_t::value; idx < write_count_t::value; ++idx) {
-          ElementT element = data.template slc<Bitwidth>(idx*Bitwidth + read_offset_t::value);
-          source.set_slc(idx*CHAR_BIT*sizeof(typename Vec::base_type)+BitWriteOffset, element);
+      using element_size_b = std::integral_constant<int, CHAR_BIT * sizeof(typename Vec::base_type)>;
+      using most_significant_set_value_idx_t = 
+        std::integral_constant<int, BitWriteOffset / Vec::vector_size_b()>;
+      using full_bit_write_offset = 
+        std::integral_constant<int, (most_significant_set_value_idx_t::value + 1) * element_size_b::value>;
+      using most_significant_set_value_bits_written_t =
+        std::integral_constant<int, BitWriteOffset - (most_significant_set_value_idx_t::value * element_size_b::value)>;
+      
+      static_assert(most_significant_set_value_bits_written_t::value % Bitwidth != 0, "MS value bits must not be a multiple of bitwidth");
+
+      using read_offset_t = 
+        std::integral_constant<int, Bitwidth - most_significant_set_value_bits_written_t::value>
+
+      auto carry_element = data.template slc<read_offset_t::value>(0);
+      source.set_slc(BitWriteOffset, carry_element);
+
+      static_assert((most_significant_set_value_idx_t::value + 1) <= Vec::vector_element_count(), "Remainder must be smaller than vector element count.");
+      using write_remainder_t =
+        std::integral_constant<int, Vec::vector_element_count() - (most_significant_set_value_idx_t::value + 1)>
+
+      if constexpr (write_remainder_t::value) {
+        #pragma unroll write_remainder_t::value
+        for (auto idx = 0; idx < write_remainder_t::value; ++idx) {
+          auto element = data.template slc<Bitwidth>(idx * Bitwidth + read_offset_t::value);
+          source.set_slc(idx * element_size_b::value + full_bit_write_offset::value, element);
         }
       }
       return result;
@@ -215,9 +214,6 @@ definitions:
     implementation: |
       static_assert(EffectiveBits % (sizeof(typename Vec::base_type)*CHAR_BIT) == 0, "EffectiveBits must be a multiple of sizeof(T)*8.");
       static_assert(EffectiveBits <= Vec::vector_size_b(), "EffectiveBits must be smaller or equal to vector size in bits.");
-      using BigIntT = ac_int<Vec::vector_size_b(), false>;
-      BigIntT result;
-      using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
       #pragma unroll (EffectiveBits / (sizeof(typename Vec::base_type)*CHAR_BIT))
       for (auto idx = 0; idx < (EffectiveBits / (sizeof(typename Vec::base_type)*CHAR_BIT)); ++idx) {
         memory[idx] = data.template slc<sizeof(typename Vec::base_type)*CHAR_BIT>(idx*sizeof(typename Vec::base_type)*CHAR_BIT);
