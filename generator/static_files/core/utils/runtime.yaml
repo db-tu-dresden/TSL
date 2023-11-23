@@ -45,5 +45,9 @@ implementations:
             decltype(auto) submit(Args... args) {
               return target.template submit<BaseT, VectorLength, Fun, Args...>(args...);
             }
+          template<class Fun, typename... Args>
+            decltype(auto) submit(Args... args) {
+              return target.template submit<Fun>(args...);
+            }
       };
 ...

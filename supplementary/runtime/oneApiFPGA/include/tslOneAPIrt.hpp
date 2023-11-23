@@ -268,6 +268,16 @@ namespace tsl {
                 }
               ).wait();
             }
+          template<class Fun, typename... Args>
+            decltype(auto) submit(Args... args) {
+              return q.submit(
+                [&](sycl::handler& h) {
+                  h.single_task<Fun>([=]() [[intel::kernel_args_restrict]] {
+                    return Fun::apply(args...);
+                  });
+                }
+              ).wait();
+            }
     };
     #ifdef ONEAPI_FPGA_HARDWARE
     using oneAPI_default_fpga = oneAPI_fpga<oneAPI_hardware_selector>;

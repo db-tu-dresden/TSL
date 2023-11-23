@@ -277,6 +277,7 @@ definitions:
         result[i] = vec_a[i] - vec_b[i];
       }
       return result;
+...
 ---
 primitive_name: "add"
 functor_name: "mask_add"

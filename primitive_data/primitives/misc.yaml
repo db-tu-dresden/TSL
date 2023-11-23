@@ -140,15 +140,33 @@ definitions:
     lscpu_flags: []
     implementation: "return 0;"
   #FPGA
-  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+  - target_extension: ["oneAPIfpga"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<climits>"]
     vector_length_agnostic: True
     implementation: |
+      static_assert(Vec::vector_element_count() <= CHAR_BIT*sizeof(typename Vec::base_type), "Vector element count must be less or equal to the number of bits in the base type.");
       typename Vec::register_type result{};
       tsl::oneAPIfpgaFun::details::conflictReduce<Vec>(result, data, std::make_index_sequence<Vec::vector_element_count()-1>{});
       result[0] = 0;
       return result;
+  - target_extension: ["oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<climits>"]
+    vector_length_agnostic: True
+    specialization_comment: "This is just for testing reasons (CIDR crc)"
+    implementation: |
+      static_assert(Vec::vector_element_count() <= CHAR_BIT*sizeof(typename Vec::base_type), "Vector element count must be less or equal to the number of bits in the base type.");
+      typename Vec::register_type result{};
+      #pragma unroll Vec::vector_element_count()
+      for (auto iteration_start = 1; iteration_start < Vec::vector_element_count(); ++iteration_start) {
+        #pragma unroll Vec::vector_element_count()
+        for (size_t i = 0; i < Vec::vector_element_count() - iteration_start; ++i) {
+          result[iteration_start+i] |= (data[iteration_start+i] == data[i]) ? 1<<i : 0;
+        }
+      }
 ...
 ---
 primitive_name: "conflict_free"

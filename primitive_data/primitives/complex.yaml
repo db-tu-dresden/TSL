@@ -3,6 +3,412 @@ name: "complex"
 description: "Complex (composed) primitives that are highly application specific."
 ...
 ---
+primitive_name: "load_acint"
+brief_description: "Loads consecutive data from memory into a coherent AC_INT."
+parameters:
+  - ctype: "const typename Vec::base_type*"
+    name: "memory"
+    description: "Pointer to memory."
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+  description: "AC Int containing packed N bits of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      using BigIntT = ac_int<Vec::vector_size_b(), false>;
+      BigIntT result;
+      using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
+      #pragma unroll Vec::vector_element_count()
+      for (auto idx = 0; idx < Vec::vector_element_count(); ++idx) {
+        ElementT element = memory[idx];
+        result.set_slc(idx*CHAR_BIT*sizeof(typename Vec::base_type), element);
+      }
+      return result;
+...
+---
+primitive_name: "unpack_acint"
+brief_description: "Unpacks a coherent AC_INT."
+detailed_description: |
+  Takes an AC_INT as input (<data>). 
+  The AC_INT is assumed to be packed with <Bitwidth> wide data elements.
+  unpack_acint returns an AC_INT with Vec::vector_element_count() elements of type <Vec::base_type>
+  starting to read from <data> at position <BitReadOffset>.
+  Example 1: (Default Case)
+    AC_INT bitwidth = 128
+    data = 0b...001 010 011 100 101
+    Bitwidth = 3
+    BitReadOffset = 0
+    Vec::vector_element_count() = 4
+    sizeof(Vec::base_type) = 4 (int)
+    result = <0x00000002 0x00000003 0x00000004 0x00000005>
+  Example 1: (Carry Case - Greedy reading)
+    AC_INT bitwidth = 128
+    data = 0b00 101 001 110 010 1...
+    Bitwidth = 3
+    BitReadOffset = 120
+    Vec::vector_element_count() = 4
+    sizeof(Vec::base_type) = 4 (int)
+    --> relevant bits from data 0b00 101 001
+    result = <0x0000000 0x00000000 0x00000005 0x00000001>
+additional_non_specialized_template_parameters:
+  - ctype: "int"
+    name: "Bitwidth"
+    default_value: "1"
+  - ctype: "int"
+    name: "BitReadOffset"
+    default_value: "0"
+parameters:
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "data"
+    description: "AC Int containing packed N bits of data."
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+  description: "AC Int containing unpacked data of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      static_assert(BitReadOffset % Bitwidth == 0, "BitReadOffset must be a multiple of Bitwidth.")
+      using BigIntT = ac_int<Vec::vector_size_b(), false>;
+      BigIntT result;
+      using ElementT = ac_int<Bitwidth, false>;
+      /**
+       * read_count_t: number of elements from data that can be used to fully fill the corresponding values in result.
+       * 
+       */
+      using read_count_t = std::conditional_t<
+        (Vec::vector_size_b() - BitReadOffset) >= (Bitwidth * Vec::vector_element_count()),
+        std::integral_constant<int, Vec::vector_element_count()>,
+        std::integral_constant<int, (Vec::vector_size_b() - BitReadOffset) / Bitwidth>
+      >;
+      using partial_read_bits_count_t = std::conditional_t<
+        (Vec::vector_size_b() - BitReadOffset) >= (Bitwidth * Vec::vector_element_count()),
+        std::integral_constant<int, 0>,
+        std::integral_constant<int, (Vec::vector_size_b() - (read_count_t::value * Bitwidth + BitReadOffset)
+      >;
+      #pragma unroll read_count_t::value
+      for (auto idx = 0; idx < read_count_t::value; ++idx) {
+        ElementT element = data.template slc<Bitwidth>(idx*Bitwidth + BitReadOffset);
+        result.set_slc(idx*CHAR_BIT*sizeof(typename Vec::base_type), element);
+      }
+      if constexpr (partial_read_bits_count_t::value != 0) {
+        ElementT element = data.template slc<partial_read_bits_count_t::value>(read_count_t::value*Bitwidth + BitReadOffset);
+        result.set_slc(read_count_t::value*CHAR_BIT*sizeof(typename Vec::base_type), element);
+      }
+      return result;
+...
+---
+primitive_name: "unpack_merge_acint"
+brief_description: ""
+additional_non_specialized_template_parameters:
+  - ctype: "int"
+    name: "Bitwidth"
+    default_value: "1"
+  - ctype: "int"
+    name: "BitWriteOffset"
+    default_value: "0"
+parameters:
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "source"
+    description: "AC Int containing unpacked data from previous step."
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "data"
+    description: "AC Int containing packed N bits of data."
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+  description: "AC Int containing unpacked data of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
+      if constexpr (BitWriteOffset % Bitwidth != 0) {
+        // we need only to merge the first element
+        ElementT element = data.template slc<BitWriteOffset % Bitwidth>(0);
+        source.set_slc(BitWriteOffset, element);
+      }
+      using write_start_element_idx_t = std::conditional_t<
+        BitWriteOffset % Bitwidth != 0,
+        std::integral_constant<int, 1>,
+        std::integral_constant<int, 0>
+      >;
+      using read_offset_t = std::conditional_t<
+        BitWriteOffset % Bitwidth != 0,
+        std::integral_constant<int, BitWriteOffset % Bitwidth>,
+        std::integral_constant<int, 0>
+      >;
+      using write_count_t = std::integral_constant<
+        int,
+        (Vec::vector_size_b() - BitWriteOffset) / Bitwidth
+      >;
+      if constexpr (write_count_t::value > write_start_element_idx_t::value) {
+        #pragma unroll write_count_t::value - write_start_element_idx_t::value
+        for (auto idx = write_start_element_idx_t::value; idx < write_count_t::value; ++idx) {
+          ElementT element = data.template slc<Bitwidth>(idx*Bitwidth + read_offset_t::value);
+          source.set_slc(idx*CHAR_BIT*sizeof(typename Vec::base_type)+BitWriteOffset, element);
+        }
+      }
+      return result;
+...
+---
+primitive_name: "packed_load_acint"
+brief_description: "Loads data from memory and packs n-bits from all elements within a vector together."
+additional_non_specialized_template_parameters:
+  - ctype: "int"
+    name: "Bitwidth"
+    default_value: "1"
+parameters:
+  - ctype: "const typename Vec::base_type*"
+    name: "memory"
+    description: "Pointer to memory."
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+  description: "AC Int containing packed N bits of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      using BigIntT = ac_int<Vec::vector_size_b(), false>;
+      BigIntT result;
+      using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
+      #pragma unroll Vec::vector_element_count()
+      for (auto idx = 0; idx < Vec::vector_element_count(); ++idx) {
+        ElementT element = memory[idx];
+        auto slice = element.template slc<Bitwidth>(0);
+        result.set_slc(idx*Bitwidth, slice);
+      }
+      return result;
+...
+---
+primitive_name: "packed_store_acint"
+brief_description: "stores N bit of data. N must be a multiple of sizeof(Vec::base_type)."
+additional_non_specialized_template_parameters:
+  - ctype: "int"
+    name: "EffectiveBits"
+    default_value: "1"
+parameters:
+  - ctype: "typename Vec::base_type*"
+    name: "memory"
+    description: "Aligned memory where the data should be stored into."
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "data"
+    description: "AC Int containing packed N bits of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      static_assert(EffectiveBits % (sizeof(typename Vec::base_type)*CHAR_BIT) == 0, "EffectiveBits must be a multiple of sizeof(T)*8.");
+      static_assert(EffectiveBits <= Vec::vector_size_b(), "EffectiveBits must be smaller or equal to vector size in bits.");
+      using BigIntT = ac_int<Vec::vector_size_b(), false>;
+      BigIntT result;
+      using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
+      #pragma unroll (EffectiveBits / (sizeof(typename Vec::base_type)*CHAR_BIT))
+      for (auto idx = 0; idx < (EffectiveBits / (sizeof(typename Vec::base_type)*CHAR_BIT)); ++idx) {
+        memory[idx] = data.template slc<sizeof(typename Vec::base_type)*CHAR_BIT>(idx*sizeof(typename Vec::base_type)*CHAR_BIT);
+      }
+...
+---
+primitive_name: "store_acint"
+brief_description: ""
+parameters:
+  - ctype: "typename Vec::base_type*"
+    name: "memory"
+    description: "Aligned memory where the data should be stored into."
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "data"
+    description: "AC Int containing packed N bits of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      #pragma unroll Vec::vector_element_count()
+      for (auto idx = 0; idx < Vec::vector_element_count(); ++idx) {
+        memory[idx] = data.template slc<sizeof(typename Vec::base_type)*CHAR_BIT>(idx*sizeof(typename Vec::base_type)*CHAR_BIT);
+      }
+...
+---
+primitive_name: "packed_shift_left_acint"
+brief_description: ""
+parameters:
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "data"
+    description: "AC_INT containing the source data."
+  - ctype: "int"
+    name: "shift_value"
+    description: "Value to be shifted."
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+  description: "AC Int containing packed N bits of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      return data << shift_value;
+...
+---
+primitive_name: "packed_shift_right_acint"
+brief_description: ""
+parameters:
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "data"
+    description: "AC_INT containing the source data."
+  - ctype: "int"
+    name: "shift_value"
+    description: "Value to be shifted."
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+  description: "AC Int containing packed N bits of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      return data >> shift_value;
+...
+---
+primitive_name: "packed_or_acint"
+brief_description: ""
+parameters:
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "a"
+    description: "AC_INT containing the first source data."
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "b"
+    description: "AC_INT containing the second source data."
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+  description: "AC Int containing packed N bits of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      return a | b;
+...
+
+# ---
+# primitive_name: "bitcompress_merge_nocarry"
+# brief_description: "Packs n-bits from all elements within a vector together."
+# additional_non_specialized_template_parameters:
+#   - ctype: "int"
+#     name: "Bitwidth"
+#     default_value: "1"
+#   - ctype: "int"
+#     name: "InsertStartPos"
+#     default_value: "0"
+# parameters:
+#   - ctype: "const typename Vec::register_type"
+#     name: "data"
+#     description: "Data vector."
+#   - ctype: "ac_int<Vec::vector_size_b(), false>"
+#     name: "src"
+#     description: "AC INT containing the source data."
+# returns:
+#   ctype: "ac_int<Vec::vector_size_b(), false>"
+#   description: "Vector containing packed elements."
+# definitions:
+#   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+#     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+#     lscpu_flags: ["oneAPIfpgaDev"]
+#     vector_length_agnostic: True
+#     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+#     implementation: |
+#       using BigIntT = ac_int<Vec::vector_size_b(), false>;
+#       using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
+#       auto element_count_fun = []() constexpr -> int {
+#         return ((Vec::vector_size_b() - InsertStartPos) / Bitwidth) >= (Vec::vector_element_count()) ? Vec::vector_element_count() : ((Vec::vector_size_b() - InsertStartPos) / Bitwidth);
+#       };
+#       #pragma unroll element_count_fun()
+#       for (auto idx = 0; idx < element_count_fun(); ++idx) {
+#         ElementT element = data[idx];
+#         auto slice = element.template slc<Bitwidth>(0);
+#         src.set_slc(idx*Bitwidth + InsertStartPos, slice);
+#       }
+#       if constexpr ((Vec::vector_size_b() - (InsertStartPos + (element_count_fun()*Bitwidth)) < Bitwidth)) && (element_count_fun() < Vec::vector_element_count()) {
+#         ElementT element = data[element_count_fun()];
+#         auto slice = element.template slc<Vec::vector_size_b() - (InsertStartPos + (element_count_fun()*Bitwidth))>(0);
+#         src.set_slc(element_count_fun()*Bitwidth + InsertStartPos, slice);
+#       }
+#       return src;
+# ...
+# ---
+# primitive_name: "bitcompress_merge_withcarry"
+# brief_description: "Packs n-bits from all elements within a vector together."
+# additional_non_specialized_template_parameters:
+#   - ctype: "int"
+#     name: "Bitwidth"
+#     default_value: "1"
+#   - ctype: "int"
+#     name: "InsertStartPos"
+#     default_value: "0"
+# parameters:
+#   - ctype: "const typename Vec::register_type"
+#     name: "data"
+#     description: "Data vector."
+#   - ctype: "ac_int<Vec::vector_size_b(), false>"
+#     name: "src"
+#     description: "AC INT containing the source data."
+# returns:
+#   ctype: "std::pair<ac_int<Vec::vector_size_b(), false>, ac_int<Vec::vector_size_b(), false>"
+#   description: "Vector containing packed elements."
+# definitions:
+#   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+#     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+#     lscpu_flags: ["oneAPIfpgaDev"]
+#     vector_length_agnostic: True
+#     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+#     implementation: |
+#       using BigIntT = ac_int<Vec::vector_size_b(), false>;
+#       using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
+#       auto element_count_fun = []() constexpr -> int {
+#         return ((Vec::vector_size_b() - InsertStartPos) / Bitwidth) >= (Vec::vector_element_count()) ? Vec::vector_element_count() : ((Vec::vector_size_b() - InsertStartPos) / Bitwidth);
+#       };
+#       #pragma unroll element_count_fun()
+#       for (auto idx = 0; idx < element_count_fun(); ++idx) {
+#         ElementT element = data[idx];
+#         auto slice = element.template slc<Bitwidth>(0);
+#         src.set_slc(idx*Bitwidth + InsertStartPos, slice);
+#       }
+#       if constexpr ((Vec::vector_size_b() - (InsertStartPos + (element_count_fun()*Bitwidth)) < Bitwidth)) && (element_count_fun() < Vec::vector_element_count()) {
+#         ElementT element = data[element_count_fun()];
+#         auto slice = element.template slc<Vec::vector_size_b() - (InsertStartPos + (element_count_fun()*Bitwidth))>(0);
+#         src.set_slc(element_count_fun()*Bitwidth + InsertStartPos, slice);
+#         BigIntT carry;
+#         // carry.set_val<AC_VAL_0>();
+#         auto slice_carry = element.template slc<Vec::vector_size_b() - (InsertStartPos + (element_count_fun()*Bitwidth))>(0);
+#         src.set_slc(element_count_fun()*Bitwidth + InsertStartPos, slice);
+#         return src;
+#       } else {
+
+#       }
+# ...
+---
 primitive_name: 'pack_bits_linear'
 brief_description: 'Packs elements from a vector together using a fixed bitwidth.'
 detailed_description: |
