@@ -566,11 +566,6 @@ testing:
       test_helper.synchronize();
       return test_helper.validate();
 definitions:
-  #ARM - SVE
-  - target_extension: "avx512"
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
-    lscpu_flags: ["avx512f"]
-    implementation: "return svdup_n_{{intrin_tp_full[ctype]}}(0);"
   #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
@@ -598,6 +593,11 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_setzero_{{ intrin_tp_full[ctype] }}();"
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    implementation: "return svdup_n_{{intrin_tp_full[ctype]}}(0);"
 #FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
@@ -650,19 +650,6 @@ testing:
       }
       return allOk;
 definitions:
-  #ARM - SVE
-  - target_extension: "sve"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    lscpu_flags: ["sve"]
-    includes: ["<array>", "<algorithm>"]
-    implementation: |
-      using T = typename Vec::base_type;
-      auto invert_fun=[](auto& array){
-        std::reverse(array.begin(), array.end());
-        return &array[0];
-      };
-      std::array<T, Vec::vector_element_count()> temp = {args...};
-      return svld1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), invert_fun(temp));
   #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -702,6 +689,19 @@ definitions:
     ctype: ["double"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_set_{{ intrin_tp_full[ctype] }}(args...);"
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
+    includes: ["<array>", "<algorithm>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      auto invert_fun=[](auto& array){
+        std::reverse(array.begin(), array.end());
+        return &array[0];
+      };
+      std::array<T, Vec::vector_element_count()> temp = {args...};
+      return svld1_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), invert_fun(temp));
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -738,21 +738,6 @@ testing:
       test_helper.synchronize();
       return test_helper.validate();
 definitions:
-#  ARM - SVE
-  - target_extension: "sve"
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
-    lscpu_flags: ["sve"]
-    implementation: |
-      using T = typename Vec::base_type;
-      using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
-      auto seq_fun= []<sequence_type... Is>(
-        std::integer_sequence<sequence_type, Is...>
-      ) {
-        return tsl::set<Vec>(
-          (T)(((T)(sizeof...(Is) - 1 - Is)))...
-        );
-      };
-      return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
 #  INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -787,6 +772,21 @@ definitions:
   - target_extension: "sse"
     ctype: [ "uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double" ]
     lscpu_flags: ["sse2"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
+      auto seq_fun= []<sequence_type... Is>(
+        std::integer_sequence<sequence_type, Is...>
+      ) {
+        return tsl::set<Vec>(
+          (T)(((T)(sizeof...(Is) - 1 - Is)))...
+        );
+      };
+      return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
+#  ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
     implementation: |
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
@@ -866,21 +866,6 @@ testing:
       }
       return allOk;
 definitions:
-  #  ARM - SVE
-  - target_extension: "sve"
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
-    lscpu_flags: ["sve"]
-    implementation: |
-      using T = typename Vec::base_type;
-      using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
-      auto seq_fun= []<sequence_type... Is>(
-        T const init, T const sw, std::integer_sequence<sequence_type, Is...>
-      ) {
-        return tsl::set<Vec>(
-          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
-        );
-      };
-      return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
   #  INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -915,6 +900,21 @@ definitions:
   - target_extension: "sse"
     ctype: [ "uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double" ]
     lscpu_flags: ["sse2"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;
+      auto seq_fun= []<sequence_type... Is>(
+        T const init, T const sw, std::integer_sequence<sequence_type, Is...>
+      ) {
+        return tsl::set<Vec>(
+          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+        );
+      };
+      return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
+  #  ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sve"]
     implementation: |
       using T = typename Vec::base_type;
       using sequence_type = typename std::conditional_t<std::is_integral_v<T>, T, uint64_t>;

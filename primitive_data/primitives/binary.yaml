@@ -591,6 +591,11 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: [ 'neon' ]
     implementation: "return vshlq_{{ intrin_tp_full[ctype] }}(data, shift);"
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'sve' ]
+    implementation: "return svlsl_{{intrin_tp_full[ctype]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), data, shift);"
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -786,6 +791,20 @@ definitions:
   #       vshrq_n_{{ intrin_tp[ctype][1] }}(
   #         vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
   #         vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sve"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::base_type>)) {
+        if constexpr (PreserveSign){
+          return svasr_n_s{{intrin_tp[ctype][1]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), data, shift);
+        }else{
+          return svlsr_n_u{{intrin_tp[ctype][1]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), svreinterpret_u{{intrin_tp[ctype][1]}}_s{{intrin_tp[ctype][1]}}(data), shift);
+        }
+      }else {
+        return svlsr_n_u{{intrin_tp[ctype][1]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), data, shift);
+      }
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -1026,6 +1045,20 @@ definitions:
         tmp[i] >>= shift;
       }
       return vld1q_{{ intrin_tp_full[ctype] }}(tmp.data());
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sve"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::base_type>)) {
+        if constexpr (PreserveSign){
+          return svasr_s{{intrin_tp[ctype][1]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), data, shift);
+        }else{
+          return svlsr_u{{intrin_tp[ctype][1]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), svreinterpret_u{{intrin_tp[ctype][1]}}_s{{intrin_tp[ctype][1]}}(data), shift);
+        }
+      }else {
+        return svlsr_u{{intrin_tp[ctype][1]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), data, shift);
+      }
   #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"]
@@ -1218,6 +1251,11 @@ definitions:
   - target_extension: ["neon"]
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["neon"]
+    implementation: |
+      return details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data);
+  - target_extension: ["sve"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sve"]
     implementation: |
       return details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data);
   - target_extension: ["scalar"]
@@ -1507,8 +1545,12 @@ testing:
             allOk &= (u.i_val == v.i_val);
           }
           return allOk;
-        }
-        else{
+        }else if constexpr(std::is_same_v<typename Vec::target_extension, tsl::sve>){
+          storeu<Vec>(reference_result_ptr, set1<Vec>(~0));
+          storeu<Vec>(test_result_ptr, inv<Vec>(vec));
+          test_helper.synchronize();
+          return test_helper.validate();
+        }else{
           storeu<Vec>(reference_result_ptr, ~vec);
           storeu<Vec>(test_result_ptr, inv<Vec>(vec));
           test_helper.synchronize();
@@ -1545,8 +1587,12 @@ testing:
             allOk &= (u.i_val == v.i_val);
           }
           return allOk;
-        }
-        else{
+        }else if constexpr(std::is_same_v<typename Vec::target_extension, tsl::sve>){
+          storeu<Vec>(reference_result_ptr, set1<Vec>(0));
+          storeu<Vec>(test_result_ptr, inv<Vec>(vec));
+          test_helper.synchronize();
+          return test_helper.validate();
+        }else{
           storeu<Vec>(reference_result_ptr, ~vec);
           storeu<Vec>(test_result_ptr, inv<Vec>(vec));
           test_helper.synchronize();
@@ -1584,8 +1630,16 @@ testing:
             u.val = data[i];
             allOk &= (~u.i_val == test_i_val);
           }
-        }
-        else{
+        }else if constexpr(std::is_same_v<typename Vec::target_extension, tsl::sve>){
+          T data[Vec::vector_element_count()];
+          for(int j = i; j < i + Vec::vector_element_count(); j++){
+            data[j-i] = ~test_data_ptr[j];
+          }
+          storeu<Vec>(reference_result_ptr, loadu<Vec>(data));
+          storeu<Vec>(test_result_ptr, inv<Vec>(vec));
+          test_helper.synchronize();
+          allOk &= test_helper.validate();
+        }else{
           storeu<Vec>(reference_result_ptr, ~vec);
           storeu<Vec>(test_result_ptr, inv<Vec>(vec));
           test_helper.synchronize();
@@ -1636,6 +1690,15 @@ definitions:
       __m128i all_ones = _mm_set1_epi32(-1);
       __m128i as_int = _mm_cast{{intrin_tp_full[ctype]}}_si128(vec);
       return _mm_castsi128_{{intrin_tp_full[ctype]}}(_mm_xor_si128(as_int, all_ones));
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "uint8_t", "int8_t"]
+    lscpu_flags: [ 'sve' ]
+    implementation: return svnot_{{intrin_tp_full[ctype]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), vec);
+  - target_extension: "sve"
+    ctype: ["float", "double"]
+    lscpu_flags: [ 'sve' ]
+    implementation: return svreinterpret_{{intrin_tp_full[ctype]}}_u{{intrin_tp[ctype][1]}}(svnot_u{{intrin_tp[ctype][1]}}_z(svptrue_b{{intrin_tp[ctype][1]}}(), svreinterpret_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(vec)));
 #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
