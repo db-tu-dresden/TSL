@@ -17,12 +17,13 @@ testing: #optional
     requires: ["loadu"]
     includes: ["<cstddef>", "<array>"]
     implementation: |
-      using T = typename Vec::base_type;
+      using T = std::conditional_t<std::is_same_v<typename Vec::base_type, typename Vec::mask_type>, typename Vec::base_type, typename Vec::offset_base_type>;
+      using CustomVecT = typename Vec::transform_extension<T>;
       bool allOk = true;
       // For Vec::mask_type == Vec::register_type testing
-      std::array< T, Vec::vector_element_count() > pseudo_mask;
-      typename Vec::mask_type vec_mask;
-      for(std::size_t i = 0; i < Vec::vector_element_count() + 1; i++) {
+      std::array< T, CustomVecT::vector_element_count() > pseudo_mask;
+      typename CustomVecT::mask_type vec_mask;
+      for(std::size_t i = 0; i < CustomVecT::vector_element_count() + 1; i++) {
         // To check if we are at AVX512/Scalar or any register type mask
         if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
             // e.g. Scalar (bool)
@@ -44,11 +45,11 @@ testing: #optional
             for ( std::size_t j = 0; j < i; ++j ) {
               pseudo_mask[ j ] = val;
             }
-            vec_mask = loadu<Vec>( pseudo_mask.data() );
+            vec_mask = loadu<CustomVecT>( pseudo_mask.data() );
         }
-        auto mask_integral = to_integral<Vec>( vec_mask );
+        auto mask_integral = to_integral<CustomVecT>( vec_mask );
         std::size_t matches = 0;
-        for ( std::size_t k = 0; k < Vec::vector_element_count(); ++k ) {
+        for ( std::size_t k = 0; k < CustomVecT::vector_element_count(); ++k ) {
           if(((mask_integral >> k) & 0b1) == 1 ) {
             ++matches;
           }
@@ -60,8 +61,6 @@ testing: #optional
     requires: ["loadu", "set1", "storeu"]
     includes: ["<cstddef>", "<array>", "<iostream>", "<bitset>"]
     implementation: |
-      using T = typename Vec::base_type;
-      bool allOk = true;
       if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
         std::cerr << "implement me" << std::endl;
         return true;
@@ -69,32 +68,37 @@ testing: #optional
         //we don't need to do anything here since it is a NOP.
         return true;
       } else {
-          //e.g., SSE, AVX2, ...
-          auto data_create_lambda = [](T* data, std::size_t element_count) {
-            for (size_t i = 0; i < element_count; ++i) {
-              data[i] = i % 2 == 0 ? -1 : 0;
-            }
-          };
-          testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), Vec::vector_element_count(), false, data_create_lambda};
-          tsl::storeu<Vec>(test_helper.result_target(), tsl::set1<Vec>(0));
-          auto reference_result_ptr = reinterpret_cast<typename Vec::imask_type*>(test_helper.result_ref());
-          typename Vec::imask_type expected_result = 0;
-          for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
-            expected_result |= i % 2 == 0 ? 0b1 << i : 0;
+        using T = std::conditional_t<std::is_same_v<typename Vec::base_type, typename Vec::mask_type>, typename Vec::base_type, typename Vec::offset_base_type>;
+        using CustomVecT = typename Vec::transform_extension<T>;
+        bool allOk = true;
+        //e.g., SSE, AVX2, ...
+        auto data_create_lambda = [](T* data, std::size_t element_count) {
+          for (size_t i = 0; i < element_count; ++i) {
+            data[i] = i % 2 == 0 ? -1 : 0;
           }
-          *reference_result_ptr = expected_result;
-          auto test_data_ptr = test_helper.data_target();
-          auto test_result_ptr = reinterpret_cast<typename Vec::imask_type*>(test_helper.result_target());
-          auto vec_mask = loadu<Vec>(test_data_ptr);
-          auto mask_integral = to_integral<Vec>(vec_mask);
-          *test_result_ptr = mask_integral;
-          test_helper.synchronize();
-          /*std::cerr << tsl::type_name<Vec>() << std::endl;
+        };
+        testing::test_memory_helper_t<CustomVecT> test_helper{CustomVecT::vector_element_count(), CustomVecT::vector_element_count(), false, data_create_lambda};
+        tsl::storeu<CustomVecT>(test_helper.result_target(), tsl::set1<CustomVecT>(0));
+        auto reference_result_ptr = reinterpret_cast<typename Vec::imask_type*>(test_helper.result_ref());
+        auto reference_data_ptr = test_helper.data_ref();
+        typename CustomVecT::imask_type expected_result = 0;
+        for (size_t i = 0; i < CustomVecT::vector_element_count(); ++i) {
+          expected_result |= (reference_data_ptr[i] & 1) << i;
+        }
+        *reference_result_ptr = expected_result;
+        auto test_data_ptr = test_helper.data_target();
+        auto test_result_ptr = reinterpret_cast<typename Vec::imask_type*>(test_helper.result_target());
+        auto vec_mask = loadu<CustomVecT>(test_data_ptr);
+        auto mask_integral = to_integral<CustomVecT>(vec_mask);
+        *test_result_ptr = mask_integral;
+        test_helper.synchronize();
+        if (!(test_helper.validate())) {
+          std::cerr << "FAILED!!!" << std::endl;
+          std::cerr << tsl::type_name<Vec>() << std::endl;
           std::cerr << "expected_result: " << std::bitset<64>{(unsigned long long)expected_result} << std::endl;
           std::cerr << "test_result: " << std::bitset<64>{(unsigned long long)mask_integral} << std::endl;
-          std::cerr << "Same values? " << ((expected_result == mask_integral) ? "True" : "False")<< std::endl;
-          std::cerr << "Same values? " << ((test_helper.validate()) ? "True" : "False")<< std::endl;*/
-          return test_helper.validate();
+        }
+        return test_helper.validate();
       }
 definitions:
 #INTEL - AVX512
@@ -240,10 +244,21 @@ definitions:
 #ARM - NEON
 #todo: ARM IMPLEMENTATION for other bitwidths
   - target_extension: "neon"
-    ctype: "int64_t"
+    ctype: ["uint64_t", "int64_t", "double"]
     lscpu_flags: [ 'neon' ]
     is_native: False
     implementation: "return ( ( vec_mask[ 1 ] >> 62 ) & 0b10 ) | ( vec_mask[ 0 ] >> 63 );"
+  - target_extension: "neon"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "float"]
+    lscpu_flags: ["neon"]
+    is_native: False
+    implementation: |
+      auto mask_values_array = tsl::to_array<typename Vec::transform_extension<typename Vec::offset_base_type>>(vec_mask);
+      typename Vec::imask_type mask_integral = 0;
+      for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        mask_integral |= (mask_values_array[i] & 0b1) << i;
+      }
+      return mask_integral;
 #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -632,21 +647,9 @@ definitions:
     implementation: "return _mm_and_pd(first, second);"
   #ARM - NEON
   - target_extension: "neon"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: [ 'neon' ]
-    implementation: "return vandq_{{ intrin_tp_full[ctype] }}(first, second);"
-  - target_extension: "neon"
-    ctype: ["float", "double"]
-    lscpu_flags: ['neon']
-    note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: |
-      return
-         vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
-            vandq_u{{ intrin_tp[ctype][1] }}(
-               vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(first),
-               vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(second)
-            )
-         );
+    implementation: "return vandq_{{ intrin_tp_mask_full[ctype] }}(first, second);"
   #SCARLAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -750,21 +753,9 @@ definitions:
     implementation: "return _mm_or_pd(first, second);"
   #ARM - NEON
   - target_extension: "neon"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: [ 'neon' ]
-    implementation: "return vorq_{{ intrin_tp_full[ctype] }}(first, second);"
-  - target_extension: "neon"
-    ctype: ["float", "double"]
-    lscpu_flags: ['neon']
-    note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: |
-      return
-         vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
-            vorq_u{{ intrin_tp[ctype][1] }}(
-               vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(first),
-               vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(second)
-            )
-         );
+    implementation: "return vorrq_{{ intrin_tp_mask_full[ctype] }}(first, second);"
 ...
 ---
 primitive_name: "mask_binary_or"
@@ -858,21 +849,9 @@ definitions:
     implementation: "return _mm_xor_pd(first, second);"
   #ARM - NEON
   - target_extension: "neon"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: [ 'neon' ]
-    implementation: "return veorq_{{ intrin_tp_full[ctype] }}(first, second);"
-  - target_extension: "neon"
-    ctype: ["float", "double"]
-    lscpu_flags: ['neon']
-    note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: |
-      return
-         vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
-            veorq_u{{ intrin_tp[ctype][1] }}(
-               vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(first),
-               vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(second)
-            )
-         );
+    implementation: "return veorq_{{ intrin_tp_mask_full[ctype] }}(first, second);"
 ...
 ---
 primitive_name: "mask_binary_xor"
