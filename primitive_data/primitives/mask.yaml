@@ -442,7 +442,7 @@ definitions:
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
-    implementation: "return mask;"
+    implementation: "return (mask & 0b1);"
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["int8_t", "uint8_t"]
@@ -514,13 +514,15 @@ definitions:
       return _mm256_castsi256_pd(_mm256_cmpeq_epi64(anded_vec, and_vec));
   #INTEL - SSE
   - target_extension: ["sse"]
-    ctype: ["uint8_t", "int8_t"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    is_native: False
     lscpu_flags: ["sse2"]
     implementation: |
-      auto const and_vec = _mm_set_epi8(0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01);
-      auto const data_vec = _mm_set1_epi16(mask);
-      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
-      return _mm_cmpeq_epi8(anded_vec, and_vec);
+      typename Vec::base_type result [Vec::vector_element_count()];
+      for(int i = 0; i < Vec::vector_element_count(); i++){
+        ((mask >> i) & 0b1) ? result[i] = 0xFF : result[i] = 0;
+      }
+      return tsl::loadu<Vec>(result);
   - target_extension: ["sse"]
     ctype: ["uint16_t", "int16_t"]
     lscpu_flags: ["sse2"]
@@ -547,14 +549,6 @@ definitions:
       return _mm_castsi128_ps(_mm_cmpeq_epi32(anded_vec, and_vec));
   - target_extension: ["sse"]
     ctype: ["uint64_t", "int64_t"]
-    lscpu_flags: ["sse2"]
-    implementation: |
-      auto const and_vec = _mm_set_epi32(0x2, 0x2, 0x1, 0x1);
-      auto const data_vec = _mm_set1_epi32(mask);
-      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
-      return _mm_cmpeq_epi32(anded_vec, and_vec);
-  - target_extension: ["sse"]
-    ctype: ["uint64_t", "int64_t"]
     lscpu_flags: ["sse2", "sse4_1"]
     implementation: |
       auto const and_vec = _mm_set_epi64x(0x2, 0x1);
@@ -569,14 +563,6 @@ definitions:
       auto const data_vec = _mm_set1_epi64x(mask);
       auto const anded_vec = _mm_and_si128(data_vec, and_vec);
       return _mm_castsi128_pd(_mm_cmpeq_epi64(anded_vec, and_vec));
-  - target_extension: ["sse"]
-    ctype: ["double"]
-    lscpu_flags: ["sse2"]
-    implementation: |
-      auto const and_vec = _mm_set_epi32(0x2, 0x2, 0x1, 0x1);
-      auto const data_vec = _mm_set1_epi32(mask);
-      auto const anded_vec = _mm_and_si128(data_vec, and_vec);
-      return _mm_castsi128_pd(_mm_cmpeq_epi32(anded_vec, and_vec));
   #ARM - SVE
   - target_extension: ["sve"]
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
