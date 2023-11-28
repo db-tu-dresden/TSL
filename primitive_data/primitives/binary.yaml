@@ -470,21 +470,7 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: |
-      auto castdata = vcvtq_s{{ intrin_tp[ctype][1] }}_f{{ intrin_tp[ctype][1] }}(data);
-      auto res = vshlq_n_u{{ intrin_tp[ctype][1] }}(
-          vcvtq_s{{ intrin_tp[ctype][1] }}_f{{ intrin_tp[ctype][1] }}(data),
-          shift);
-      for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        std::cout << "data[" << i << "] = " << castdata[i] << "(Orig: " << data[i] << ")" << std::endl;
-        std::cout << "shift = " << shift << std::endl;
-        
-        std::cout << "result = " << res[i] << std::endl;
-      }
-      return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
-        vshlq_n_u{{ intrin_tp[ctype][1] }}(
-          vcvtq_s{{ intrin_tp[ctype][1] }}_f{{ intrin_tp[ctype][1] }}(data),
-          shift));
+    implementation: return vcvtq_{{intrin_tp_full[ctype]}}_u{{intrin_tp[ctype][1]}}(vshlq_n_u{{intrin_tp[ctype][1]}}(vcvtq_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(data), shift));
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -528,16 +514,6 @@ testing:
           storeu<Vec>(test_result, shift_left<Vec>(vec, (typename Vec::base_type)shift));
           test_helper.synchronize();
           auto res = test_helper.validate();
-          if (!res) {
-            std::cout << "shift_left failed " << tsl::type_name<Vec>() << std::endl;
-            for (size_t j = 0; j < Vec::vector_element_count(); ++j) {
-              if (expected_result[j] != test_result[j]) {
-                std::cout << "[TRACE] " << (uint64_t)ref_data[i+j] << " << " << shift << std::endl;
-                std::cout << "[TRACE] " << "expected: " << (uint64_t)expected_result[j] << std::endl;
-                std::cout << "[TRACE] " << "got     : " << (uint64_t)test_result[j] << std::endl;
-              }
-            }
-          }
           allOk &= res;
         }
       }
@@ -777,17 +753,8 @@ definitions:
           );
         }
       } else {
-        return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);
+        return vshrq_n_u{{ intrin_tp[ctype][1] }}(data, shift);
       }
-  # - target_extension: "neon"
-  #   ctype: ["float", "double"]
-  #   lscpu_flags: ["neon"]
-  #   note: "is it a good idea to support bitmanipulation for floats and doubles?"
-  #   implementation: |
-  #     vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
-  #       vshrq_n_{{ intrin_tp[ctype][1] }}(
-  #         vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
-  #         vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -1020,14 +987,21 @@ definitions:
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ['neon']
-    is_native: False
     implementation: |
-      auto data_vec = tsl::to_array<Vec>(data);
-      auto shift_vec = tsl::to_array<Vec>(shift);
-      for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        data_vec[i] >>= shift_vec[i];
+      // use negative shift, bcs shift left intrinsic shifts right for negative values.
+      auto neg_shift = vsubq_{{intrin_tp_full[ctype]}}(vmovq_n_{{intrin_tp_full[ctype]}}(0), shift);
+      if constexpr (std::is_signed_v<typename Vec::base_type>) {
+        if constexpr (PreserveSign) {
+          return vshlq_{{ intrin_tp_full[ctype] }}(data, neg_shift);
+        } else {
+          return vshlq_u{{ intrin_tp[ctype][1] }}(
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data), 
+            neg_shift
+          );
+        }
+      } else {
+        return vshlq_u{{ intrin_tp[ctype][1] }}(data, neg_shift);
       }
-      return tsl::load<Vec>(data_vec.data());
   #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"]
