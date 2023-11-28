@@ -567,7 +567,7 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['sve']
     implementation: |
-      return svand_z(svptrue_b{{intrin_tp[ctype][1]}}(), 
+      return svand_z(svptrue_b{{intrin_tp[ctype][1]}}(),
       svcmple_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec_data, vec_max),
       svcmpge_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec_data, vec_min));
 #INTEL - FPGA

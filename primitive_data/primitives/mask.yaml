@@ -566,7 +566,7 @@ definitions:
   #ARM - SVE
   - target_extension: ["sve"]
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
-    lscpu_flags: ["sve"] 
+    lscpu_flags: ["sve"]
     is_native: False
     implementation: |
       typename Vec::mask_type result = svpfalse();
@@ -579,7 +579,7 @@ definitions:
       return result;
   - target_extension: ["sve"]
     ctype: ["float", "double"]
-    lscpu_flags: ["sve"] 
+    lscpu_flags: ["sve"]
     is_native: False
     implementation: |
       typename Vec::mask_type result = svpfalse();
