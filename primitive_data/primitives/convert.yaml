@@ -298,7 +298,7 @@ definitions:
     }
     lscpu_flags: ["neon"]
     implementation: |
-      return vcvtnq_{{ intrin_tp_full[additional_simd_template_base_type] }}_{{ intrin_tp_full[ctype] }}(data);
+      return vcvtq_{{ intrin_tp_full[additional_simd_template_base_type] }}_{{ intrin_tp_full[ctype] }}(data);
 # float -> int - AVX512
   - target_extension: "avx512"
     additional_simd_template_base_type: ["int32_t"]
