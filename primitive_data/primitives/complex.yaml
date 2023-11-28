@@ -93,10 +93,12 @@ definitions:
         std::integral_constant<int, 0>,
         std::integral_constant<int, (Vec::vector_size_b() - (read_count_t::value * Bitwidth + BitReadOffset))>
       >;
-      #pragma unroll read_count_t::value
-      for (auto idx = 0; idx < read_count_t::value; ++idx) {
-        element_t element = data.template slc<Bitwidth>((unsigned)(idx*Bitwidth + BitReadOffset));
-        result.set_slc((unsigned)(idx*CHAR_BIT*sizeof(typename Vec::base_type)), element);
+      if constexpr (read_count_t::value > 0) {
+        #pragma unroll read_count_t::value
+        for (auto idx = 0; idx < read_count_t::value; ++idx) {
+          element_t element = data.template slc<Bitwidth>((unsigned)(idx*Bitwidth + BitReadOffset));
+          result.set_slc((unsigned)(idx*CHAR_BIT*sizeof(typename Vec::base_type)), element);
+        }
       }
       if constexpr (partial_read_bits_count_t::value != 0) {
         using partial_element_t = ac_int<partial_read_bits_count_t::value, false>;
