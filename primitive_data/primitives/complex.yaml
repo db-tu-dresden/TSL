@@ -3,33 +3,6 @@ name: "complex"
 description: "Complex (composed) primitives that are highly application specific."
 ...
 ---
-primitive_name: "load_acint"
-brief_description: "Loads consecutive data from memory into a coherent AC_INT."
-parameters:
-  - ctype: "const typename Vec::base_type*"
-    name: "memory"
-    description: "Pointer to memory."
-returns:
-  ctype: "ac_int<Vec::vector_size_b(), false>"
-  description: "AC Int containing packed N bits of data."
-definitions:
-  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
-    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
-    lscpu_flags: ["oneAPIfpgaDev"]
-    vector_length_agnostic: True
-    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
-    implementation: |
-      using BigIntT = ac_int<Vec::vector_size_b(), false>;
-      BigIntT result;
-      using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
-      #pragma unroll Vec::vector_element_count()
-      for (auto idx = 0; idx < Vec::vector_element_count(); ++idx) {
-        ElementT element = memory[idx];
-        result.set_slc((unsigned)(idx*CHAR_BIT*sizeof(typename Vec::base_type)), element);
-      }
-      return result;
-...
----
 primitive_name: "unpack_acint"
 brief_description: "Unpacks a coherent AC_INT."
 detailed_description: |
@@ -75,13 +48,12 @@ definitions:
     vector_length_agnostic: True
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>", "<type_traits>"]
     implementation: |
-      static_assert(BitReadOffset % Bitwidth == 0, "BitReadOffset must be a multiple of Bitwidth.");
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       using element_t = ac_int<Bitwidth, false>;
       BigIntT result;
+      result.template set_val<AC_VAL_0>();
       /**
        * read_count_t: number of elements from data that can be used to fully fill the corresponding values in result.
-       * 
        */
       using read_count_t = std::conditional_t<
         (Vec::vector_size_b() - BitReadOffset) >= (Bitwidth * Vec::vector_element_count()),
@@ -136,17 +108,16 @@ definitions:
     implementation: |
       // Element Size in bits: e.g., uint32_t -> 32
       using element_size_b = std::integral_constant<int, CHAR_BIT * sizeof(typename Vec::base_type)>;
-      // Following Alex:
-      // (((BitWriteOffset / element_size_b()::value) + 1) * element_size_b::value) - BitWriteOffset
-      // 
       using most_significant_set_value_idx_t = 
         std::integral_constant<int, BitWriteOffset / element_size_b::value>;
       using full_bit_write_offset = 
         std::integral_constant<int, (most_significant_set_value_idx_t::value + 1) * element_size_b::value>;
+    
       using most_significant_set_value_bits_written_t =
         std::integral_constant<int, BitWriteOffset - (most_significant_set_value_idx_t::value * element_size_b::value)>;
       
       static_assert(most_significant_set_value_bits_written_t::value % Bitwidth != 0, "MS value bits must not be a multiple of bitwidth");
+      static_assert((most_significant_set_value_idx_t::value + 1) <= Vec::vector_element_count(), "Remainder must be smaller than vector element count.");
 
       using read_offset_t = 
         std::integral_constant<int, Bitwidth - most_significant_set_value_bits_written_t::value>;
@@ -156,7 +127,6 @@ definitions:
       carry_t carry_element = data.template slc<read_offset_t::value>((unsigned)0);
       source.set_slc((unsigned)(BitWriteOffset), carry_element);
 
-      static_assert((most_significant_set_value_idx_t::value + 1) <= Vec::vector_element_count(), "Remainder must be smaller than vector element count.");
       using write_remainder_t =
         std::integral_constant<int, Vec::vector_element_count() - (most_significant_set_value_idx_t::value + 1)>;
 
@@ -168,6 +138,34 @@ definitions:
         }
       }
       return source;
+...
+---
+primitive_name: "load_acint"
+brief_description: "Loads consecutive data from memory into a coherent AC_INT."
+parameters:
+  - ctype: "const typename Vec::base_type*"
+    name: "memory"
+    description: "Pointer to memory."
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+  description: "AC Int containing packed N bits of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      using BigIntT = ac_int<Vec::vector_size_b(), false>;
+      BigIntT result;
+      //result.template set_val<AC_VAL_0>();
+      using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
+      #pragma unroll Vec::vector_element_count()
+      for (auto idx = 0; idx < Vec::vector_element_count(); ++idx) {
+        ElementT element = memory[idx];
+        result.set_slc((unsigned)(idx*CHAR_BIT*sizeof(typename Vec::base_type)), element);
+      }
+      return result;
 ...
 ---
 primitive_name: "packed_load_acint"
@@ -193,11 +191,18 @@ definitions:
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       BigIntT result;
       using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
+      using SliceT = ac_int<Bitwidth, false>;
       #pragma unroll Vec::vector_element_count()
       for (auto idx = 0; idx < Vec::vector_element_count(); ++idx) {
         ElementT element = memory[idx];
-        auto slice = element.template slc<Bitwidth>((unsigned)0);
+        SliceT slice = element.template slc<Bitwidth>((unsigned)0);
         result.set_slc((unsigned)(idx*Bitwidth), slice);
+      }
+      if constexpr (Vec::vector_size_b() - (Vec::vector_element_count() * Bitwidth) > 0) {
+        using RemainderT = ac_int<Vec::vector_size_b() - (Vec::vector_element_count() * Bitwidth), false>;
+        RemainderT remainder;
+        remainder.template set_val<AC_VAL_0>();
+        result.set_slc((unsigned)(Vec::vector_element_count() * Bitwidth), remainder);
       }
       return result;
 ...
