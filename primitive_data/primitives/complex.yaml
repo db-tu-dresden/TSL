@@ -93,7 +93,7 @@ parameters:
   - ctype: "ac_int<Vec::vector_size_b(), false>"
     name: "source"
     description: "AC Int containing unpacked data from previous step."
-  - ctype: "ac_int<Vec::vector_size_b(), false>"
+  - ctype: "ac_int<Vec::vector_size_b(), false> const"
     name: "data"
     description: "AC Int containing packed N bits of data."
 returns:
@@ -158,7 +158,7 @@ definitions:
     implementation: |
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       BigIntT result;
-      //result.template set_val<AC_VAL_0>();
+      result.template set_val<AC_VAL_0>();
       using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
       #pragma unroll Vec::vector_element_count()
       for (auto idx = 0; idx < Vec::vector_element_count(); ++idx) {
@@ -166,6 +166,42 @@ definitions:
         result.set_slc((unsigned)(idx*CHAR_BIT*sizeof(typename Vec::base_type)), element);
       }
       return result;
+...
+---
+primitive_name: "append_acint"
+additional_non_specialized_template_parameters:
+  - ctype: "int"
+    name: "Bitwidth"
+    default_value: "1"
+  - ctype: "int"
+    name: "BitWriteOffset"
+    default_value: "0"
+  - ctype: "int"
+    name: "BitReadOffset"
+    default_value: "0"
+parameters:
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "source"
+  - ctype: "ac_int<Vec::vector_size_b(), false> const"
+    name: "data"
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      using bit_read_count_t = std::integral_constant<
+        int,
+        ((Vec::vector_size_b()-BitWriteOffset) <= (Vec::vector_size_b()-BitReadOffset)) 
+        ? (Vec::vector_size_b()-BitWriteOffset) : (Vec::vector_size_b()-BitReadOffset)
+      >;
+      using slice_t = ac_int<bit_read_count_t::value, false>;
+      slice_t slice = data.template slc<bit_read_count_t::value>((unsigned)BitReadOffset);
+      source.set_slc((unsigned)BitWriteOffset, slice);
+      return source;
 ...
 ---
 primitive_name: "packed_load_acint"
@@ -190,6 +226,7 @@ definitions:
     implementation: |
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       BigIntT result;
+      result.template set_val<AC_VAL_0>();
       using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
       using SliceT = ac_int<Bitwidth, false>;
       #pragma unroll Vec::vector_element_count()
@@ -279,6 +316,58 @@ definitions:
       return data << shift_value;
 ...
 ---
+primitive_name: "slice_packed_shift_left_acint_by_N"
+brief_description: ""
+additional_non_specialized_template_parameters:
+  - ctype: "unsigned"
+    name: "ShiftValue"
+    default_value: "1"
+  - ctype: "unsigned"
+    name: "ReadOffset"
+    default_value: "0"
+  - ctype: "unsigned"
+    name: "EffectiveBits"
+    default_value: "1"
+  - ctype: "bool"
+    name: "PreserveRemainder"
+    default_value: "false"
+parameters:
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "data"
+    description: "AC_INT containing the source data."
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+  description: "AC Int containing packed N bits of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      using normalized_effective_bits_t = std::integral_constant<
+        unsigned, 
+        (Vec::vector_size_b() < (ReadOffset+ShiftValue+EffectiveBits)) ? 
+        Vec::vector_size_b() - (ReadOffset+ShiftValue) : EffectiveBits
+      >;
+      ac_int<normalized_effective_bits_t::value, false> slice = data.template slc<normalized_effective_bits_t::value>((unsigned)ReadOffset);
+      using BigIntT = ac_int<Vec::vector_size_b(), false>;
+      BigIntT result;
+      result.template set_val<AC_VAL_0>();
+      if constexpr (PreserveRemainder) {
+        ac_int<ReadOffset, false> front = data.template slc<ReadOffset>(0);
+        ac_int<Vec::vector_size_b() - ReadOffset - ShiftValue - normalized_effective_bits_t::value, false> tail = 
+          data.template slc<Vec::vector_size_b() - ReadOffset - ShiftValue - normalized_effective_bits_t::value>(ReadOffset+ShiftValue+normalized_effective_bits_t::value);
+        result.set_slc(0, front);
+        result.set_slc((unsigned)ReadOffset + ShiftValue, slice);
+        result.set_slc((unsigned)ReadOffset + ShiftValue + normalized_effective_bits_t::value, tail);        
+        return result;
+      } else {
+        result.set_slc((unsigned)ReadOffset + ShiftValue, slice);
+        return result;
+      }
+...
+---
 primitive_name: "packed_shift_right_acint"
 brief_description: ""
 parameters:
@@ -299,6 +388,67 @@ definitions:
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
     implementation: |
       return data >> shift_value;
+...
+---
+primitive_name: "slice_packed_shift_right_acint_by_N"
+brief_description: ""
+additional_non_specialized_template_parameters:
+  - ctype: "unsigned"
+    name: "ShiftValue"
+    default_value: "1"
+  - ctype: "unsigned"
+    name: "ReadOffset"
+    default_value: "0"
+  - ctype: "unsigned"
+    name: "EffectiveBits"
+    default_value: "1"
+  - ctype: "bool"
+    name: "PreserveRemainder"
+    default_value: "false"
+parameters:
+  - ctype: "ac_int<Vec::vector_size_b(), false>"
+    name: "data"
+    description: "AC_INT containing the source data."
+returns:
+  ctype: "ac_int<Vec::vector_size_b(), false>"
+  description: "AC Int containing packed N bits of data."
+definitions:
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
+    implementation: |
+      using normalized_read_offset_t = std::integral_constant<
+        unsigned, 
+        (ReadOffset < ShiftValue) ?
+        ReadOffset + (ShiftValue - ReadOffset) : ReadOffset
+      >;
+      using normalized_effective_bits_t = std::integral_constant<
+        unsigned, 
+        (ReadOffset != normalized_read_offset_t::value) ? 
+        EffectiveBits - (ShiftValue - ReadOffset) : EffectiveBits
+      >;
+      using write_offset_t = std::integral_constant<
+        unsigned,
+        normalized_read_offset_t::value - ShiftValue
+      >;
+      ac_int<normalized_effective_bits_t::value, false> slice = data.template slc<normalized_effective_bits_t::value>((unsigned)normalized_read_offset_t::value);
+      using BigIntT = ac_int<Vec::vector_size_b(), false>;
+      BigIntT result;
+      result.template set_val<AC_VAL_0>();
+      if constexpr (PreserveRemainder) {
+        ac_int<write_offset_t::value, false> front = data.template slc<write_offset_t::value>(0);
+        ac_int<Vec::vector_size_b() - ReadOffset - EffectiveBits> tail = 
+          data.template slc<Vec::vector_size_b() - ReadOffset - EffectiveBits>(ReadOffset + EffectiveBits);
+        result.set_slc(0, front);
+        result.set_slc((unsigned)write_offset_t::value, slice);
+        result.set_slc((unsigned)ReadOffset + EffectiveBits, tail);        
+        return result;
+      } else {
+        result.set_slc((unsigned)write_offset_t::value, slice);
+        return result;
+      }
 ...
 ---
 primitive_name: "packed_or_acint"
