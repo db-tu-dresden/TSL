@@ -355,14 +355,26 @@ testing:
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx512bw"]
-    implementation: "return _mm512_mask_add_{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+    implementation: "return _mm512_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
   - target_extension: "avx512"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f"]
     implementation: "return _mm512_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
 #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["avx"]

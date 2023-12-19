@@ -197,11 +197,11 @@ definitions:
   - target_extension: "avx512"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f"]
-    implementation: "return _mm512_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+    implementation: "return _mm512_maskz_loadu_epi{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
     lscpu_flags: ["avx512bw"]
-    implementation: "return _mm512_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+    implementation: "return _mm512_maskz_loadu_epi{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
   - target_extension: "avx512"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f"]
@@ -210,28 +210,28 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f"]
-    implementation: "return _mm256_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+    implementation: "return _mm256_maskz_loadu_epi{{ intrin_tp[ctype][1]  }}(tsl::to_integral<Vec>(mask), reinterpret_cast<void const *>(memory));"
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
     lscpu_flags: ["avx512bw"]
-    implementation: "return _mm256_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+    implementation: "return _mm256_maskz_loadu_epi{{ intrin_tp[ctype][1]  }}(tsl::to_integral<Vec>(mask), reinterpret_cast<void const *>(memory));"
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f"]
-    implementation: "return _mm256_maskz_loadu_{{ intrin_tp_full[ctype] }}(mask, reinterpret_cast<void const *>(memory));"
+    implementation: "return _mm256_maskz_loadu_{{ intrin_tp_full[ctype] }}(tsl::to_integral<Vec>(mask), reinterpret_cast<void const *>(memory));"
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f"]
-    implementation: "return _mm_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+    implementation: "return _mm_maskz_loadu_epi{{ intrin_tp[ctype][1]  }}(tsl::to_integral<Vec>(mask), reinterpret_cast<void const *>(memory));"
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
     lscpu_flags: ["avx512bw"]
-    implementation: "return _mm_maskz_loadu_{{ intrin_tp[ctype][1]  }}(mask, reinterpret_cast<void const *>(memory));"
+    implementation: "return _mm_maskz_loadu_epi{{ intrin_tp[ctype][1]  }}(tsl::to_integral<Vec>(mask), reinterpret_cast<void const *>(memory));"
   - target_extension: "sse"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f"]
-    implementation: "return _mm_maskz_loadu_{{ intrin_tp_full[ctype] }}(mask, reinterpret_cast<void const *>(memory));"
+    implementation: "return _mm_maskz_loadu_{{ intrin_tp_full[ctype] }}(tsl::to_integral<Vec>(mask), reinterpret_cast<void const *>(memory));"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -408,7 +408,7 @@ definitions:
 ...
 ---
 primitive_name: "storeu"
-functor_name: "mask_loadu"
+functor_name: "mask_storeu"
 brief_description: "Stores data from a vector register to (un)aligned memory."
 parameters:
   - ctype: "const typename Vec::mask_type"
@@ -445,11 +445,11 @@ definitions:
   - target_extension: "avx512"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f"]
-    implementation: "return _mm512_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+    implementation: "return _mm512_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
     lscpu_flags: ["avx512bw"]
-    implementation: "return _mm512_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+    implementation: "return _mm512_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "avx512"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f"]
@@ -458,28 +458,28 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f", "avx512vl"]
-    implementation: "return _mm256_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+    implementation: "return _mm256_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), tsl::to_integral<Vec>(mask), data);"
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
     lscpu_flags: ["avx512bw", "avx512vl"]
-    implementation: "return _mm256_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+    implementation: "return _mm256_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), tsl::to_integral<Vec>(mask), data);"
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f", "avx512vl"]
-    implementation: "return _mm256_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
+    implementation: "return _mm256_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), tsl::to_integral<Vec>(mask), data);"
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx512f", "avx512vl"]
-    implementation: "return _mm_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+    implementation: "return _mm_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), tsl::to_integral<Vec>(mask), data);"
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
     lscpu_flags: ["avx512bw", "avx512vl"]
-    implementation: "return _mm_mask_storeu_{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+    implementation: "return _mm_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), tsl::to_integral<Vec>(mask), data);"
   - target_extension: "sse"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f", "avx512vl"]
-    implementation: "return _mm_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
+    implementation: "return _mm_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), tsl::to_integral<Vec>(mask), data);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]

@@ -229,12 +229,46 @@ testing: #optional
       }
       return allOk;
 definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int32_t", "int64_t"]
+    lscpu_flags: ['avx512f']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm512_mask_cmpeq_epi{{ intrin_tp[ctype][1] }}_mask(mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "int16_t"]
+    lscpu_flags: ['avx512bw']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm512_mask_cmpeq_epi{{ intrin_tp[ctype][1] }}_mask(mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t"]
+    lscpu_flags: ['avx512f']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm512_mask_cmpeq_epu{{ intrin_tp[ctype][1] }}_mask(mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t"]
+    lscpu_flags: ['avx512bw']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm512_mask_cmpeq_epu{{ intrin_tp[ctype][1] }}_mask(mask, vec_a, vec_b);"
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ['avx2']
     specialization_comment: "Signed comparison."
     implementation: "return _mm256_and_si256(_mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b), mask);"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ['sse4_1']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm_and_si128(_mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b), mask);"
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: []
+    specialization_comment: "Signed comparison."
+    implementation: "return (vec_a == vec_b) && mask;"
+
 ...
 ---
 primitive_name: "nequal"
