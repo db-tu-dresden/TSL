@@ -1,0 +1,27 @@
+<RTL_SPEC>
+  <FUNCTION name="MaskCompress512" module="mask_compress_module">
+    <ATTRIBUTES>
+      <IS_STALL_FREE value="yes"/>
+      <IS_FIXED_LATENCY value="yes"/>
+      <EXPECTED_LATENCY value="2"/>
+      <CAPACITY value="2"/>
+      <HAS_SIDE_EFFECTS value="no"/>
+      <ALLOW_MERGING value="yes"/>
+    </ATTRIBUTES>
+    <INTERFACE>
+      <AVALON port="clock" type="clock"/>
+      <AVALON port="resetn" type="resetn"/>
+      <AVALON port="ivalid" type="ivalid"/>
+      <AVALON port="iready" type="iready"/>
+      <AVALON port="ovalid" type="ovalid"/>
+      <AVALON port="oready" type="oready"/>
+      <INPUT  port="datain_src" width="512"/>
+      <INPUT  port="datain_a" width="512"/>
+      <INPUT  port="maskin" width="8"/>
+      <OUTPUT port="dataout" width="512"/>
+    </INTERFACE>
+    <REQUIREMENTS>
+      <FILE name="lib_rtl_mask_compress512.sv" />
+    </REQUIREMENTS>
+  </FUNCTION>
+</RTL_SPEC>
