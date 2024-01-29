@@ -278,6 +278,56 @@ namespace tsl {
                 }
               ).wait();
             }
+
+        
+
+
+        template<VectorProcessingStyle PS, template<typename...> class Fun, typename... Args>
+            decltype(auto) detach(Args... args) {
+              return using FunctorClass = Fun<PS, Args...>;
+              q.submit(
+                [&](sycl::handler& h) {
+                  h.single_task<FunctorClass>([=]() [[intel::kernel_args_restrict]] {
+                    FunctorClass::apply(args...);
+                  });
+                }
+              );
+            }
+          template<template<typename...> class Fun, typename... Args>
+            decltype(auto) detach(Args... args) {
+              return q.submit(
+                [&](sycl::handler& h) {
+                  h.single_task<Fun<Args...>>([=]() [[intel::kernel_args_restrict]] {
+                    Fun<Args...>::apply(args...);
+                  });
+                }
+              );
+            }
+          template<typename BaseT, int VectorLength, template<typename...> class Fun, typename... Args>
+            decltype(auto) detach(Args... args) {
+              using FunctorClass = Fun<tsl::simd<BaseT, tsl::oneAPIfpga, sizeof(BaseT)*CHAR_BIT*VectorLength>, Args...>;
+              return q.submit(
+                [&](sycl::handler& h) {
+                  h.single_task<FunctorClass>([=]() [[intel::kernel_args_restrict]] {
+                    FunctorClass::apply(args...);
+                  });
+                }
+              );
+            }
+          template<class Fun, typename... Args>
+            decltype(auto) detach(Args... args) {
+              return q.submit(
+                [&](sycl::handler& h) {
+                  h.single_task<Fun>([=]() [[intel::kernel_args_restrict]] {
+                    Fun::apply(args...);
+                  });
+                }
+              );
+            }
+
+          void wait() {
+            q.wait();
+          }
     };
     #ifdef ONEAPI_FPGA_HARDWARE
     using oneAPI_default_fpga = oneAPI_fpga<oneAPI_hardware_selector>;

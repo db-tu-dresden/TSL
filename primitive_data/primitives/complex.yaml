@@ -171,9 +171,6 @@ definitions:
 primitive_name: "append_acint"
 additional_non_specialized_template_parameters:
   - ctype: "int"
-    name: "Bitwidth"
-    default_value: "1"
-  - ctype: "int"
     name: "BitWriteOffset"
     default_value: "0"
   - ctype: "int"
@@ -224,6 +221,7 @@ definitions:
     vector_length_agnostic: True
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
     implementation: |
+      static_assert((Bitwidth <= (sizeof(typename Vec::base_type)*CHAR_BIT)), "Bitwidth must be smaller or equal to the number of bits in the vector's base type.");
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       BigIntT result;
       result.template set_val<AC_VAL_0>();
@@ -234,12 +232,6 @@ definitions:
         ElementT element = memory[idx];
         SliceT slice = element.template slc<Bitwidth>((unsigned)0);
         result.set_slc((unsigned)(idx*Bitwidth), slice);
-      }
-      if constexpr (Vec::vector_size_b() - (Vec::vector_element_count() * Bitwidth) > 0) {
-        using RemainderT = ac_int<Vec::vector_size_b() - (Vec::vector_element_count() * Bitwidth), false>;
-        RemainderT remainder;
-        remainder.template set_val<AC_VAL_0>();
-        result.set_slc((unsigned)(Vec::vector_element_count() * Bitwidth), remainder);
       }
       return result;
 ...

@@ -49,5 +49,26 @@ implementations:
             decltype(auto) submit(Args... args) {
               return target.template submit<Fun>(args...);
             }
+
+          template<VectorProcessingStyle PS, template<typename...> class Fun, typename... Args>
+            decltype(auto) detach(Args... args) {
+              return target.template detach<PS, Fun>(args...);
+            }
+          template<template<typename...> class Fun, typename... Args>
+            decltype(auto) detach(Args... args) {
+              return target.template detach<Fun>(args...);
+            }
+          template<typename BaseT, int VectorLength, template<typename...> class Fun, typename... Args>
+            decltype(auto) detach(Args... args) {
+              return target.template detach<BaseT, VectorLength, Fun, Args...>(args...);
+            }
+          template<class Fun, typename... Args>
+            decltype(auto) detach(Args... args) {
+              return target.template detach<Fun>(args...);
+            }
+
+          void wait() {
+            target.wait();
+          }
       };
 ...
