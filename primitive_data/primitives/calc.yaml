@@ -1689,7 +1689,7 @@ definitions:
     ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t' ]
     lscpu_flags: [ ]
     implementation: return vec % val;
-# FPGA 
+# FPGA
 # we split up oneAPIfpga and oneAPIfpgaRTL just to compare the performance of the two implementations for CIDR
   - target_extension: ["oneAPIfpga"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]

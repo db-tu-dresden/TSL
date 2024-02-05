@@ -1267,11 +1267,11 @@ definitions:
         auto upper_{{ current_byte_size * 4 }}_bit = (uint{{current_byte_size * 8}}_t)(({{ current_value_name }} >> {{ current_byte_size * 4 }})&(0x{{ "f" * (current_byte_size) }}));
         uint{{current_byte_size * 8}}_t clz_upper_{{ current_byte_size * 4 }}_bit;
         {% filter indent(width=indentation) +%}
-        { 
+        {
         {{ clz_impl(current_byte_size // 2, "upper_" ~ current_byte_size * 4 ~ "_bit", "clz_upper_" ~ current_byte_size * 4 ~ "_bit", indentation) }}
         }
         {% endfilter %}
-                              
+
         auto lower_{{ current_byte_size * 4 }}_bit = (uint{{current_byte_size * 8}}_t)({{ current_value_name }}&(0x{{ "f" * (current_byte_size) }}));
         uint{{current_byte_size * 8}}_t clz_lower_{{ current_byte_size * 4 }}_bit;
         {% filter indent(width=indentation) +%}
@@ -1286,7 +1286,7 @@ definitions:
         typename Vec::offset_base_type current_result;
         {% filter indent(width=2) +%}
         {{ clz_impl(type_size_in_bytes[ctype], "data[idx]", "current_result", 2) }}
-        {% endfilter %} 
+        {% endfilter %}
         result[idx] = current_result;
       }
       return result;
@@ -1339,11 +1339,11 @@ definitions:
         auto upper_{{ current_byte_size * 4 }}_bit = (uint{{current_byte_size * 8}}_t)(({{ current_value_name }} >> {{ current_byte_size * 4 }})&(0x{{ "f" * (current_byte_size) }}));
         uint{{current_byte_size * 8}}_t clz_upper_{{ current_byte_size * 4 }}_bit;
         {% filter indent(width=indentation) +%}
-        { 
+        {
         {{ clz_impl(current_byte_size // 2, "upper_" ~ current_byte_size * 4 ~ "_bit", "clz_upper_" ~ current_byte_size * 4 ~ "_bit", indentation) }}
         }
         {% endfilter %}
-                              
+
         auto lower_{{ current_byte_size * 4 }}_bit = (uint{{current_byte_size * 8}}_t)({{ current_value_name }}&(0x{{ "f" * (current_byte_size) }}));
         uint{{current_byte_size * 8}}_t clz_lower_{{ current_byte_size * 4 }}_bit;
         {% filter indent(width=indentation) +%}
@@ -1358,7 +1358,7 @@ definitions:
         typename Vec::offset_base_type current_result;
         {% filter indent(width=2) +%}
           {{ clz_impl(type_size_in_bytes[ctype], "data[idx]", "current_result", 2) }}
-        {% endfilter %} 
+        {% endfilter %}
         result[idx] = current_result;
       }
       return result;
@@ -1419,7 +1419,7 @@ definitions:
         {% endif %}
         {% endmacro %}
         [[intel::fpga_register]] uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
-        result[idx] = 
+        result[idx] =
         {% filter indent(width=2) %}
           {{ clz_ternary_impl("data[idx]", type_size_in_bits[ctype], 0) }};
         {% endfilter %}

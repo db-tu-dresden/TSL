@@ -6,7 +6,7 @@ description: "Complex (composed) primitives that are highly application specific
 primitive_name: "unpack_acint"
 brief_description: "Unpacks a coherent AC_INT."
 detailed_description: |
-  Takes an AC_INT as input (<data>). 
+  Takes an AC_INT as input (<data>).
   The AC_INT is assumed to be packed with <Bitwidth> wide data elements.
   unpack_acint returns an AC_INT with Vec::vector_element_count() elements of type <Vec::base_type>
   starting to read from <data> at position <BitReadOffset>.
@@ -108,18 +108,17 @@ definitions:
     implementation: |
       // Element Size in bits: e.g., uint32_t -> 32
       using element_size_b = std::integral_constant<int, CHAR_BIT * sizeof(typename Vec::base_type)>;
-      using most_significant_set_value_idx_t = 
+      using most_significant_set_value_idx_t =
         std::integral_constant<int, BitWriteOffset / element_size_b::value>;
-      using full_bit_write_offset = 
+      using full_bit_write_offset =
         std::integral_constant<int, (most_significant_set_value_idx_t::value + 1) * element_size_b::value>;
-    
       using most_significant_set_value_bits_written_t =
         std::integral_constant<int, BitWriteOffset - (most_significant_set_value_idx_t::value * element_size_b::value)>;
-      
+
       static_assert(most_significant_set_value_bits_written_t::value % Bitwidth != 0, "MS value bits must not be a multiple of bitwidth");
       static_assert((most_significant_set_value_idx_t::value + 1) <= Vec::vector_element_count(), "Remainder must be smaller than vector element count.");
 
-      using read_offset_t = 
+      using read_offset_t =
         std::integral_constant<int, Bitwidth - most_significant_set_value_bits_written_t::value>;
 
       using carry_t = ac_int<read_offset_t::value, false>;
@@ -192,7 +191,7 @@ definitions:
     implementation: |
       using bit_read_count_t = std::integral_constant<
         int,
-        ((Vec::vector_size_b()-BitWriteOffset) <= (Vec::vector_size_b()-BitReadOffset)) 
+        ((Vec::vector_size_b()-BitWriteOffset) <= (Vec::vector_size_b()-BitReadOffset))
         ? (Vec::vector_size_b()-BitWriteOffset) : (Vec::vector_size_b()-BitReadOffset)
       >;
       using slice_t = ac_int<bit_read_count_t::value, false>;
@@ -338,8 +337,8 @@ definitions:
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
     implementation: |
       using normalized_effective_bits_t = std::integral_constant<
-        unsigned, 
-        (Vec::vector_size_b() < (ReadOffset+ShiftValue+EffectiveBits)) ? 
+        unsigned,
+        (Vec::vector_size_b() < (ReadOffset+ShiftValue+EffectiveBits)) ?
         Vec::vector_size_b() - (ReadOffset+ShiftValue) : EffectiveBits
       >;
       ac_int<normalized_effective_bits_t::value, false> slice = data.template slc<normalized_effective_bits_t::value>((unsigned)ReadOffset);
@@ -348,11 +347,11 @@ definitions:
       result.template set_val<AC_VAL_0>();
       if constexpr (PreserveRemainder) {
         ac_int<ReadOffset, false> front = data.template slc<ReadOffset>(0);
-        ac_int<Vec::vector_size_b() - ReadOffset - ShiftValue - normalized_effective_bits_t::value, false> tail = 
+        ac_int<Vec::vector_size_b() - ReadOffset - ShiftValue - normalized_effective_bits_t::value, false> tail =
           data.template slc<Vec::vector_size_b() - ReadOffset - ShiftValue - normalized_effective_bits_t::value>(ReadOffset+ShiftValue+normalized_effective_bits_t::value);
         result.set_slc(0, front);
         result.set_slc((unsigned)ReadOffset + ShiftValue, slice);
-        result.set_slc((unsigned)ReadOffset + ShiftValue + normalized_effective_bits_t::value, tail);        
+        result.set_slc((unsigned)ReadOffset + ShiftValue + normalized_effective_bits_t::value, tail);
         return result;
       } else {
         result.set_slc((unsigned)ReadOffset + ShiftValue, slice);
@@ -412,13 +411,13 @@ definitions:
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
     implementation: |
       using normalized_read_offset_t = std::integral_constant<
-        unsigned, 
+        unsigned,
         (ReadOffset < ShiftValue) ?
         ReadOffset + (ShiftValue - ReadOffset) : ReadOffset
       >;
       using normalized_effective_bits_t = std::integral_constant<
-        unsigned, 
-        (ReadOffset != normalized_read_offset_t::value) ? 
+        unsigned,
+        (ReadOffset != normalized_read_offset_t::value) ?
         EffectiveBits - (ShiftValue - ReadOffset) : EffectiveBits
       >;
       using write_offset_t = std::integral_constant<
@@ -431,11 +430,11 @@ definitions:
       result.template set_val<AC_VAL_0>();
       if constexpr (PreserveRemainder) {
         ac_int<write_offset_t::value, false> front = data.template slc<write_offset_t::value>(0);
-        ac_int<Vec::vector_size_b() - ReadOffset - EffectiveBits> tail = 
+        ac_int<Vec::vector_size_b() - ReadOffset - EffectiveBits> tail =
           data.template slc<Vec::vector_size_b() - ReadOffset - EffectiveBits>(ReadOffset + EffectiveBits);
         result.set_slc(0, front);
         result.set_slc((unsigned)write_offset_t::value, slice);
-        result.set_slc((unsigned)ReadOffset + EffectiveBits, tail);        
+        result.set_slc((unsigned)ReadOffset + EffectiveBits, tail);
         return result;
       } else {
         result.set_slc((unsigned)write_offset_t::value, slice);
