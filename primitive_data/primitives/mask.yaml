@@ -1173,6 +1173,30 @@ definitions:
     lscpu_flags: ["sse2"]
     implementation: "return tsl::to_mask<Vec>(*memory);"
 ...
+---
+primitive_name: "store_imask"
+brief_description: "Stores an integral mask to memory."
+parameters:
+  - ctype: "typename Vec::imask_type *"
+    name: "memory"
+    description: "Memory where the mask data should be loaded from."
+  - ctype: "typename Vec::imask_type"
+    name: "mask"
+    description: "Mask to be stored."
+definitions:
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "*memory = mask;"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "*memory = mask;"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse2"]
+    implementation: "*memory = mask;"
+...
 #---
 #primitive_name: "mask_reduce"
 #brief_description: "Masks out every non relevant bit."
