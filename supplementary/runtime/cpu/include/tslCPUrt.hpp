@@ -68,9 +68,9 @@ namespace tsl {
             if constexpr(VectorLength == 1) {
               return Fun<simd<BaseT, scalar>, Args...>::apply(args...);
             } 
-            {% for avail_extension_type_size in avail_extension_types_dict %}
-            else if constexpr(sizeof(BaseT)*CHAR_BIT*VectorLength == {{ avail_extension_type_size }}) {
-              return Fun<simd<BaseT, {{ avail_extension_types_dict[avail_extension_type_size] }}>, Args...>::apply(args...);
+            {% for key in avail_extension_types_dict.keys() | sort %}
+            else if constexpr(sizeof(BaseT)*CHAR_BIT*VectorLength == {{ key }}) {
+              return Fun<simd<BaseT, {{ avail_extension_types_dict[key] }}>, Args...>::apply(args...);
             }
             {% endfor %}
             else {
@@ -86,6 +86,12 @@ namespace tsl {
         template<class Fun, typename... Args>
           decltype(auto) detach(Args... args) {
             Fun::apply(args...);
+          }
+        
+        template<TSLArithmetic BaseT>
+          static constexpr std::array<uint32_t, {{avail_extension_types_dict.keys() | length + 1}}> available_parallelism() {
+          	{% set keys = avail_extension_types_dict.keys() | sort | list %}
+          	return { 1, {% for i in keys %}{% if not loop.first %}, {% endif %}{{i}} / (sizeof(BaseT)*CHAR_BIT){% endfor %} };
           }
 
         void wait() { }

@@ -67,6 +67,11 @@ implementations:
               return target.template detach<Fun>(args...);
             }
 
+          template<TSLArithmetic T>
+          static constexpr auto available_parallelism() {
+            return ExecTarget::template available_parallelism<T>();
+          }
+
           void wait() {
             target.wait();
           }
