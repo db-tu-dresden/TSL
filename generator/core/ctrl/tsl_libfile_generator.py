@@ -125,6 +125,7 @@ class TSLFileGenerator:
                                  f"Created template specialization for {primitive.declaration.name} (details::{primitive.declaration.name}_impl<simd<{ctype}, {definition.target_extension}>>)")
 
                     definition_file.import_includes(definition.data)
+                    declaration_file.import_includes(definition.data)
                     definition_file.add_file_include(declaration_file)
 
             self.__primitive_class_declarations.append(declaration_file)

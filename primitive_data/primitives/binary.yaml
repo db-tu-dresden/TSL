@@ -1272,6 +1272,240 @@ definitions:
       return details::clz_recursive<typename Vec::base_type, typename Vec::offset_base_type>::apply(data);
 ...
 ---
+primitive_name: "lzc_alt"
+brief_description: "Leading zeros counter."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "First vector."
+returns:
+  ctype: "typename Vec::offset_base_register_type"
+  description: "Vector containing leading zeros number."
+definitions:
+  - target_extension: "oneAPIfpga"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    vector_length_agnostic: True
+    specialization_comment: |
+      Calls a recursive function.
+    implementation: |
+      typename Vec::offset_base_register_type result{};
+      using base_t = typename Vec::base_type;
+      #pragma unroll
+      for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+        result[idx] = details::clz_recursive<base_t, typename Vec::offset_base_type>::apply(data[idx]);
+      }
+      return result;
+...
+---
+primitive_name: "lzc_alt1"
+brief_description: "Leading zeros counter."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "First vector."
+returns:
+  ctype: "typename Vec::offset_base_register_type"
+  description: "Vector containing leading zeros number."
+definitions:
+  - target_extension: "oneAPIfpga"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    vector_length_agnostic: True
+    specialization_comment: |
+      Resembles the following approach:
+      <code>
+      uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0 ,0 ,0 ,0};
+      uint8_t clz_upper_8bit;
+      uint8_t upper_4bit = (val >> 4) & 0xF;
+      uint8_t lower_4bit = val & 0xF;
+      clz_upper_8bit = clz_lookup[upper_4bit] + (clz_lookup[lower_4bit] & (upper_4bit - 1) >> 5);
+      </code>
+      Every n-bit element is recursively halfed and the scheme shown above is applied.
+    implementation: |
+      typename Vec::offset_base_register_type result{};
+      using base_t = typename Vec::base_type;
+      #pragma unroll
+      for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+        {%- set type_size_in_bytes = {
+          "uint8_t" : 1, "int8_t" : 1,
+          "uint16_t": 2, "int16_t": 2,
+          "uint32_t": 4, "int32_t": 4,
+          "uint64_t": 8, "int64_t": 8
+        } -%}
+        {% macro clz_impl(current_byte_size, current_value_name, current_result_name, indentation) %}
+        {% if current_byte_size == 1 %}
+        {% filter indent(width=indentation) +%}
+        uint8_t upper_4bit = ({{ current_value_name }} >> 4) & 0xf;
+        uint8_t lower_4bit = {{ current_value_name }} & 0xf;
+        {{ current_result_name }} = clz_lookup[upper_4bit] + (clz_lookup[lower_4bit] & ((upper_4bit - 1) >> 5));
+        {% endfilter %}
+        {% else %}
+        auto upper_{{ current_byte_size * 4 }}_bit = (uint{{current_byte_size * 8}}_t)(({{ current_value_name }} >> {{ current_byte_size * 4 }})&(0x{{ "f" * (current_byte_size) }}));
+        uint{{current_byte_size * 8}}_t clz_upper_{{ current_byte_size * 4 }}_bit;
+        {% filter indent(width=indentation) +%}
+        {
+        {{ clz_impl(current_byte_size // 2, "upper_" ~ current_byte_size * 4 ~ "_bit", "clz_upper_" ~ current_byte_size * 4 ~ "_bit", indentation) }}
+        }
+        {% endfilter %}
+
+        auto lower_{{ current_byte_size * 4 }}_bit = (uint{{current_byte_size * 8}}_t)({{ current_value_name }}&(0x{{ "f" * (current_byte_size) }}));
+        uint{{current_byte_size * 8}}_t clz_lower_{{ current_byte_size * 4 }}_bit;
+        {% filter indent(width=indentation) +%}
+        {
+        {{ clz_impl(current_byte_size // 2, "lower_" ~ current_byte_size * 4 ~ "_bit", "clz_lower_" ~ current_byte_size * 4 ~ "_bit", indentation) }}
+        }
+        {{ current_result_name }} = (clz_upper_{{ current_byte_size * 4 }}_bit + (clz_lower_{{ current_byte_size * 4 }}_bit & ((upper_{{ current_byte_size * 4 }}_bit - 1) >> {{ current_byte_size * 4 + 1}})));
+        {% endfilter %}
+        {% endif %}
+        {% endmacro %}
+        [[intel::fpga_register]] uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+        typename Vec::offset_base_type current_result;
+        {% filter indent(width=2) +%}
+        {{ clz_impl(type_size_in_bytes[ctype], "data[idx]", "current_result", 2) }}
+        {% endfilter %}
+        result[idx] = current_result;
+      }
+      return result;
+...
+---
+primitive_name: "lzc_alt2"
+brief_description: "Leading zeros counter."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "First vector."
+returns:
+  ctype: "typename Vec::offset_base_register_type"
+  description: "Vector containing leading zeros number."
+definitions:
+  - target_extension: "oneAPIfpga"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    vector_length_agnostic: True
+    specialization_comment: |
+      Resembles the following approach:
+      <code>
+      uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0 ,0 ,0 ,0};
+      uint8_t clz_upper_8bit;
+      uint8_t upper_4bit = (val >> 4) & 0xF;
+      uint8_t lower_4bit = val & 0xF;
+      clz_upper_8bit = clz_lookup[upper_4bit] + (clz_lookup[lower_4bit] & ((upper_4bit == 0) ? 0xf : 0);
+      </code>
+      Every n-bit element is recursively halfed and the scheme shown above is applied.
+    implementation: |
+      typename Vec::offset_base_register_type result{};
+      using base_t = typename Vec::base_type;
+      #pragma unroll
+      for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+        {%- set type_size_in_bytes = {
+          "uint8_t" : 1, "int8_t" : 1,
+          "uint16_t": 2, "int16_t": 2,
+          "uint32_t": 4, "int32_t": 4,
+          "uint64_t": 8, "int64_t": 8
+        } -%}
+        {% macro clz_impl(current_byte_size, current_value_name, current_result_name, indentation) %}
+        {% if current_byte_size == 1 %}
+        {% filter indent(width=indentation) +%}
+        uint8_t upper_4bit = ({{ current_value_name }} >> 4) & 0xf;
+        uint8_t lower_4bit = {{ current_value_name }} & 0xf;
+        {{ current_result_name }} = clz_lookup[upper_4bit] + (clz_lookup[lower_4bit] & ((upper_4bit == 0) ? 0xf : 0));
+        {% endfilter %}
+        {% else %}
+        auto upper_{{ current_byte_size * 4 }}_bit = (uint{{current_byte_size * 8}}_t)(({{ current_value_name }} >> {{ current_byte_size * 4 }})&(0x{{ "f" * (current_byte_size) }}));
+        uint{{current_byte_size * 8}}_t clz_upper_{{ current_byte_size * 4 }}_bit;
+        {% filter indent(width=indentation) +%}
+        {
+        {{ clz_impl(current_byte_size // 2, "upper_" ~ current_byte_size * 4 ~ "_bit", "clz_upper_" ~ current_byte_size * 4 ~ "_bit", indentation) }}
+        }
+        {% endfilter %}
+
+        auto lower_{{ current_byte_size * 4 }}_bit = (uint{{current_byte_size * 8}}_t)({{ current_value_name }}&(0x{{ "f" * (current_byte_size) }}));
+        uint{{current_byte_size * 8}}_t clz_lower_{{ current_byte_size * 4 }}_bit;
+        {% filter indent(width=indentation) +%}
+        {
+        {{ clz_impl(current_byte_size // 2, "lower_" ~ current_byte_size * 4 ~ "_bit", "clz_lower_" ~ current_byte_size * 4 ~ "_bit", indentation) }}
+        }
+        {{ current_result_name }} = (clz_upper_{{ current_byte_size * 4 }}_bit + (clz_lower_{{ current_byte_size * 4 }}_bit & ((upper_{{ current_byte_size * 4 }}_bit == 0) ? 0x{{ "ff" * (current_byte_size//2) }} : 0)));
+        {% endfilter %}
+        {% endif %}
+        {% endmacro %}
+        [[intel::fpga_register]] uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+        typename Vec::offset_base_type current_result;
+        {% filter indent(width=2) +%}
+          {{ clz_impl(type_size_in_bytes[ctype], "data[idx]", "current_result", 2) }}
+        {% endfilter %}
+        result[idx] = current_result;
+      }
+      return result;
+...
+---
+primitive_name: "lzc_alt3"
+brief_description: "Leading zeros counter."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "First vector."
+returns:
+  ctype: "typename Vec::offset_base_register_type"
+  description: "Vector containing leading zeros number."
+definitions:
+  - target_extension: "oneAPIfpga"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    vector_length_agnostic: True
+    specialization_comment: |
+      Divide-and-conquer approach to leading zeros counting.
+      Halfes the input recursivly and uses ternary operator to select the correct result.
+      At most, log2(sizeof(ctype))+1 stages (aka compares) are required to produce an output.
+    implementation: |
+      typename Vec::offset_base_register_type result{};
+      using base_t = typename Vec::base_type;
+      #pragma unroll
+      for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+        {%- set type_size_in_bits = {
+          "uint8_t" :  8, "int8_t" :  8,
+          "uint16_t": 16, "int16_t": 16,
+          "uint32_t": 32, "int32_t": 32,
+          "uint64_t": 64, "int64_t": 64
+        } -%}
+        {% macro clz_ternary_impl(value_name, current_bitwidth, current_shift_value) %}
+        ({{ value_name }} & 0x{{ "f" * (current_bitwidth // 8) }}{{ "0" * (current_bitwidth // 8) }}{{ "0" * (current_shift_value//4) }})
+        {% if current_bitwidth == 8 %}?
+          clz_lookup[(({{ value_name }} >> {{current_shift_value + current_bitwidth // 2}}) & 0x{{'f'*(current_bitwidth//8)}})]
+        :
+          {{ current_bitwidth // 2 }} + clz_lookup[(({{ value_name }} >> {{current_shift_value}}) & 0x{{'f'*(current_bitwidth//8)}})]
+        {% else %}
+        ?
+        {% filter indent(width=2) %}
+          (
+        {% filter indent(width=2) %}
+          {{ clz_ternary_impl(value_name, current_bitwidth//2, current_shift_value+current_bitwidth//2) }}
+        {% endfilter%}
+        )
+        {% endfilter%}
+        :
+        {% filter indent(width=2) %}
+          {{ current_bitwidth // 2 }} + (
+        {% filter indent(width=2) %}
+          {{ clz_ternary_impl(value_name, current_bitwidth//2, current_shift_value) }}{% endfilter%}
+        )
+        {% endfilter%}
+        {% endif %}
+        {% endmacro %}
+        [[intel::fpga_register]] uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+        result[idx] =
+        {% filter indent(width=2) %}
+          {{ clz_ternary_impl("data[idx]", type_size_in_bits[ctype], 0) }};
+        {% endfilter %}
+      }
+      return result;
+...
+---
 primitive_name: "hor"
 brief_description: "Operates horizontal OR on vector register"
 parameters:

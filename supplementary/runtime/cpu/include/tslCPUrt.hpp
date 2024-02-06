@@ -78,6 +78,17 @@ namespace tsl {
               throw std::runtime_error("unsupported vector length");
             }
           }
+        template<class Fun, typename... Args>
+          decltype(auto) submit(Args... args) {
+            return Fun::apply(args...);
+          }
+
+        template<class Fun, typename... Args>
+          decltype(auto) detach(Args... args) {
+            Fun::apply(args...);
+          }
+
+        void wait() { }
     };
   }
 }
