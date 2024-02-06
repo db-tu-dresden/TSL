@@ -1960,6 +1960,60 @@ definitions:
      implementation: "return (mask & 1) ? src : 0;"
 ...
 ---
+primitive_name: "maskz_mov"
+brief_description: "Copy elements from a vector, where the mask bit it set, otherwise write zero"
+parameters:
+   - ctype: "const typename Vec::mask_type"
+     name: "mask"
+     description: "Mask of elements to change."
+   - ctype: "const typename Vec::register_type"
+     name: "src"
+     description: "Base Vector."
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Base Vector, with the elements specified by mask changed to value."
+testing:
+   -  requires: ["loadu"]
+      includes: ["<cstddef>"]
+      implementation: |
+         using T = typename Vec::base_type;
+         std::size_t element_count = 1024;
+         bool allOk = true;
+         testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+         auto reference_result_ptr = test_helper.result_ref();
+         auto test_result_ptr = test_helper.result_target();
+         auto test_data_ptr = test_helper.data_target();
+         for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            typename Vec::imask_type random_integral;
+            testing::rnd_init(&random_integral, 1);
+            auto src = &test_data_ptr[i];
+            auto result = maskz_mov<Vec>(random_integral, loadu<Vec>(src));
+            for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
+               reference_result_ptr[j] = (random_integral >> j) & 1 ? src[j] : 0;
+            }
+            allOk &= test_helper.validate_simd_register(result);
+         }
+         return allOk;
+definitions:
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+     lscpu_flags: ["avx2"]
+     implementation: "return _mm256_and_si256(src, mask);"
+   - target_extension: "avx2"
+     ctype: ["float", "double"]
+     lscpu_flags: ["avx"]
+     implementation: "return _mm256_and_{{ intrin_tp_full[ctype] }}(src, mask);"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+     lscpu_flags: ["sse2"]
+     implementation: "return _mm_and_si128(mask, src);"
+   - target_extension: "sse"
+     ctype: ["float", double]
+     lscpu_flags: ["sse", "sse2"]
+     implementation: "return _mm_and_{{ intrin_tp_full[ctype] }}(mask, src);"
+...
+---
 primitive_name: "mask_mov"
 brief_description: "Merge two vectors while picking the source of each element based on the corresponding mask bit"
 parameters:
