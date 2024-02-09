@@ -12,6 +12,11 @@ namespace tsl {
       public:
         using max_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|max] }};
         using min_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|min] }};
+        using available_extensions_tuple = std::tuple< 
+          {% for key in avail_extension_types_dict.keys() | sort %}
+          {{avail_extension_types_dict[key]}}, 
+          {% endfor %} 
+          scalar > ;
       public:
         cpu() = default;
       public:
@@ -55,6 +60,14 @@ namespace tsl {
             }
           }
       public:
+        template<class Functor, typename... Args>
+        decltype(auto) submit(Functor& fun, Args... args) {
+          return fun(args...);
+        }
+        template<class Functor, typename... Args>
+        decltype(auto) submit(Functor&& fun, Args... args) {
+          return fun(args...);
+        }
         template<VectorProcessingStyle PS, template<typename...> class Fun, typename... Args>
           decltype(auto) submit(Args... args) {
             return Fun<PS, Args...>::apply(args...);
