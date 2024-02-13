@@ -12,11 +12,23 @@ namespace tsl {
       public:
         using max_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|max] }};
         using min_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|min] }};
-        using available_extensions_tuple = std::tuple< 
-          {% for key in avail_extension_types_dict.keys() | sort %}
-          {{avail_extension_types_dict[key]}}, 
-          {% endfor %} 
-          scalar > ;
+        using available_extensions_tuple = 
+          std::tuple< 
+            scalar,
+            {% for key in avail_extension_types_dict.keys() | sort %}
+            {{avail_extension_types_dict[key]}}{% if not loop.last %}, 
+            {% endif %}
+            {% endfor %} 
+          > ;
+        template<typename T>
+        using available_vector_processing_styles_tuple = 
+          std::tuple< 
+            simd<T, scalar>,
+            {% for key in avail_extension_types_dict.keys() | sort %}
+            simd<T, {{avail_extension_types_dict[key]}}>{% if not loop.last %}, 
+            {% endif %}
+            {% endfor %} 
+          > ;
       public:
         cpu() = default;
       public:

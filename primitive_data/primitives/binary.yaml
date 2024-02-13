@@ -1427,6 +1427,87 @@ definitions:
       return result;
 ...
 ---
+primitive_name: "lzc"
+functor_name: "lzc_imask"
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "data"
+    description: "Value."
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Number of leading zeros."
+definitions:
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: |
+      return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["neon"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["neon"]
+    implementation: |
+      return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: |
+      return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      return details::clz_recursive<typename Vec::imask_type, typename Vec::imask_type>::apply(data);
+...
+---
+primitive_name: "tzc"
+functor_name: "tzc_imask"
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "data"
+    description: "Value."
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Number of trailing zeros."
+definitions:
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: |
+      return details::ctz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      return details::ctz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      return details::ctz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["neon"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["neon"]
+    implementation: |
+      return details::ctz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: |
+      return details::ctz<typename Vec::imask_type, typename Vec::imask_type>(data);
+...
+---
 primitive_name: "hor"
 brief_description: "Operates horizontal OR on vector register"
 parameters:
