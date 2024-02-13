@@ -245,6 +245,42 @@ definitions:
     implementation: "return _mm256_and_si256(_mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b), mask);"
 ...
 ---
+primitive_name: "equal"
+functor_name: "equal_masks"
+brief_description: "Compares two imasks for equality."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask_a"
+    description: "Left vector."
+  - ctype: "const typename Vec::imask_type"
+    name: "mask_b"
+    description: "Right vector."
+returns:
+  ctype: "bool"
+  description: "bool indicating whether mask_a[*]==mask_b[*]."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: "return mask_a == mask_b;"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx2']
+    implementation: "return mask_a == mask_b;"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sse']
+    implementation: "return mask_a == mask_b;"
+  #Scalar
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return mask_a == mask_b;"
+...
+---
 primitive_name: "nequal"
 brief_description: "Compares two vector registers for inequality."
 parameters:
@@ -406,6 +442,42 @@ definitions:
         result[i] = (vec_a[i] == vec_b[i]) ? 0 : checker;
       }
       return result;
+...
+---
+primitive_name: "nequal"
+functor_name: "nequal_masks"
+brief_description: "Compares two imasks for non-equality."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask_a"
+    description: "Left vector."
+  - ctype: "const typename Vec::imask_type"
+    name: "mask_b"
+    description: "Right vector."
+returns:
+  ctype: "bool"
+  description: "bool indicating whether mask_a[*]==mask_b[*]."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: "return mask_a != mask_b;"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx2']
+    implementation: "return mask_a != mask_b;"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sse']
+    implementation: "return mask_a != mask_b;"
+  #Scalar
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return mask_a != mask_b;"
 ...
 ---
 primitive_name: "between_inclusive"
