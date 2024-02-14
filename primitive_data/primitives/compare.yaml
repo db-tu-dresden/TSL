@@ -583,29 +583,74 @@ testing:
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: "int64_t"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
     lscpu_flags: ['avx512f']
-    implementation: "return _mm512_cmple_epu64_mask( vec_min, vec_data ) & _mm512_cmpge_epu64_mask( vec_max, vec_data );"
+    implementation: "return _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_data, vec_max) & _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_min, vec_data);"
   - target_extension: "avx512"
-    ctype: ["float", "double"]
-    lscpu_flags: ["avx512f"]
-    implementation: "return _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_min, vec_data) & _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_data, vec_max);"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ['avx512f', 'avx512bw']
+    implementation: "return _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_data, vec_max) & _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_min, vec_data);"
 #INTEL - AVX2
   - target_extension: "avx2"
-    ctype: "int64_t"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t",]
     lscpu_flags: [ 'avx2' ]
-    note: "EPI64 INSTEAD OF EPU64!!!"
-    implementation: "return _mm256_andnot_si256( _mm256_cmpgt_epi64( vec_min, vec_data ), _mm256_andnot_si256( _mm256_cmpgt_epi64( vec_data, vec_max ), _mm256_set1_epi64x(-1)));"
+    implementation: |
+      return _mm256_and_si256(
+        _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_min, _mm256_min_{{ intrin_tp_full[ctype] }}(vec_min, vec_data)),
+        _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_max, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_max, vec_data))
+      );
+  - target_extension: "avx2"
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      return _mm256_andnot_si256(
+        _mm256_cmpgt_{{ intrin_tp_full[ctype] }}(vec_min, vec_data), 
+        _mm256_or_si256(
+          _mm256_cmpgt_{{ intrin_tp_full[ctype] }}(vec_max, vec_data), 
+          _mm256_cmpeq_{{ intrin_tp_full[ctype] }}(vec_max, vec_data)
+        )
+      );
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ['avx']
     implementation: "return _mm256_and_{{ intrin_tp_full[ctype] }}(_mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_data, vec_min, _CMP_GE_OQ ), _mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_max, vec_data, _CMP_GE_OQ));"
 #INTEL - SSE
   - target_extension: "sse"
-    ctype: "int64_t"
-    lscpu_flags: [ 'sse2', 'sse4_2' ]
-    note: "EPI64 INSTEAD OF EPU64!!!"
-    implementation: "return _mm_andnot_si128( _mm_cmpgt_epi64( vec_min, vec_data ), _mm_andnot_si128( _mm_cmpgt_epi64( vec_data, vec_max ), _mm_set1_epi64x(-1)));"
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ['sse2', 'sse4_2']
+    implementation: |
+      return _mm_andnot_si128(
+        _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_min, vec_data),
+        _mm_or_si128(
+          _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_max, vec_data),
+          _mm_cmpeq_{{ intrin_tp_full[ctype] }}(vec_max, vec_data)
+        )
+      );
+  - target_extension: "sse"
+    ctype: "uint64_t"
+    lscpu_flags: ['sse2']
+    is_native: False
+    specialization_comment: "@todo: This is a very bad implementation. It should be replaced by a better one."
+    implementation: |
+      typedef std::array<uint64_t, 2> arr_t __attribute__((aligned(16)));
+      arr_t data, min, max, result;
+      _mm_store_si128((__m128i*)data.data(), vec_data);
+      _mm_store_si128((__m128i*)min.data(), vec_min);
+      _mm_store_si128((__m128i*)max.data(), vec_max);
+      result[0] = (data[0] >= min[0]) && (data[0] <= max[0]) ? 0 : 1;
+      result[1] = (data[1] >= min[1]) && (data[1] <= max[1]) ? 0 : 1;
+      return _mm_cmpeq_epi(
+        _mm_load_si128((__m128i*)result.data()),
+        _mm_setzero_si128()
+      );
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t"]
+    lscpu_flags: ['sse2', 'sse4_1']
+    implementation: |
+      return _mm_and_si128(
+        _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_min, _mm_min_{{ intrin_tp_full[ctype] }}(vec_min, vec_data)),
+        _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_max, _mm_max_{{ intrin_tp_full[ctype] }}(vec_max, vec_data))
+      );
   - target_extension: "sse"
     ctype: ["float"]
     lscpu_flags: ['sse']
