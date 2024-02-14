@@ -1197,6 +1197,105 @@ definitions:
     lscpu_flags: ["sse2"]
     implementation: "*memory = mask;"
 ...
+---
+primitive_name: "test_mask"
+functor_name: "test_imask"
+brief_description: "Tests whether a specific bit is set to 1."
+parameters:
+  - ctype: "typename Vec::imask_type"
+    name: "mask"
+    description: "Mask to be tested."
+  - ctype: "int"
+    name: "position"
+    description: "Position that should be tested."
+returns:
+  ctype: "bool"
+  description: "True if the bit is set to 1, false otherwise."
+definitions:
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return (mask & (1<< position));"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return (mask & (1<< position));"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse"]
+    implementation: "return (mask & (1<< position));"
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (mask & (1<< position));"
+...
+---
+primitive_name: "insert_mask"
+functor_name: "insert_imask"
+brief_description: "Merges two masks. result[0:i-1] = mask_a[0:i-1]; result[i:N-1] = mask_b[0:N-1] where N is the number of effective bits in mask."
+parameters:
+  - ctype: "typename Vec::imask_type"
+    name: "mask_a"
+    description: "First mask."
+  - ctype: "typename Vec::imask_type"
+    name: "mask_b"
+    description: "Second mask."
+  - ctype: "int"
+    name: "position"
+    description: "Position where the masks should be merged."
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Merged mask."
+definitions:
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return mask_a | (mask_b << position);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return mask_a | (mask_b << position);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse"]
+    implementation: "return mask_a | (mask_b << position);"
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return mask_a | (mask_b << position);"    
+...
+---
+primitive_name: "extract_mask"
+functor_name: "extract_imask"
+brief_description: "Extracts one mask from another."
+parameters:
+  - ctype: "typename Vec::imask_type"
+    name: "mask"
+    description: "First mask."
+  - ctype: "int"
+    name: "position"
+    description: "Position where the masks should be merged."
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Extracted mask."
+definitions:
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return (mask >> position) & ((1 << Vec::vector_element_count()) - 1);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return (mask >> position) & ((1 << Vec::vector_element_count()) - 1);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse"]
+    implementation: "return (mask >> position) & ((1 << Vec::vector_element_count()) - 1);"
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (mask >> position) & ((1 << Vec::vector_element_count()) - 1);"
+...
 #---
 #primitive_name: "mask_reduce"
 #brief_description: "Masks out every non relevant bit."
