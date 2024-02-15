@@ -237,12 +237,29 @@ testing: #optional
       }
       return allOk;
 definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    specialization_comment: "Signed comparison."
+    implementation: "return mask & functors::equal<Vec, Idof>::apply(vec_a, vec_b);"
   #INTEL - AVX2
   - target_extension: "avx2"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['avx2']
     specialization_comment: "Signed comparison."
-    implementation: "return _mm256_and_si256(_mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b), mask);"
+    implementation: "return _mm256_and_si256(functors::equal<Vec, Idof>::apply(vec_a, vec_b), mask);"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sse2']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm_and_si128(functors::equal<Vec, Idof>::apply(vec_a, vec_b), mask);"
+  #Scalar
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (vec_a == vec_b) & mask;"
 ...
 ---
 primitive_name: "equal"
@@ -442,6 +459,68 @@ definitions:
         result[i] = (vec_a[i] == vec_b[i]) ? 0 : checker;
       }
       return result;
+...
+---
+primitive_name: "equal_as_imask"
+brief_description: "Compares two registers for equality and returns an integral mask."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "Left vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Right vector."
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Integral mask indicating whether vec_a[*]==vec_b[*]."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: "return functors::equal<Vec, Idof>::apply(vec_a, vec_b);"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx2']
+    requires: ["to_integral"]
+    implementation: "return functors::to_integral<Vec, Idof>::apply(functors::equal<Vec, Idof>::apply(vec_a, vec_b));"
+  - target_extension: "avx2"
+    ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "return _mm256_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl", "avx512bw"]
+    implementation: "return _mm256_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "return _mm256_cmp_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b, _CMP_EQ_OQ);"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sse2']
+    requires: ["to_integral"]
+    implementation: "return functors::to_integral<Vec, Idof>::apply(functors::equal<Vec, Idof>::apply(vec_a, vec_b));"
+  - target_extension: "sse"
+    ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["sse", "avx512f", "avx512vl"]
+    implementation: "return _mm_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    lscpu_flags: ["sse", "avx512f", "avx512vl", "avx512bw"]
+    implementation: "return _mm_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["sse", "avx512f", "avx512vl"]
+    implementation: "return _mm_cmp_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b, _CMP_EQ_OQ);"
+  #Scalar
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    requires: ["to_integral"]
+    implementation: "return functors::to_integral<Vec, Idof>::apply(functors::equal<Vec, Idof>::apply(vec_a, vec_b));"
 ...
 ---
 primitive_name: "nequal"
