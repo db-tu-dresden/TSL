@@ -1063,6 +1063,66 @@ testing:
       return allOk;
 ...
 ---
+primitive_name: "shift_right"
+functor_name: "shift_right_imask"
+additional_non_specialized_template_parameters:
+  - ctype: "bool"
+    name: "PreserveSign"
+    default_value: "true"
+brief_description: "Arithmetic shift of data to the right by n bits."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "data"
+    description: "Data."
+  - ctype: "const unsigned int"
+    name: "shift"
+    description: "Amount of bits, data should be shifted."
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Integral mask containing result of the left shift."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::imask_type>) && (!PreserveSign)) {
+        return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(data) >> shift;
+      } else {
+        return data >> shift;
+      }
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::imask_type>) && (!PreserveSign)) {
+        return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(data) >> shift;
+      } else {
+        return data >> shift;
+      }
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::imask_type>) && (!PreserveSign)) {
+        return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(data) >> shift;
+      } else {
+        return data >> shift;
+      }
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::imask_type>) && (!PreserveSign)) {
+        return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(data) >> shift;
+      } else {
+        return data >> shift;
+      }
+...
+---
 primitive_name: "lzc"
 brief_description: "Leading zeros counter."
 parameters:
