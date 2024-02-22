@@ -119,7 +119,7 @@ definitions:
     implementation: |
       auto const packed = _mm256_packs_epi16(vec_mask, _mm256_setzero_si256());
       auto const shuffled = _mm256_permute4x64_epi64(packed, 8);
-      return (typename Vec::imask_type) _mm256_movemask_epi8(shuffled);
+      return static_cast<typename Vec::imask_type>(_mm256_movemask_epi8(shuffled));
 #   - target_extension: "avx2"
 #     ctype: ["int16_t", "uint16_t"]
 #     lscpu_flags: ['avx', 'avx2']
@@ -203,7 +203,7 @@ definitions:
     lscpu_flags: ['sse', 'sse2']
     is_native: False
     implementation: |
-      return (typename Vec::imask_type)_mm_movemask_epi8(_mm_packs_epi16(vec_mask, _mm_setzero_si128()));
+      return static_cast<typename Vec::imask_type>(_mm_movemask_epi8(_mm_packs_epi16(vec_mask, _mm_setzero_si128())));
 #   - target_extension: "sse"
 #     ctype: ["int16_t", "uint16_t"]
 #     lscpu_flags: ['sse', 'sse2']
@@ -1100,7 +1100,7 @@ definitions:
     includes: ["<type_traits>"]
     implementation: |
       if constexpr(Vec::vector_element_count() < 8) {
-        return (((typename Vec::imask_type)1<<Vec::vector_element_count()) - 1);
+        return ((static_cast<typename Vec::imask_type>(1)<<Vec::vector_element_count()) - 1);
       } else {
         return ~0;
       }
@@ -1111,7 +1111,7 @@ definitions:
     includes: ["<type_traits>"]
     implementation: |
       if constexpr(Vec::vector_element_count() < 8) {
-        return (((typename Vec::imask_type)1<<Vec::vector_element_count()) - 1);
+        return ((static_cast<typename Vec::imask_type>(1)<<Vec::vector_element_count()) - 1);
       } else {
         return ~0;
       }

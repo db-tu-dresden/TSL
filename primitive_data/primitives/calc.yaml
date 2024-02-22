@@ -134,7 +134,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] + vec_b[i];
       }
@@ -272,7 +272,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] - vec_b[i];
       }
@@ -635,7 +635,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] * vec_b[i];
       }
@@ -773,7 +773,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] * mul_var;
       }
@@ -841,7 +841,7 @@ definitions:
   #   implementation: |
   #     using T = typename Vec::base_type;
   #     T result = 0; //initialize the result
-  #     #pragma unroll
+  #     TSL_UNROLL(Vec::vector_element_count())
   #     for(int i = 0; i < Vec::vector_element_count(); i+=16) {
   #       T add_1_1 = value[i  ] + value[i+1];
   #       T add_1_2 = value[i+2] + value[i+3];
@@ -1144,7 +1144,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] < vec_b[i] ? vec_a[i] : vec_b[i];
       }
@@ -1317,7 +1317,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] / vec_b[i];
       }
@@ -1489,7 +1489,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_data[i] % vec_mod[i];
       }
@@ -1501,7 +1501,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_data[i] - ((vec_data[i] / vec_mod[i]) * vec_mod[i]);
       }
@@ -1721,7 +1721,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec[i] % val;//vec[i] - ((vec[i] / val) * val);
       }
@@ -1733,7 +1733,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec[i] - ((vec[i] / val) * val);
       }

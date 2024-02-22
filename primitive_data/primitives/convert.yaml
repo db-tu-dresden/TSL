@@ -146,7 +146,7 @@ definitions:
     implementation: |
       using U = typename ToType::register_type;
       U result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (size_t i = 0; i < Vec::vector_element_count(); ++i ) {
         result[i] = *reinterpret_cast< typename ToType::base_type const * >( &(data[i]) );
       }
@@ -365,7 +365,7 @@ definitions:
       __m256 output = _mm256_cvtepi32_ps(data);
 
       __m256i mask = _mm256_srai_epi32(data, 31);
-      __m256 correction = _mm256_castsi256_ps(_mm256_and_si256(mask, _mm256_set1_epi32((int)0x4f800000)));
+      __m256 correction = _mm256_castsi256_ps(_mm256_and_si256(mask, _mm256_set1_epi32(static_cast<int>(0x4f800000))));
 
       return _mm256_add_ps(output, correction);
   - target_extension: "avx2"
@@ -417,7 +417,7 @@ definitions:
       __m128 temp = _mm_cvtepi32_ps(data);
 
       __m128i mask = _mm_srai_epi32(data, 31);
-      __m128 correction = _mm_castsi128_ps(_mm_and_si128(mask, _mm_set1_epi32((int)0x4f800000)));
+      __m128 correction = _mm_castsi128_ps(_mm_and_si128(mask, _mm_set1_epi32(static_cast<int>(0x4f800000))));
 
       return _mm_add_ps(temp, correction);
   - target_extension: "sse"

@@ -400,7 +400,7 @@ definitions:
   - target_extension: ["scalar"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
-    implementation: "return ((bool)control)? right : left;"
+    implementation: "return (static_cast<bool>(control))? right : left;"
 ...
 ---
 primitive_name: "blend_add"
