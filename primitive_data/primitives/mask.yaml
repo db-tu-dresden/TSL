@@ -1185,7 +1185,7 @@ parameters:
     name: "memory"
     description: "Memory where the mask data should be loaded from."
 returns:
-  ctype: "typename Vec::mask_type"
+  ctype: "typename Vec::imask_type"
   name: "result"
   description: "Mask containing the loaded data."
 definitions:
