@@ -35,7 +35,7 @@ implementations:
       #   define TSL_UNROLL(X) TSL_CAT(TSL_UNROLL_, TSL_DEFAULT_OR_PARAM(TSL_UNROLL_IMPL_##X))(X)
       #elif defined(__GNUC__) && !defined(__clang__)
       #   if (__GNUC__ < 14)
-      #     warning "Apparently, GCC<14 does not support pragma unroll based on template parameters, see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102855."
+      #     pragma message("TSL_UNROLL is disabled. Apparently, GCC<14 does not support pragma unroll based on template parameters, see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102855.")
       #     define TSL_UNROLL(X)
       #   else
       #     define TSL_UNROLL_2(_) _Pragma(TSL_TO_STRING(GCC unroll (1)))
