@@ -1178,35 +1178,7 @@ definitions:
     implementation: "return *memory;"
 ...
 ---
-primitive_name: "load_imask"
-brief_description: "Loads data from memory to a mask."
-parameters:
-  - ctype: "typename Vec::imask_type const*"
-    name: "memory"
-    description: "Memory where the mask data should be loaded from."
-returns:
-  ctype: "typename Vec::imask_type"
-  name: "result"
-  description: "Mask containing the loaded data."
-definitions:
-  - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    lscpu_flags: ["avx512f"]
-    implementation: "return *memory;"
-  - target_extension: "avx2"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    lscpu_flags: ["avx"]
-    implementation: "return *memory;"
-  - target_extension: "sse"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    lscpu_flags: ["sse2"]
-    implementation: "return *memory;"
-  - target_extension: "scalar"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    lscpu_flags: []
-    implementation: "return *memory;"
-...
----
 primitive_name: "store_imask"
 brief_description: "Stores an integral mask to memory."
 parameters:
