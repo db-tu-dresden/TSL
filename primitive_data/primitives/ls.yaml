@@ -84,7 +84,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T reg; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         reg[idx] = memory[idx];
       }
@@ -172,7 +172,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T reg; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         reg[idx] = memory[idx];
       }
@@ -258,7 +258,7 @@ definitions:
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         memory[idx] = data[idx];
       }
@@ -341,7 +341,7 @@ definitions:
     lscpu_flags: ["oneAPIfpgaDev"]
     vector_length_agnostic: True
     implementation: |
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         memory[idx] = data[idx];
       }
@@ -509,7 +509,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result;
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = value;
       }
@@ -568,7 +568,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = 0;
       }
@@ -698,7 +698,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (T)(((T)(sizeof...(Is) - 1 - Is)))...
+          static_cast<T>((( static_cast<T>((sizeof...(Is) - 1 - Is)))))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -713,7 +713,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (T)(((T)(sizeof...(Is) - 1 - Is)))...
+          static_cast<T>(((static_cast<T>((sizeof...(Is) - 1 - Is)))))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -728,7 +728,7 @@ definitions:
         std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (T)(((T)(sizeof...(Is) - 1 - Is)))...
+          static_cast<T>(((static_cast<T>((sizeof...(Is) - 1 - Is)))))...
         );
       };
       return seq_fun(std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -811,7 +811,7 @@ definitions:
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+          static_cast<T>((((static_cast<T>((sizeof...(Is) - 1 - Is)))*sw)+init))...
         );
       };
       return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -826,7 +826,7 @@ definitions:
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+          static_cast<T>((((static_cast<T>((sizeof...(Is) - 1 - Is)))*sw)+init))...
         );
       };
       return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -841,7 +841,7 @@ definitions:
         T const init, T const sw, std::integer_sequence<sequence_type, Is...>
       ) {
         return tsl::set<Vec>(
-          (T)((((T)(sizeof...(Is) - 1 - Is))*sw)+init)...
+          static_cast<T>((((static_cast<T>((sizeof...(Is) - 1 - Is)))*sw)+init))...
         );
       };
       return seq_fun(start, stepwidth, std::make_integer_sequence<sequence_type, Vec::vector_element_count()>());
@@ -1180,7 +1180,7 @@ definitions:
       auto const val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if constexpr(N==sizeof(typename Vec::base_type)) {
           auto mem = reinterpret_cast<typename Vec::base_type *>(memory);
@@ -1203,7 +1203,7 @@ definitions:
       auto const val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if constexpr(N==sizeof(typename Vec::base_type)) {
           auto mem = reinterpret_cast<typename Vec::base_type *>(memory);
@@ -1226,7 +1226,7 @@ definitions:
       auto const val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
         if constexpr(N==sizeof(typename Vec::base_type)) {
@@ -1308,7 +1308,7 @@ definitions:
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       auto const mask_array = tsl::to_array<Vec>(mask);
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
           if constexpr(N==sizeof(typename Vec::base_type)) {
@@ -1334,7 +1334,7 @@ definitions:
       using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       auto const mask_array = tsl::to_array<Vec>(mask);
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
           if constexpr(N==sizeof(typename Vec::base_type)) {
@@ -1362,7 +1362,7 @@ definitions:
       tsl::store<Vec>(val_array.data(), data);
       tsl::store<typename Vec::transform_extension<Vec::offset_base_type>>(idx_array.data(), index);
       tsl::store<Vec>(mask_array.data(), mask);
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
           if constexpr(N==sizeof(typename Vec::base_type)) {
@@ -1508,7 +1508,7 @@ definitions:
       auto const data_array = tsl::to_array<Vec>(data);
       typename Vec::base_type safe[Vec::vector_element_count()];
       std::memcpy(reinterpret_cast<void*>(safe), reinterpret_cast<void const *>(memory), Vec::vector_size_B());
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         *memory = data_array[i];
         memory += (mask>>i)&0b1;
@@ -1527,7 +1527,7 @@ definitions:
       auto const data_array = tsl::to_array<Vec>(data);
       typename Vec::base_type safe[Vec::vector_element_count()];
       std::memcpy(reinterpret_cast<void*>(safe), reinterpret_cast<void const *>(memory), Vec::vector_size_B());
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         *memory = data_array[i];
         memory += (mask>>i)&0b1;
@@ -1755,7 +1755,7 @@ definitions:
       return
         _mm256_and_si256(
           tsl::set1<ToType>(
-            (typename Vec::base_type)~0
+            static_cast<typename Vec::base_type>(~0)
           ),
           _mm256_cvtepi{{ intrin_tp[ctype][1] }}_epi{{ intrin_tp[additional_simd_template_base_type][1] }}(
             _mm_loadu_si128(reinterpret_cast<__m128i const *>(memory))

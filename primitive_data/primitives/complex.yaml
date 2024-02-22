@@ -66,7 +66,7 @@ definitions:
         std::integral_constant<int, (Vec::vector_size_b() - (read_count_t::value * Bitwidth + BitReadOffset))>
       >;
       if constexpr (read_count_t::value > 0) {
-        #pragma unroll read_count_t::value
+        TSL_UNROLL(read_count_t::value)
         for (auto idx = 0; idx < read_count_t::value; ++idx) {
           element_t element = data.template slc<Bitwidth>((unsigned)(idx*Bitwidth + BitReadOffset));
           result.set_slc((unsigned)(idx*CHAR_BIT*sizeof(typename Vec::base_type)), element);
@@ -130,7 +130,7 @@ definitions:
         std::integral_constant<int, Vec::vector_element_count() - (most_significant_set_value_idx_t::value + 1)>;
 
       if constexpr (write_remainder_t::value > 0) {
-        #pragma unroll write_remainder_t::value
+        TSL_UNROLL(write_remainder_t::value)
         for (auto idx = 0; idx < write_remainder_t::value; ++idx) {
           auto element = data.template slc<Bitwidth>((unsigned)(idx * Bitwidth + read_offset_t::value));
           source.set_slc((unsigned)(idx * element_size_b::value + full_bit_write_offset::value), element);
@@ -159,7 +159,7 @@ definitions:
       BigIntT result;
       result.template set_val<AC_VAL_0>();
       using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
-      #pragma unroll Vec::vector_element_count()
+      TSL_UNROLL(Vec::vector_element_count())
       for (auto idx = 0; idx < Vec::vector_element_count(); ++idx) {
         ElementT element = memory[idx];
         result.set_slc((unsigned)(idx*CHAR_BIT*sizeof(typename Vec::base_type)), element);
@@ -226,7 +226,7 @@ definitions:
       result.template set_val<AC_VAL_0>();
       using ElementT = ac_int<CHAR_BIT*sizeof(typename Vec::base_type), false>;
       using SliceT = ac_int<Bitwidth, false>;
-      #pragma unroll Vec::vector_element_count()
+      TSL_UNROLL(Vec::vector_element_count())
       for (auto idx = 0; idx < Vec::vector_element_count(); ++idx) {
         ElementT element = memory[idx];
         SliceT slice = element.template slc<Bitwidth>((unsigned)0);
@@ -257,7 +257,7 @@ definitions:
     implementation: |
       static_assert(EffectiveBits % (sizeof(typename Vec::base_type)*CHAR_BIT) == 0, "EffectiveBits must be a multiple of sizeof(T)*8.");
       static_assert(EffectiveBits <= Vec::vector_size_b(), "EffectiveBits must be smaller or equal to vector size in bits.");
-      #pragma unroll (EffectiveBits / (sizeof(typename Vec::base_type)*CHAR_BIT))
+      TSL_UNROLL((EffectiveBits / (sizeof(typename Vec::base_type)*CHAR_BIT)))
       for (auto idx = 0; idx < (EffectiveBits / (sizeof(typename Vec::base_type)*CHAR_BIT)); ++idx) {
         memory[idx] = data.template slc<sizeof(typename Vec::base_type)*CHAR_BIT>((unsigned)(idx*sizeof(typename Vec::base_type)*CHAR_BIT));
       }
@@ -279,7 +279,7 @@ definitions:
     vector_length_agnostic: True
     includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>", "<climits>"]
     implementation: |
-      #pragma unroll Vec::vector_element_count()
+      TSL_UNROLL(Vec::vector_element_count())
       for (auto idx = 0; idx < Vec::vector_element_count(); ++idx) {
         memory[idx] = data.template slc<sizeof(typename Vec::base_type)*CHAR_BIT>((unsigned)(idx*sizeof(typename Vec::base_type)*CHAR_BIT));
       }
@@ -496,7 +496,7 @@ definitions:
 #       auto element_count_fun = []() constexpr -> int {
 #         return ((Vec::vector_size_b() - InsertStartPos) / Bitwidth) >= (Vec::vector_element_count()) ? Vec::vector_element_count() : ((Vec::vector_size_b() - InsertStartPos) / Bitwidth);
 #       };
-#       #pragma unroll element_count_fun()
+#       TSL_UNROLL(element_count_fun())
 #       for (auto idx = 0; idx < element_count_fun(); ++idx) {
 #         ElementT element = data[idx];
 #         auto slice = element.template slc<Bitwidth>(0);
@@ -541,7 +541,7 @@ definitions:
 #       auto element_count_fun = []() constexpr -> int {
 #         return ((Vec::vector_size_b() - InsertStartPos) / Bitwidth) >= (Vec::vector_element_count()) ? Vec::vector_element_count() : ((Vec::vector_size_b() - InsertStartPos) / Bitwidth);
 #       };
-#       #pragma unroll element_count_fun()
+#       TSL_UNROLL(element_count_fun())
 #       for (auto idx = 0; idx < element_count_fun(); ++idx) {
 #         ElementT element = data[idx];
 #         auto slice = element.template slc<Bitwidth>(0);
@@ -589,12 +589,12 @@ definitions:
       // we must not use std::is_signed_v<T> for the ac_int, since we don't want the sign bit to be populated.
       using BigIntT = ac_int<Vec::vector_size_b(), false>;//std::is_signed_v<T>>;
       BigIntT tmp_result{0};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (unsigned i = 0; i < Vec::vector_element_count(); ++i) {
         tmp_result |=  (BigIntT{data[i]}) << (bitwidth*i);
       }
       typename Vec::register_type result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = tmp_result.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
       }
@@ -643,16 +643,16 @@ definitions:
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       //we are wasting some space here, but it is easier to implement (and maybe even more efficient)
       BigIntT tmp_result[Vec::vector_element_count()];
-      #pragma unroll
+      TSL_UNROLL((Vec::vector_element_count()>>1))
       for (unsigned int i = 0; i < (Vec::vector_element_count()>>1); ++i) {
         tmp_result[i] = BigIntT{(UnsignedT)data[(i<<1)]} | (BigIntT{(UnsignedT)data[(i<<1)+1]} << bitwidth);
       }
       unsigned current_result_position = Vec::vector_element_count()>>1;
       unsigned previous_stage_start_idx = 0;
       unsigned current_stage = 1;
-      #pragma unroll cilog2((Vec::vector_element_count()>>1))
+      TSL_UNROLL(cilog2((Vec::vector_element_count()>>1)))
       for(size_t current_upper_idx = (Vec::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
-          #pragma unroll
+          TSL_UNROLL(current_upper_idx)
           for(size_t i = 0; i < current_upper_idx; ++i) {
             tmp_result[current_result_position + i] =
                 tmp_result[previous_stage_start_idx + (i<<1)] | (tmp_result[previous_stage_start_idx + (i<<1)+1] << (bitwidth<<current_stage));
@@ -663,7 +663,7 @@ definitions:
       }
       BigIntT tmp_result_int = tmp_result[Vec::vector_element_count()-2];
       typename Vec::register_type result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = tmp_result_int.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
       }
@@ -710,13 +710,13 @@ definitions:
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
 
       BigIntT packed_data{0};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (unsigned i = 0; i < Vec::vector_element_count(); ++i) {
         packed_data |=  (BigIntT{(UnsignedT)data[i]}) << (bitwidth*i);
       }
       BigIntT packed_data_shifted = packed_data << bit_offset;
       typename Vec::register_type result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = src[i] | (T)(packed_data_shifted.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT))));
       }
@@ -726,7 +726,7 @@ definitions:
         new_bitwidth -= Vec::vector_size_b();
         packed_data >>= (bitwidth * Vec::vector_element_count() - new_bitwidth);
         typename Vec::register_type overflow_result{};
-        #pragma unroll
+        TSL_UNROLL(Vec::vector_element_count())
         for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
           overflow_result[i] = packed_data.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
         }
@@ -775,16 +775,16 @@ definitions:
       using BigIntT = ac_int<Vec::vector_size_b(), false>;
       //we are wasting some space here, but it is easier to implement (and maybe even more efficient)
       BigIntT tmp_result[Vec::vector_element_count()];
-      #pragma unroll
+      TSL_UNROLL((Vec::vector_element_count()>>1))
       for (unsigned int i = 0; i < (Vec::vector_element_count()>>1); ++i) {
         tmp_result[i] = BigIntT{(UnsignedT)data[(i<<1)]} | (BigIntT{(UnsignedT)data[(i<<1)+1]} << bitwidth);
       }
       unsigned current_result_position = Vec::vector_element_count()>>1;
       unsigned previous_stage_start_idx = 0;
       unsigned current_stage = 1;
-      #pragma unroll cilog2((Vec::vector_element_count()>>1))
+      TSL_UNROLL(cilog2((Vec::vector_element_count()>>1)))
       for(size_t current_upper_idx = (Vec::vector_element_count()>>2); current_upper_idx >= 1; current_upper_idx>>=1) {
-          #pragma unroll
+          TSL_UNROLL(current_upper_idx)
           for(size_t i = 0; i < current_upper_idx; ++i) {
             tmp_result[current_result_position + i] =
                 tmp_result[previous_stage_start_idx + (i<<1)] | (tmp_result[previous_stage_start_idx + (i<<1)+1] << (bitwidth<<current_stage));
@@ -797,7 +797,7 @@ definitions:
       BigIntT packed_data_shifted = packed_data << bit_offset;
 
       typename Vec::register_type result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = src[i] | (T)(packed_data_shifted.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT))));
       }
@@ -807,7 +807,7 @@ definitions:
         new_bitwidth -= Vec::vector_size_b();
         packed_data >>= (bitwidth * Vec::vector_element_count() - new_bitwidth);
         typename Vec::register_type overflow_result{};
-        #pragma unroll
+        TSL_UNROLL(Vec::vector_element_count())
         for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
           overflow_result[i] = packed_data.template slc<(sizeof(T)*CHAR_BIT)>((unsigned)(i*(sizeof(T)*CHAR_BIT)));
         }
@@ -842,7 +842,7 @@ definitions:
 #     implementation: |
 #       using T = typename Vec::base_type;
 #       typename Vec::register_type result{};
-#       #pragma unroll
+#       TSL_UNROLL(Vec::vector_element_count())
 #       for(int i = 0; i < Vec::vector_element_count(); i+=16) {
 #         T add_1_1 = value[ 0] + value[ 1];
 #         T add_1_2 = value[ 2] + value[ 3];

@@ -47,9 +47,9 @@ definitions:
       }
       for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
         if(ostream_modifier == modifier::BIN) {
-          out << std::bitset<sizeof(typename Vec::base_type)*8>{(unsigned long long)data[(Vec::vector_element_count()-1)-idx]} << "|";
+          out << std::bitset<sizeof(typename Vec::base_type)*8>{static_cast<unsigned long long>(data[(Vec::vector_element_count()-1)-idx])} << "|";
         } else {
-          out << std::setw(sizeof(typename Vec::base_type)*8) << (cast_type) data[(Vec::vector_element_count()-1)-idx] << "|";
+          out << std::setw(sizeof(typename Vec::base_type)*8) << static_cast<cast_type>(data[(Vec::vector_element_count()-1)-idx]) << "|";
         }
       }
       out.flags(f);
@@ -81,9 +81,9 @@ definitions:
       }
       for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
         if(ostream_modifier == modifier::BIN) {
-            out << std::bitset<sizeof(typename Vec::base_type)*8>{(unsigned long long)data[(Vec::vector_element_count()-1)-idx]} << "|";
+            out << std::bitset<sizeof(typename Vec::base_type)*8>{static_cast<unsigned long long>(data[(Vec::vector_element_count()-1)-idx])} << "|";
         } else {
-            out << std::setw(sizeof(typename Vec::base_type)*8) << (cast_type) data[(Vec::vector_element_count()-1)-idx] << "|";
+            out << std::setw(sizeof(typename Vec::base_type)*8) << static_cast<cast_type>(data[(Vec::vector_element_count()-1)-idx]) << "|";
         }
       }
       out.flags(f);
@@ -115,9 +115,9 @@ definitions:
       }
       for(std::size_t idx = 0; idx < Vec::vector_element_count(); ++idx ) {
         if(ostream_modifier == modifier::BIN) {
-            out << std::bitset<sizeof(typename Vec::base_type)*8>{(unsigned long long)data[(Vec::vector_element_count()-1)-idx]} << "|";
+            out << std::bitset<sizeof(typename Vec::base_type)*8>{static_cast<unsigned long long>(data[(Vec::vector_element_count()-1)-idx])} << "|";
         } else {
-            out << std::setw(sizeof(typename Vec::base_type)*8) << (cast_type) data[(Vec::vector_element_count()-1)-idx] << "|";
+            out << std::setw(sizeof(typename Vec::base_type)*8) << static_cast<cast_type>(data[(Vec::vector_element_count()-1)-idx]) << "|";
         }
       }
       out.flags(f);

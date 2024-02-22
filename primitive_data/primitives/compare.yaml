@@ -154,7 +154,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] == vec_b[i]) ? checker : 0;
       }
@@ -454,7 +454,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] == vec_b[i]) ? 0 : checker;
       }
@@ -713,13 +713,13 @@ definitions:
     implementation: |
       typedef std::array<uint64_t, 2> arr_t __attribute__((aligned(16)));
       arr_t data, min, max, result;
-      _mm_store_si128((__m128i*)data.data(), vec_data);
-      _mm_store_si128((__m128i*)min.data(), vec_min);
-      _mm_store_si128((__m128i*)max.data(), vec_max);
+      _mm_store_si128(reinterpret_cast<__m128i*>(data.data()), vec_data);
+      _mm_store_si128(reinterpret_cast<__m128i*>(min.data()), vec_min);
+      _mm_store_si128(reinterpret_cast<__m128i*>(max.data()), vec_max);
       result[0] = (data[0] >= min[0]) && (data[0] <= max[0]) ? 0 : 1;
       result[1] = (data[1] >= min[1]) && (data[1] <= max[1]) ? 0 : 1;
       return _mm_cmpeq_epi64(
-        _mm_load_si128((__m128i*)result.data()),
+        _mm_load_si128(reinterpret_cast<__m128i*>(result.data())),
         _mm_setzero_si128()
       );
   - target_extension: "sse"
@@ -759,7 +759,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = ((vec_data[i] >= vec_min[i]) && (vec_data[i] <= vec_max[i])) ? checker : 0;
       }
@@ -853,7 +853,7 @@ definitions:
     lscpu_flags: ['avx2']
     specialization_comment: "Unsigned comparison."
     is_native: False
-    implementation: "__m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_b, sign_bits), _mm256_xor_si256(vec_a, sign_bits));"
+    implementation: "__m256i sign_bits = _mm256_set1_epi64x(static_cast<int64_t>(1) << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_b, sign_bits), _mm256_xor_si256(vec_a, sign_bits));"
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["int8_t", "int16_t", "int32_t", "float", "double"]
@@ -882,7 +882,7 @@ definitions:
     lscpu_flags: ['sse4_2']
     specialization_comment: "Unsigned comparison."
     is_native: False
-    implementation: "__m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63); return _mm_cmpgt_epi64(_mm_xor_si128(vec_b, sign_bits), _mm_xor_si128(vec_a, sign_bits));"
+    implementation: "__m128i sign_bits = _mm_set1_epi64x(static_cast<int64_t>(1) << 63); return _mm_cmpgt_epi64(_mm_xor_si128(vec_b, sign_bits), _mm_xor_si128(vec_a, sign_bits));"
 #ARM - NEON
   - target_extension: "neon"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -909,7 +909,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] < vec_b[i]) ? checker : 0;
       }
@@ -997,7 +997,7 @@ definitions:
     lscpu_flags: ['avx2']
     specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
     is_native: False
-    implementation: "__m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_a, sign_bits), _mm256_xor_si256(vec_b, sign_bits));"
+    implementation: "__m256i sign_bits = _mm256_set1_epi64x(static_cast<int64_t>(1) << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_a, sign_bits), _mm256_xor_si256(vec_b, sign_bits));"
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["int8_t", "int16_t", "int32_t", "float", "double"]
@@ -1024,7 +1024,7 @@ definitions:
     lscpu_flags: ['sse4_2']
     specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
     is_native: False
-    implementation: "__m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63); return _mm_cmpgt_epi64(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits));"
+    implementation: "__m128i sign_bits = _mm_set1_epi64x(static_cast<int64_t>(1) << 63); return _mm_cmpgt_epi64(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits));"
 #ARM - NEON
   - target_extension: "neon"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -1051,7 +1051,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] > vec_b[i]) ? checker : 0;
       }
@@ -1141,7 +1141,7 @@ definitions:
     is_native: False
     specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
     implementation: |
-      __m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63);
+      __m256i sign_bits = _mm256_set1_epi64x(static_cast<int64_t>(1) << 63);
       return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpgt_epi64(_mm256_xor_si256(vec_a, sign_bits), _mm256_xor_si256(vec_b, sign_bits)));
 #INTEL - SSE
   - target_extension: "sse"
@@ -1175,7 +1175,7 @@ definitions:
       __m128i sign_bits = _mm_set1_epi32(0x80000000);
       {% endif %}
       {% if ctype == "uint64_t" %}
-      __m128i sign_bits = _mm_set1_epi64x((int64_t)0x8000000000000000);
+      __m128i sign_bits = _mm_set1_epi64x(static_cast<int64_t>(0x8000000000000000));
       {% endif %}
       return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_epi{{ intrin_tp[ctype][1] }}(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits)));
 #ARM - NEON
@@ -1204,7 +1204,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] <= vec_b[i]) ? checker : 0;
       }
@@ -1293,7 +1293,7 @@ definitions:
     specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
     is_native: False
     implementation: |
-      __m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63);
+      __m256i sign_bits = _mm256_set1_epi64x(static_cast<int64_t>(1) << 63);
       __m256i less_than = _mm256_cmpgt_epi64(_mm256_xor_si256(vec_b, sign_bits), _mm256_xor_si256(vec_a, sign_bits));
       return _mm256_xor_si256(_mm256_set1_epi8(-1), less_than);
 
@@ -1329,7 +1329,7 @@ definitions:
     specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
     is_native: False
     implementation: |
-      __m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63);
+      __m128i sign_bits = _mm_set1_epi64x(static_cast<int64_t>(1) << 63);
       __m128i less_than = _mm_cmpgt_epi64(_mm_xor_si128(vec_b, sign_bits), _mm_xor_si128(vec_a, sign_bits));
       return _mm_xor_si128(_mm_set1_epi8(-1), less_than);
 #ARM - NEON
@@ -1358,7 +1358,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] >= vec_b[i]) ? checker : 0;
       }
@@ -1449,7 +1449,7 @@ definitions:
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ ]
-    implementation: "return (bool)vec;"
+    implementation: "return static_cast<bool>(vec);"
 #ARM - NEON
 #INTEL - FPGA
 ...
@@ -1592,7 +1592,7 @@ definitions:
       _mm256_storeu_si256(reinterpret_cast<__m256i*>(mask), is_equal);
 
       for (int i = 0; i < Vec::vector_element_count(); i++){
-        if(mask[i] == ((T)-1)){
+        if(mask[i] == (static_cast<T>(-1))){
           result ++;
         }
       }
@@ -1636,7 +1636,7 @@ definitions:
       _mm_storeu_si128(reinterpret_cast<__m128i*>(mask), is_equal);
 
       for (int i = 0; i < Vec::vector_element_count(); i++){
-        if(mask[i] == ((T)-1)){
+        if(mask[i] == (static_cast<T>(-1))){
           result ++;
         }
       }

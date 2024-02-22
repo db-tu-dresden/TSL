@@ -141,7 +141,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = a[i] & b[i];
       }
@@ -238,12 +238,12 @@ definitions:
     ctype: ["float"]
     lscpu_flags: []
     is_native: False
-    implementation: "uint32_t r = *((uint32_t *)&a) | *((uint32_t *)&b); return *(float*)&r;"
+    implementation: "uint32_t r = *(reinterpret_cast<uint32_t*>(&a)) | *(reinterpret_cast<uint32_t*>(&b)); return *reinterpret_cast<float*>(&r);"
   - target_extension: "scalar"
     ctype: ["double"]
     lscpu_flags: []
     is_native: False
-    implementation: "uint64_t r = *((uint64_t *)&a) | *((uint64_t *)&b); return *(double*)&r;"
+    implementation: "uint64_t r = *(reinterpret_cast<uint64_t*>(&a)) | *(reinterpret_cast<uint64_t*>(&b)); return *reinterpret_cast<double*>(&r);"
 #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
@@ -252,7 +252,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = a[i] | b[i];
       }
@@ -404,7 +404,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = a[i] ^ b[i];
       }
@@ -472,7 +472,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = data[i] << (typename Vec::base_type) shift;
       }
@@ -565,7 +565,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = data[i] << shift[i];
       }
@@ -764,7 +764,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = data[i] >> shift;
       }
@@ -1004,7 +1004,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = data[i] >> shift[i];
       }
@@ -1156,11 +1156,11 @@ definitions:
     implementation: |
       typename Vec::offset_base_register_type result{};
       typename Vec::offset_base_register_type lzc_data{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         lzc_data[i] = Lzc32Uint(data[i]);
       }
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(lzc_data[i]>32)
           result[i] = 32;
@@ -1179,11 +1179,11 @@ definitions:
       // as the current version of oneAPI does not properly implement ac_int::leading_sign() we "reimplemented" it
       // /glob/development-tools/versions/oneapi/2023.0.1/oneapi/compiler/2023.0.0/linux/lib/oclfpga/include/sycl/ext/intel/ac_types/ac_int.hpp
       using bitInt = ac_int<(sizeof(base_t)*CHAR_BIT), false>;
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         bitInt val(data[idx]);
         int k = (sizeof(base_t)*CHAR_BIT)-1;
-        #pragma unroll
+        TSL_UNROLL(val[k])
         for(; k >= 0 && val[k] == 0; k--) {}
         result[idx] = (sizeof(base_t)*CHAR_BIT-1) - k;
       }
@@ -1273,7 +1273,7 @@ definitions:
     implementation: |
       typename Vec::offset_base_register_type result{};
       using base_t = typename Vec::base_type;
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         result[idx] = details::clz_recursive<base_t, typename Vec::offset_base_type>::apply(data[idx]);
       }
@@ -1308,7 +1308,7 @@ definitions:
     implementation: |
       typename Vec::offset_base_register_type result{};
       using base_t = typename Vec::base_type;
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         {%- set type_size_in_bytes = {
           "uint8_t" : 1, "int8_t" : 1,
@@ -1380,7 +1380,7 @@ definitions:
     implementation: |
       typename Vec::offset_base_register_type result{};
       using base_t = typename Vec::base_type;
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         {%- set type_size_in_bytes = {
           "uint8_t" : 1, "int8_t" : 1,
@@ -1446,7 +1446,7 @@ definitions:
     implementation: |
       typename Vec::offset_base_register_type result{};
       using base_t = typename Vec::base_type;
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         {%- set type_size_in_bits = {
           "uint8_t" :  8, "int8_t" :  8,
@@ -1996,7 +1996,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = ~vec[i];
       }
