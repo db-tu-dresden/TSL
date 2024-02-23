@@ -623,14 +623,14 @@ definitions:
     lscpu_flags: [ 'neon' ]
     is_native: False
     implementation: |
-      return 
+      return
         vsetq_lane_{{ intrin_tp_full[ctype] }}(
-          vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_a, 0) * 
-          vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_b, 0), 
+          vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_a, 0) *
+          vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_b, 0),
           vmovq_n_{{ intrin_tp_full[ctype ]}}(
-            vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_a, 1) * 
+            vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_a, 1) *
             vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_b, 1)
-          ), 
+          ),
           0
         );
       //Found this on stackoverflow. This seems like an overkill. Maybe an extract and scalar multiply would do the trick more efficient.
@@ -1158,7 +1158,7 @@ definitions:
     implementation: |
       {% if '32' in ctype %}
         auto float_a = tsl::cast<Vec, typename Vec::template transform_extension<float>>(vec_a);
-        auto float_b = tsl::cast<Vec, typename Vec::template transform_extension<float>>(vec_b);  
+        auto float_b = tsl::cast<Vec, typename Vec::template transform_extension<float>>(vec_b);
       {% else %}
         auto float_a = tsl::cast<Vec, typename Vec::template transform_extension<double>>(vec_a);
         auto float_b = tsl::cast<Vec, typename Vec::template transform_extension<double>>(vec_b);

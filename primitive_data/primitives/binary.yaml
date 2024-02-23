@@ -94,7 +94,7 @@ definitions:
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
     implementation: |
-      return 
+      return
         vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
           vandq_u{{ intrin_tp[ctype][1] }}(
             vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
@@ -236,9 +236,9 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     implementation: |
-      return 
+      return
         vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
-          vorrq_u{{ intrin_tp[ctype][1] }}( 
+          vorrq_u{{ intrin_tp[ctype][1] }}(
             vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
             vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)
           )
@@ -744,7 +744,7 @@ definitions:
           return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);
         } else {
           return vshrq_n_u{{ intrin_tp[ctype][1] }}(
-            vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data), 
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data),
             shift
           );
         }
@@ -991,7 +991,7 @@ definitions:
           return vshlq_{{ intrin_tp_full[ctype] }}(data, neg_shift);
         } else {
           return vshlq_u{{ intrin_tp[ctype][1] }}(
-            vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data), 
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data),
             neg_shift
           );
         }
