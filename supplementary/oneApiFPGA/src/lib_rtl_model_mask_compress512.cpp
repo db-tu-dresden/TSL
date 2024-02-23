@@ -13,19 +13,8 @@
 */
 
 #include <CL/sycl.hpp>
+#include <array>
 
-SYCL_EXTERNAL extern "C" unsigned Lzc32Uint(unsigned int a) {
-  
-   uint32_t mask = 1 << 31;  
-   uint32_t lzc = 0;
-
-   if (a == 0)
-      lzc = 32;	   
-   else
-      while ((mask & a) == 0)  {
-         mask = mask >> 1;
-         lzc = lzc +1;
-      }  
-  
-   return lzc; 
+SYCL_EXTERNAL extern "C" std::array<uint64_t,8>  MaskCompress512(std::array<uint64_t,8> datain_src, std::array<uint64_t,8> datain_a, uint8_t maskin) {
+  return datain_a; 
 }
