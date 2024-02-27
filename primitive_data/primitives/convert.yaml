@@ -279,6 +279,26 @@ definitions:
       }}{{
         intrin_tp[additional_simd_template_base_type][1]
       }}(data);
+# int -> float - ARM NEON
+  - target_extension: "neon"
+    ctype: [ "uint32_t", "uint64_t", "int32_t", "int64_t"]
+    additional_simd_template_base_type_mapping_dict: {
+      "uint32_t" : ["float"], "int32_t" : ["float"],
+      "uint64_t" : ["double"], "int64_t" : ["double"]
+    }
+    lscpu_flags: ["neon"]
+    implementation: |
+      return vcvtq_{{ intrin_tp_full[additional_simd_template_base_type] }}_{{ intrin_tp_full[ctype] }}(data);
+# float -> int - ARM NEON
+  - target_extension: "neon"
+    ctype: [ "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {
+      "float" : ["uint32_t", "int32_t"],
+      "double" : ["uint64_t", "int64_t"]
+    }
+    lscpu_flags: ["neon"]
+    implementation: |
+      return vcvtq_{{ intrin_tp_full[additional_simd_template_base_type] }}_{{ intrin_tp_full[ctype] }}(data);
 # float -> int - AVX512
   - target_extension: "avx512"
     additional_simd_template_base_type: ["int32_t"]

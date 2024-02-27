@@ -93,7 +93,14 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vandq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));"
+    implementation: |
+      return
+        vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
+          vandq_u{{ intrin_tp[ctype][1] }}(
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)
+          )
+        );
 #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -224,11 +231,18 @@ definitions:
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: [ 'neon' ]
-    implementation: "return vorq_{{ intrin_tp_full[ctype] }}( a, b );"
+    implementation: "return vorrq_{{ intrin_tp_full[ctype] }}( a, b );"
   - target_extension: "neon"
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
-    implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vorq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));"
+    implementation: |
+      return
+        vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
+          vorrq_u{{ intrin_tp[ctype][1] }}(
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)
+          )
+        );
 #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -456,11 +470,7 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: |
-      vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
-        vshlq_n_{{ intrin_tp[ctype][1] }}(
-          vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
-          vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));
+    implementation: return vcvtq_{{intrin_tp_full[ctype]}}_u{{intrin_tp[ctype][1]}}(vshlq_n_u{{intrin_tp[ctype][1]}}(vcvtq_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(data), shift));
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -486,6 +496,7 @@ testing:
     includes: ["<cstddef>", "<climits>"]
     implementation: |
       using T = typename Vec::base_type;
+      using OffsetT = typename Vec::offset_base_type;
       std::size_t element_count = 1024;
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init<T>};
       bool allOk = true;
@@ -497,12 +508,13 @@ testing:
       for (size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
         for (unsigned shift = 0; shift < sizeof(typename Vec::base_type)*CHAR_BIT; ++shift) {
           for (size_t j = 0; j < Vec::vector_element_count(); ++j) {
-            expected_result[j] = ref_data[i+j] << shift;
+            expected_result[j] = ((OffsetT)ref_data[i+j]) << shift;
           }
           auto vec = loadu<Vec>(&test_data[i]);
           storeu<Vec>(test_result, shift_left<Vec>(vec, (typename Vec::base_type)shift));
           test_helper.synchronize();
-          allOk &= test_helper.validate();
+          auto res = test_helper.validate();
+          allOk &= res;
         }
       }
       return allOk;
@@ -735,20 +747,14 @@ definitions:
         if constexpr (PreserveSign) {
           return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);
         } else {
-          return vshrq_n_u{{ intrin_tp[ctype][1] }}(vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data), shift);
+          return vshrq_n_u{{ intrin_tp[ctype][1] }}(
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data),
+            shift
+          );
         }
       } else {
-        return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);
+        return vshrq_n_u{{ intrin_tp[ctype][1] }}(data, shift);
       }
-  # - target_extension: "neon"
-  #   ctype: ["float", "double"]
-  #   lscpu_flags: ["neon"]
-  #   note: "is it a good idea to support bitmanipulation for floats and doubles?"
-  #   implementation: |
-  #     vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
-  #       vshrq_n_{{ intrin_tp[ctype][1] }}(
-  #         vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
-  #         vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -981,14 +987,21 @@ definitions:
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ['neon']
-    is_native: False
     implementation: |
-      std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
-      vst1q_{{ intrin_tp_full[ctype] }}(tmp.data(), data);
-      for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        tmp[i] >>= shift;
+      // use negative shift, bcs shift left intrinsic shifts right for negative values.
+      auto neg_shift = vsubq_{{intrin_tp_full[ctype]}}(vmovq_n_{{intrin_tp_full[ctype]}}(0), shift);
+      if constexpr (std::is_signed_v<typename Vec::base_type>) {
+        if constexpr (PreserveSign) {
+          return vshlq_{{ intrin_tp_full[ctype] }}(data, neg_shift);
+        } else {
+          return vshlq_u{{ intrin_tp[ctype][1] }}(
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data),
+            neg_shift
+          );
+        }
+      } else {
+        return vshlq_u{{ intrin_tp[ctype][1] }}(data, neg_shift);
       }
-      return vld1q_{{ intrin_tp_full[ctype] }}(tmp.data());
   #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"]

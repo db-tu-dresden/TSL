@@ -68,7 +68,7 @@ definitions:
     implementation: "return _mm_load_pd(assume_aligned<Vec::vector_alignment()>(memory));"
 #ARM - NEON
   - target_extension: "neon"
-    ctype: "int64_t"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["neon"]
     implementation: "return vld1q_{{ intrin_tp_full[ctype] }}(assume_aligned<Vec::vector_alignment()>(memory));"
 #SCALAR
@@ -244,7 +244,7 @@ definitions:
     implementation: "_mm_store_pd(assume_aligned<Vec::vector_alignment()>(memory), data);"
 #ARM - NEON
   - target_extension: "neon"
-    ctype: "int64_t"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["neon"]
     implementation: "vst1q_{{ intrin_tp_full[ctype] }}(assume_aligned<Vec::vector_alignment()>(memory), data);"
 #SCALAR
@@ -327,7 +327,7 @@ definitions:
     implementation: "_mm_storeu_pd(memory, data);"
 #ARM - NEON
   - target_extension: "neon"
-    ctype: "int64_t"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["neon"]
     implementation: "vst1q_{{ intrin_tp_full[ctype] }}(memory, data);"
 #SCALAR
@@ -405,6 +405,14 @@ definitions:
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["sse2"]
+    implementation: |
+      alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
+      tsl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
+      return tmp;
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["neon"]
     implementation: |
       alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
       tsl::store<Vec>(assume_aligned<Vec::vector_alignment()>(tmp.data()), data);
@@ -991,13 +999,29 @@ definitions:
   #ARM - NEON
   - target_extension: "neon"
     additional_simd_template_extension: "neon"
-    ctype: "int64_t"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {
+      "int8_t":   ["int8_t", "uint8_t"],
+      "uint8_t":  ["int8_t", "uint8_t"],
+      "int16_t":  ["int16_t", "uint16_t"],
+      "uint16_t": ["int16_t", "uint16_t"],
+      "int32_t":  ["int32_t", "uint32_t"],
+      "uint32_t": ["int32_t", "uint32_t"],
+      "float":    ["int32_t", "uint32_t"],
+      "int64_t":  ["int64_t", "uint64_t"],
+      "uint64_t": ["int64_t", "uint64_t"],
+      "double":   ["int64_t", "uint64_t"],
+    }
     lscpu_flags: [ 'neon' ]
     is_native: False
-    implementation: >
+    implementation: |
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
       auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
-      auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : mem[ index[ 0 ][ 0 ] ] );
-      return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : mem[ index[ 0 ][ 1 ] ] ), tmp, 1 );
+      auto const idx_array = tsl::to_array<IndicesType>(index);
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
+      }
+      return tsl::load<Vec>(result.data());
   #SCALAR
   - target_extension: "scalar"
     additional_simd_template_extension: "scalar"
@@ -1119,13 +1143,39 @@ definitions:
   #ARM - NEON
   - target_extension: "neon"
     additional_simd_template_extension: "neon"
-    ctype: "int64_t"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {
+      "int8_t":   ["int8_t", "uint8_t"],
+      "uint8_t":  ["int8_t", "uint8_t"],
+      "int16_t":  ["int16_t", "uint16_t"],
+      "uint16_t": ["int16_t", "uint16_t"],
+      "int32_t":  ["int32_t", "uint32_t"],
+      "uint32_t": ["int32_t", "uint32_t"],
+      "float":    ["int32_t", "uint32_t"],
+      "double":   ["int64_t", "uint64_t"],
+    }
+    lscpu_flags: [ 'neon' ]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
+      auto const src_array = tsl::to_array<Vec>(source);
+      auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
+      auto const idx_array = tsl::to_array<IndicesType>(index);
+      using VecMaskT = typename Vec::transform_extension<{{ additional_simd_template_base_type }}>;
+      auto const mask_array = tsl::to_array<VecMaskT>(mask);
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = (mask_array[i] == 0) ? src_array[i] : mem[idx_array[i]];
+      }
+      return tsl::load<Vec>(result.data());
+  - target_extension: "neon"
+    additional_simd_template_extension: "neon"
+    ctype: ["int64_t", "uint64_t"]
     lscpu_flags: [ 'neon' ]
     is_native: False
     implementation: |
       auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
-      auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : mem[ index[ 0 ][ 0 ] ] );
-      return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : mem[ index[ 0 ][ 1 ] ] ), tmp, 1 );
+      auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : mem[ index[0] ] );
+      return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : mem[ index[1] ] ), tmp, 1 );
   #SCALAR
   - target_extension: "scalar"
     additional_simd_template_extension: "scalar"
@@ -1228,7 +1278,6 @@ definitions:
       auto const idx_array = tsl::to_array<offsetExt>(index);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        if(mask_array[i] != 0) {
         if constexpr(N==sizeof(typename Vec::base_type)) {
           auto mem = reinterpret_cast<typename Vec::base_type *>(memory);
           mem[idx_array[i]] = val_array[i];
@@ -1358,10 +1407,10 @@ definitions:
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::offset_base_type, Vec::vector_element_count()> idx_array{};
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> val_array{};
-      alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> mask_array{};
+      alignas(Vec::vector_size_B()) std::array<typename Vec::offset_base_type, Vec::vector_element_count()> mask_array{};
       tsl::store<Vec>(val_array.data(), data);
       tsl::store<typename Vec::transform_extension<Vec::offset_base_type>>(idx_array.data(), index);
-      tsl::store<Vec>(mask_array.data(), mask);
+      tsl::store<typename Vec::transform_extension<typename Vec::offset_base_type>>(mask_array.data(), mask);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
