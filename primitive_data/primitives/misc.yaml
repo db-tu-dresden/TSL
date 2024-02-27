@@ -481,3 +481,244 @@ definitions:
     lscpu_flags: ["sse", "sse2"]
     implementation: "return _mm_undefined_{{ intrin_tp_full[ctype] }}();"
 ...
+---
+primitive_name: "maskz_mov"
+brief_description: "Copy elements from a vector, where the mask bit it set, otherwise write zero"
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Mask of elements to change."
+  - ctype: "const typename Vec::register_type"
+    name: "src"
+    description: "Base Vector."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Base Vector, with the elements specified by mask changed to value."
+testing:
+  - requires: ["loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+        using T = typename Vec::base_type;
+        std::size_t element_count = 1024;
+        bool allOk = true;
+        testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto test_data_ptr = test_helper.data_target();
+        for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+          typename Vec::imask_type random_integral;
+          testing::rnd_init(&random_integral, 1);
+          auto src = &test_data_ptr[i];
+          auto result = maskz_mov<Vec>(random_integral, loadu<Vec>(src));
+          for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
+              reference_result_ptr[j] = (random_integral >> j) & 1 ? src[j] : 0;
+          }
+          allOk &= test_helper.validate_simd_register(result);
+        }
+        return allOk;
+definitions:
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_and_si256(src, mask);"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_and_{{ intrin_tp_full[ctype] }}(src, mask);"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_and_si128(mask, src);"
+  - target_extension: "sse"
+    ctype: ["float", double]
+    lscpu_flags: ["sse", "sse2"]
+    implementation: "return _mm_and_{{ intrin_tp_full[ctype] }}(mask, src);"
+...
+---
+primitive_name: "maskz_mov"
+functor_name: "imaskz_mov"
+brief_description: "Copy elements from a vector, where the mask bit it set, otherwise write zero"
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Mask of elements to change."
+  - ctype: "const typename Vec::register_type"
+    name: "src"
+    description: "Base Vector."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Base Vector, with the elements specified by mask changed to value."
+testing:
+  - requires: ["loadu"]
+    includes: ["<cstddef>"]
+    implementation: |
+        using T = typename Vec::base_type;
+        std::size_t element_count = 1024;
+        bool allOk = true;
+        testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto test_data_ptr = test_helper.data_target();
+        for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+          typename Vec::imask_type random_integral;
+          testing::rnd_init(&random_integral, 1);
+          auto src = &test_data_ptr[i];
+          auto result = maskz_mov<Vec>(random_integral, loadu<Vec>(src));
+          for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
+              reference_result_ptr[j] = (random_integral >> j) & 1 ? src[j] : 0;
+          }
+          allOk &= test_helper.validate_simd_register(result);
+        }
+        return allOk;
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+  - target_extension: "avx512"
+    ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+  - target_extension: "avx512"
+    ctype: ["float", double]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_maskz_mov_{{ intrin_tp_full[ctype] }}(mask, src);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+  - target_extension: "avx2"
+    ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+  - target_extension: "avx2"
+    ctype: ["float", double]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_maskz_mov_{{ intrin_tp_full[ctype] }}(mask, src);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: "return _mm256_and_si256(src, tsl::to_mask<Vec>(mask));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_and_{{ intrin_tp_full[ctype] }}(src, tsl::to_mask<Vec>(mask));"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+  - target_extension: "sse"
+    ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_maskz_mov_epi{{ intrin_tp[ctype][1] }}(mask, src);"
+  - target_extension: "sse"
+    ctype: ["float", double]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_maskz_mov_{{ intrin_tp_full[ctype] }}(mask, src);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_and_si128(tsl::to_mask<Vec>(mask), src);"
+  - target_extension: "sse"
+    ctype: ["float", double]
+    lscpu_flags: ["sse", "sse2"]
+    implementation: "return _mm_and_{{ intrin_tp_full[ctype] }}(tsl::to_mask<Vec>(mask), src);"
+#NEON
+  # TODO
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (mask & 1) ? src : 0;"
+...
+---
+primitive_name: "mask_mov"
+brief_description: "Merge two vectors while picking the source of each element based on the corresponding mask bit"
+parameters:
+   - ctype: "const typename Vec::register_type"
+     name: "src"
+     description: "Vector to pick elements from if mask bit is 0"
+   - ctype: "const typename Vec::imask_type"
+     name: "mask"
+     description: "Mask of elements to change."
+   - ctype: "const typename Vec::register_type"
+     name: "data"
+     description: "Vector to pick elements from if mask bit is 1"
+returns:
+   ctype: "typename Vec::register_type"
+   description: "Base Vector, with the elements specified by mask changed to value."
+testing:
+   -  requires: ["loadu"]
+      includes: ["<cstddef>"]
+      implementation: |
+        using T = typename Vec::base_type;
+        std::size_t element_count = 1024;
+        bool allOk = true;
+        testing::test_memory_helper_t<Vec> test_helper{element_count * 2, Vec::vector_element_count(), false};
+        auto reference_result_ptr = test_helper.result_ref();
+        auto test_result_ptr = test_helper.result_target();
+        auto test_data_ptr = test_helper.data_target();
+        for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+            typename Vec::imask_type random_integral;
+            testing::rnd_init(&random_integral, 1);
+            auto src = &test_data_ptr[i];
+            auto data = &test_data_ptr[element_count + i];
+            auto result = mask_mov<Vec>(loadu<Vec>(src), random_integral, loadu<Vec>(data));
+            for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
+                reference_result_ptr[j] = (random_integral >> j) & 1 ? data[j] : src[j];
+            }
+            allOk &= test_helper.validate_simd_register(result);
+        }
+        return allOk;
+definitions:
+#INTEL - AVX512
+   - target_extension: "avx512"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw"]
+     implementation: "return _mm512_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "avx512"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "avx512"
+     ctype: ["float", double]
+     lscpu_flags: ["avx512f"]
+     implementation: "return _mm512_mask_mov_{{ intrin_tp_full[ctype] }}(src, mask, data);"
+#INTEL - AVX2
+   - target_extension: "avx2"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw", "avx512vl"]
+     implementation: "return _mm256_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "avx2"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm256_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "avx2"
+     ctype: ["float", double]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm256_mask_mov_{{ intrin_tp_full[ctype] }}(src, mask, data);"
+#INTEL - SSE
+   - target_extension: "sse"
+     ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+     lscpu_flags: ["avx512bw", "avx512vl"]
+     implementation: "return _mm_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "sse"
+     ctype: ["int32_t", "int64_t", "uint32_t", "uint64_t"]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm_mask_mov_epi{{ intrin_tp[ctype][1] }}(src, mask, data);"
+   - target_extension: "sse"
+     ctype: ["float", double]
+     lscpu_flags: ["avx512f", "avx512vl"]
+     implementation: "return _mm_mask_mov_{{ intrin_tp_full[ctype] }}(src, mask, data);"
+#NEON
+  # TODO
+#SCALAR
+   - target_extension: "scalar"
+     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+     lscpu_flags: []
+     implementation: "return (mask & 1) ? data : src;"
+...

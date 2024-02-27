@@ -1128,74 +1128,6 @@ definitions:
 ...
 ---
 primitive_name: "lzc"
-brief_description: "Leading zeros counter."
-parameters:
-  - ctype: "const typename Vec::register_type"
-    name: "data"
-    description: "First vector."
-returns:
-  ctype: "typename Vec::offset_base_register_type"
-  description: "Vector containing leading zeros number."
-definitions:
-  - target_extension: ["avx512"]
-    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
-    lscpu_flags: ["avx512f", "avx512cd"]
-    implementation: |
-      return _mm512_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
-  - target_extension: ["avx2"]
-    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
-    lscpu_flags: ["avx2", "avx512cd", "avx512vl"]
-    implementation: |
-      return _mm256_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
-  - target_extension: ["sse"]
-    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
-    lscpu_flags: ["sse", "avx512cd", "avx512vl"]
-    implementation: |
-      return _mm_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
-  - target_extension: ["oneAPIfpgaRTL"]
-    ctype: ["uint32_t", "int32_t", "float"]
-    lscpu_flags: ["oneAPIfpgaDev"]
-    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
-    vector_length_agnostic: True
-    implementation: |
-      typename Vec::offset_base_register_type result{};
-      typename Vec::offset_base_register_type lzc_data{};
-      TSL_UNROLL(Vec::vector_element_count())
-      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        lzc_data[i] = Lzc32Uint(data[i]);
-      }
-      TSL_UNROLL(Vec::vector_element_count())
-      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        if(lzc_data[i]>32)
-          result[i] = 32;
-        else
-          result[i] = lzc_data[i];
-      }
-      return result;
-  - target_extension: "oneAPIfpga"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    lscpu_flags: ["oneAPIfpgaDev"]
-    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
-    vector_length_agnostic: True
-    implementation: |
-      typename Vec::offset_base_register_type result{};
-      using base_t = typename Vec::base_type;
-      // as the current version of oneAPI does not properly implement ac_int::leading_sign() we "reimplemented" it
-      // /glob/development-tools/versions/oneapi/2023.0.1/oneapi/compiler/2023.0.0/linux/lib/oclfpga/include/sycl/ext/intel/ac_types/ac_int.hpp
-      using bitInt = ac_int<(sizeof(base_t)*CHAR_BIT), false>;
-      TSL_UNROLL(Vec::vector_element_count())
-      for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
-        bitInt val(data[idx]);
-        int k = (sizeof(base_t)*CHAR_BIT)-1;
-        TSL_UNROLL(val[k])
-        for(; k >= 0 && val[k] == 0; k--) {}
-        result[idx] = (sizeof(base_t)*CHAR_BIT-1) - k;
-      }
-      return result;
-...
----
-primitive_name: "lzc"
-functor_name: "lzc_scalar"
 parameters:
   - ctype: "const typename Vec::base_type"
     name: "data"
@@ -1255,6 +1187,119 @@ definitions:
     vector_length_agnostic: True
     implementation: |
       return details::clz_recursive<typename Vec::base_type, typename Vec::offset_base_type>::apply(data);
+...
+---
+primitive_name: "lzc"
+functor_name: "lzc_vector"
+brief_description: "Leading zeros counter."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "First vector."
+returns:
+  ctype: "typename Vec::offset_base_register_type"
+  description: "Vector containing leading zeros number."
+definitions:
+  - target_extension: ["avx512"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512cd"]
+    implementation: |
+      return _mm512_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_alignment()) typename Vec::base_type data_arr[Vec::vector_element_count()];
+      tsl::store<Vec>(data_arr, data);
+      alignas(Vec::vector_alignment()) typename Vec::base_type result[Vec::vector_element_count()];
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data_arr[i]);
+      }
+      return tsl::load<Vec>(result);
+  - target_extension: ["avx2"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2", "avx512cd", "avx512vl"]
+    implementation: |
+      return _mm256_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_alignment()) typename Vec::base_type data_arr[Vec::vector_element_count()];
+      tsl::store<Vec>(data_arr, data);
+      alignas(Vec::vector_alignment()) typename Vec::base_type result[Vec::vector_element_count()];
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data_arr[i]);
+      }
+      return tsl::load<Vec>(result);
+  - target_extension: ["sse"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse", "avx512cd", "avx512vl"]
+    implementation: |
+      return _mm_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_alignment()) typename Vec::base_type data_arr[Vec::vector_element_count()];
+      tsl::store<Vec>(data_arr, data);
+      alignas(Vec::vector_alignment()) typename Vec::base_type result[Vec::vector_element_count()];
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data_arr[i]);
+      }
+      return tsl::load<Vec>(result);
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: []
+    is_native: False
+    implementation: |
+      return details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data);
+  - target_extension: ["oneAPIfpgaRTL"]
+    ctype: ["uint32_t", "int32_t", "float"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    vector_length_agnostic: True
+    implementation: |
+      typename Vec::offset_base_register_type result{};
+      typename Vec::offset_base_register_type lzc_data{};
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        lzc_data[i] = Lzc32Uint(data[i]);
+      }
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        if(lzc_data[i]>32)
+          result[i] = 32;
+        else
+          result[i] = lzc_data[i];
+      }
+      return result;
+  - target_extension: "oneAPIfpga"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    vector_length_agnostic: True
+    implementation: |
+      typename Vec::offset_base_register_type result{};
+      using base_t = typename Vec::base_type;
+      // as the current version of oneAPI does not properly implement ac_int::leading_sign() we "reimplemented" it
+      // /glob/development-tools/versions/oneapi/2023.0.1/oneapi/compiler/2023.0.0/linux/lib/oclfpga/include/sycl/ext/intel/ac_types/ac_int.hpp
+      using bitInt = ac_int<(sizeof(base_t)*CHAR_BIT), false>;
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+        bitInt val(data[idx]);
+        int k = (sizeof(base_t)*CHAR_BIT)-1;
+        TSL_UNROLL(val[k])
+        for(; k >= 0 && val[k] == 0; k--) {}
+        result[idx] = (sizeof(base_t)*CHAR_BIT-1) - k;
+      }
+      return result;
 ...
 ---
 primitive_name: "lzc_alt"
