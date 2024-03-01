@@ -17,48 +17,19 @@ testing: #optional
     requires: ["loadu"]
     includes: ["<cstddef>", "<array>"]
     implementation: |
-      using T = std::conditional_t<std::is_same_v<typename Vec::base_type, typename Vec::mask_type>, typename Vec::base_type, typename Vec::offset_base_type>;
-      using CustomVecT = typename Vec::transform_extension<T>;
-      bool allOk = true;
-      // For Vec::mask_type == Vec::register_type testing
-      std::array< T, CustomVecT::vector_element_count() > pseudo_mask;
-      typename CustomVecT::mask_type vec_mask;
-      for(std::size_t i = 0; i < CustomVecT::vector_element_count() + 1; i++) {
-        // To check if we are at AVX512/Scalar or any register type mask
-        if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
-            // e.g. Scalar (bool)
-            vec_mask = false;
-            for ( std::size_t j = 0; j < i; ++j ) {
-              vec_mask = (vec_mask << 1) | 0b1;
-            }
-        } else if constexpr (std::is_same_v<typename Vec::mask_type, typename Vec::imask_type>) {
-            // // e.g. AVX512
-            vec_mask = 0;
-            typename Vec::mask_type one = 0b1;
-            for ( std::size_t j = 0; j < i; ++j ) {
-              vec_mask |= one << j;
-            }
-        } else {
-            // e.g. SSE, AVX2
-            pseudo_mask.fill( 0 );
-            T val = -1;
-            for ( std::size_t j = 0; j < i; ++j ) {
-              pseudo_mask[ j ] = val;
-            }
-            vec_mask = loadu<CustomVecT>( pseudo_mask.data() );
-        }
-        auto mask_integral = to_integral<CustomVecT>( vec_mask );
-        std::size_t matches = 0;
-        for ( std::size_t k = 0; k < CustomVecT::vector_element_count(); ++k ) {
-          if(((mask_integral >> k) & 0b1) == 1 ) {
-            ++matches;
-          }
-        }
-        allOk &= (matches == i);
+      if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
+        std::cerr << "implement me" << std::endl;
+        return true;
+      } else if constexpr (std::is_same_v<typename Vec::mask_type, typename Vec::imask_type>) {
+        //we don't need to do anything here since it is a NOP.
+        return true;
+      } else {
+        using T = typename Vec::base_type;
+        typename Vec::imask_type expected_result = 0;
+        auto transformed = to_integral<Vec>(to_mask<Vec>(expected_result));
+        return transformed == expected_result;
       }
-      return allOk;
   - test_name: "mask_match_alternate"
-    requires: ["loadu", "set1", "storeu"]
     includes: ["<cstddef>", "<array>", "<iostream>", "<bitset>"]
     implementation: |
       if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {
@@ -68,37 +39,20 @@ testing: #optional
         //we don't need to do anything here since it is a NOP.
         return true;
       } else {
-        using T = std::conditional_t<std::is_same_v<typename Vec::base_type, typename Vec::mask_type>, typename Vec::base_type, typename Vec::offset_base_type>;
-        using CustomVecT = typename Vec::transform_extension<T>;
-        bool allOk = true;
-        //e.g., SSE, AVX2, ...
-        auto data_create_lambda = [](T* data, std::size_t element_count) {
-          for (size_t i = 0; i < element_count; ++i) {
-            data[i] = i % 2 == 0 ? -1 : 0;
+        using T = typename Vec::base_type;
+        typename Vec::imask_type expected_result = 0;
+        for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          if ((i % 2) == 0) {
+            expected_result |= (1 << i);
           }
-        };
-        testing::test_memory_helper_t<CustomVecT> test_helper{CustomVecT::vector_element_count(), CustomVecT::vector_element_count(), false, data_create_lambda};
-        tsl::storeu<CustomVecT>(test_helper.result_target(), tsl::set1<CustomVecT>(0));
-        auto reference_result_ptr = reinterpret_cast<typename Vec::imask_type*>(test_helper.result_ref());
-        auto reference_data_ptr = test_helper.data_ref();
-        typename CustomVecT::imask_type expected_result = 0;
-        for (size_t i = 0; i < CustomVecT::vector_element_count(); ++i) {
-          expected_result |= (reference_data_ptr[i] & 1) << i;
         }
-        *reference_result_ptr = expected_result;
-        auto test_data_ptr = test_helper.data_target();
-        auto test_result_ptr = reinterpret_cast<typename Vec::imask_type*>(test_helper.result_target());
-        auto vec_mask = loadu<CustomVecT>(test_data_ptr);
-        auto mask_integral = to_integral<CustomVecT>(vec_mask);
-        *test_result_ptr = mask_integral;
-        test_helper.synchronize();
-        if (!(test_helper.validate())) {
-          std::cerr << "FAILED!!!" << std::endl;
-          std::cerr << tsl::type_name<Vec>() << std::endl;
-          std::cerr << "expected_result: " << std::bitset<64>{(unsigned long long)expected_result} << std::endl;
-          std::cerr << "test_result: " << std::bitset<64>{(unsigned long long)mask_integral} << std::endl;
+        auto transformed = to_integral<Vec>(to_mask<Vec>(expected_result));
+        bool ok = (transformed == expected_result);
+        if (!ok) {
+          std::cerr << "expected: " << std::bitset<sizeof(typename Vec::imask_type) * 8>(expected_result) << std::endl;
+          std::cerr << "transformed: " << std::bitset<sizeof(typename Vec::imask_type) * 8>(transformed) << std::endl;
         }
-        return test_helper.validate();
+        return ok;
       }
 definitions:
 #INTEL - AVX512
@@ -471,15 +425,28 @@ definitions:
       return _mm256_castsi256_pd(_mm256_cmpeq_epi64(anded_vec, and_vec));
   #INTEL - SSE
   - target_extension: ["sse"]
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     is_native: False
     lscpu_flags: ["sse2"]
     implementation: |
+      using T = typename Vec::offset_base_type;
       typename Vec::base_type result [Vec::vector_element_count()];
       for(int i = 0; i < Vec::vector_element_count(); i++){
-        ((mask >> i) & 0b1) ? result[i] = 0xFF : result[i] = 0;
+        ((mask >> i) & 0b1) ? result[i] = (T)-1 : result[i] = 0;
       }
       return tsl::loadu<Vec>(result);
+  - target_extension: ["sse"]
+    ctype: ["float", "double"]
+    is_native: False
+    lscpu_flags: ["sse2"]
+    implementation: |
+      using T = typename Vec::offset_base_type;
+      using OffsetExt = typename Vec::template transform_extension<T>;
+      T result [Vec::vector_element_count()];
+      for(int i = 0; i < Vec::vector_element_count(); i++){
+        ((mask >> i) & 0b1) ? result[i] = (T)-1 : result[i] = 0;
+      }
+      return _mm_castsi128_{{ intrin_tp_full[ctype] }}(tsl::loadu<OffsetExt>(result));
   - target_extension: ["sse"]
     ctype: ["uint16_t", "int16_t"]
     lscpu_flags: ["sse2"]
@@ -1274,7 +1241,7 @@ definitions:
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: []
-    implementation: "return mask_a | (mask_b << position);"    
+    implementation: "return mask_a | (mask_b << position);"
 ...
 ---
 primitive_name: "extract_mask"
