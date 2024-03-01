@@ -632,7 +632,7 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t"]
     lscpu_flags: ['avx2']
-    implementation: | 
+    implementation: |
       return _mm256_andnot_si256(
         _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b),
         _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b))
@@ -641,7 +641,7 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint64_t"]
     lscpu_flags: ['avx2']
-    implementation: | 
+    implementation: |
       auto const lower_32_bit = _mm256_srli_epi64(_mm256_cmpeq_epi64(_mm256_setzero_si256(), _mm256_setzero_si256()), 32);
       auto const upper_vec_a  = _mm256_srli_epi64(vec_a, 32);
       auto const upper_vec_b  = _mm256_srli_epi64(vec_b, 32);
@@ -664,7 +664,7 @@ definitions:
        * <==>
        * (a_upper <= b_upper) & (~((a_upper == b_upper)&~(a_lower <= b_lower))) & (~((a_upper == b_upper) & (a_upper == b_upper)))
        */
-      return 
+      return
         _mm256_andnot_si256(
           _mm256_and_si256(upper_vec_a_eq_upper_vec_b, lower_vec_a_eq_lower_vec_b),
           _mm256_andnot_si256(
@@ -719,7 +719,7 @@ definitions:
        * <==>
        * (a_upper <= b_upper) & (~((a_upper == b_upper)&~(a_lower <= b_lower))) & (~((a_upper == b_upper) & (a_upper == b_upper)))
        */
-      return 
+      return
         _mm_andnot_si128(
           _mm_and_si128(upper_vec_a_eq_upper_vec_b, lower_vec_a_eq_lower_vec_b),
           _mm_andnot_si128(
@@ -868,7 +868,7 @@ definitions:
        * <==>
        * (a_upper >= b_upper) & (~((a_upper == b_upper)&~(a_lower >= b_lower))) & (~((a_upper == b_upper) & (a_upper == b_upper)))
        */
-      return 
+      return
         _mm256_andnot_si256(
           _mm256_and_si256(upper_vec_a_eq_upper_vec_b, lower_vec_a_eq_lower_vec_b),
           _mm256_andnot_si256(
@@ -1119,7 +1119,7 @@ definitions:
       auto const lower_vec_a  = _mm_and_si128(vec_a, lower_32_bit);
       auto const lower_vec_b  = _mm_and_si128(vec_b, lower_32_bit);
 
-      auto const upper_vec_a_le_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, _mm_and_si128(lower_32_bit, _mm_min_epu32(upper_vec_a, upper_vec_b))); 
+      auto const upper_vec_a_le_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, _mm_and_si128(lower_32_bit, _mm_min_epu32(upper_vec_a, upper_vec_b)));
       auto const lower_vec_a_le_lower_vec_b = _mm_cmpeq_epi64(lower_vec_a, _mm_and_si128(lower_32_bit, _mm_min_epu32(lower_vec_a, lower_vec_b)));
       auto const upper_vec_a_eq_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, upper_vec_b);
 
@@ -1288,7 +1288,7 @@ definitions:
        */
       return _mm256_andnot_si256(
         _mm256_andnot_si256(
-          lower_vec_a_ge_lower_vec_b, 
+          lower_vec_a_ge_lower_vec_b,
           upper_vec_a_eq_upper_vec_b
         ),
         upper_vec_a_ge_upper_vec_b
@@ -1352,7 +1352,7 @@ definitions:
        */
       return _mm_andnot_si128(
         _mm_andnot_si128(
-          lower_vec_a_ge_lower_vec_b, 
+          lower_vec_a_ge_lower_vec_b,
           upper_vec_a_eq_upper_vec_b
         ),
         upper_vec_a_ge_upper_vec_b

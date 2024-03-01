@@ -568,7 +568,12 @@ testing:
           for(std::size_t j = 0; j < Vec::vector_element_count(); j++) {
               reference_result_ptr[j] = (random_integral >> j) & 1 ? src[j] : 0;
           }
-          allOk &= test_helper.validate_simd_register(result);
+
+          bool ok = test_helper.validate_simd_register(result);
+          if (!ok) {
+            std::cerr << "Error at index " << i << std::endl;
+          }
+          allOk &= ok;
         }
         return allOk;
 definitions:
