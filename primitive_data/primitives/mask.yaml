@@ -382,7 +382,11 @@ definitions:
       using sse_type = simd<typename Vec::base_type, sse>;
       auto tmp128_lo = to_mask<sse_type, Idof>::apply(mask);
       auto tmp128_hi = to_mask<sse_type, Idof>::apply(mask >> sse_type::vector_element_count());
-      return _mm256_castsi256_{{ intrin_tp[ctype][1] }}(_mm256_set_m128i(tmp128_hi, tmp128_lo));
+      {% if ctype == "float" %}
+      return _mm256_set_m128(tmp128_hi, tmp128_lo);
+      {% else %}
+      return _mm256_set_m128d(tmp128_hi, tmp128_lo);
+      {% endif %}
   - target_extension: "avx2"
     ctype: ["int16_t", "uint16_t"]
     lscpu_flags: ['sse4_2', 'avx', 'avx2']
@@ -432,7 +436,7 @@ definitions:
       using T = typename Vec::offset_base_type;
       typename Vec::base_type result [Vec::vector_element_count()];
       for(int i = 0; i < Vec::vector_element_count(); i++){
-        ((mask >> i) & 0b1) ? result[i] = (T)-1 : result[i] = 0;
+        ((mask >> i) & 0b1) ? result[i] = static_cast<T>(-1) : result[i] = 0;
       }
       return tsl::loadu<Vec>(result);
   - target_extension: ["sse"]
@@ -444,7 +448,7 @@ definitions:
       using OffsetExt = typename Vec::template transform_extension<T>;
       T result [Vec::vector_element_count()];
       for(int i = 0; i < Vec::vector_element_count(); i++){
-        ((mask >> i) & 0b1) ? result[i] = (T)-1 : result[i] = 0;
+        ((mask >> i) & 0b1) ? result[i] = static_cast<T>(-1) : result[i] = 0;
       }
       return _mm_castsi128_{{ intrin_tp_full[ctype] }}(tsl::loadu<OffsetExt>(result));
   - target_extension: ["sse"]
