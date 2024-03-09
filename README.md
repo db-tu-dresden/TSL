@@ -11,6 +11,7 @@
 [![Builds on ARM](https://github.com/db-tu-dresden/TSL/actions/workflows/arm-build-and-test-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/arm-build-and-test-success.yml)
 
 [![Packaged](https://github.com/db-tu-dresden/TSL/actions/workflows/publish-latest.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/publish-latest.yml)
+[![Publish GH-Page](https://github.com/db-tu-dresden/TSL/actions/workflows/upload_indexhtml.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/upload_indexhtml.yml)
 <!-- 
 ## **Current Status**
 
@@ -133,7 +134,7 @@ The provided image defines a console as an entry point and exposes a path `/tslg
 
 ## <a id="tsl-usage"></a>**Usage**
 
-In the following section, we distinguish between two use cases: (i) using the TSL within an existing project and (ii) contributing primitives and extensions (or starting from scratch). 
+In the following section, we distinguish between two use cases: (i) using the TSL within an existing project and (ii) contributing primitives and extensions (or starting from scratch). As an entry-point to get an overview about the provided functionality, please look into our [github page](https://db-tu-dresden.github.io/TSL/).
 
 ### <a id="tsl-include"></a>__Using the TSL in your project__ (recommended for users)
 

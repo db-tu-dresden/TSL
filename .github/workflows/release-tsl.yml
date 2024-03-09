@@ -22,6 +22,7 @@ jobs:
       docker-tag: "${{ vars.GENERATION_TAG }}"
       context: ".github/actions/tsl-generate"
       ref: ${{ github.ref}}
+      install-qemu: false
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -31,6 +32,8 @@ jobs:
     with:
       requirement-file: "requirements.txt"
       docker-tag: "${{ vars.GENERATOR_TAG }}"
+      copy-requirements: false
+      install-qemu: false
       context: .
       ref: ${{ github.ref}}
     secrets:
