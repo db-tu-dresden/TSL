@@ -432,7 +432,7 @@ definitions:
       using T = typename Vec::offset_base_type;
       typename Vec::base_type result [Vec::vector_element_count()];
       for(int i = 0; i < Vec::vector_element_count(); i++){
-        ((mask >> i) & 0b1) ? result[i] = (T)-1 : result[i] = 0;
+        ((mask >> i) & 0b1) ? result[i] = static_cast<T>(-1) : result[i] = 0;
       }
       return tsl::loadu<Vec>(result);
   - target_extension: ["sse"]
@@ -444,7 +444,7 @@ definitions:
       using OffsetExt = typename Vec::template transform_extension<T>;
       T result [Vec::vector_element_count()];
       for(int i = 0; i < Vec::vector_element_count(); i++){
-        ((mask >> i) & 0b1) ? result[i] = (T)-1 : result[i] = 0;
+        ((mask >> i) & 0b1) ? result[i] = static_cast<T>(-1) : result[i] = 0;
       }
       return _mm_castsi128_{{ intrin_tp_full[ctype] }}(tsl::loadu<OffsetExt>(result));
   - target_extension: ["sse"]
