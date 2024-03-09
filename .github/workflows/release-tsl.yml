@@ -32,9 +32,9 @@ jobs:
     with:
       requirement-file: "requirements.txt"
       docker-tag: "${{ vars.GENERATOR_TAG }}"
-      copy-requirements: false
       install-qemu: false
-      context: .
+      use-buildx: false
+      context: ".github/actions/tsl-generator-all-in-one"
       ref: ${{ github.ref}}
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
