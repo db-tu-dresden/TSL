@@ -18,10 +18,10 @@ RUN apt-get update
 RUN apt-get install -y python3.8 python3-pip
 
 #Installing python dependencies
-COPY requirements.txt /opt/py/requirements.txt
+COPY requirements.txt /requirements.txt
 RUN python3 -m pip install --upgrade pip
 RUN pip install ruff yamllint yamlfix
-RUN pip install -r /opt/py/requirements.txt
+RUN pip install -r /requirements.txt
 
 RUN mkdir /tslgen
 
