@@ -1,0 +1,160 @@
+name: Release TSL
+
+on:
+  workflow_call:
+    inputs:
+      tag-name:
+        description: 'Tag name'
+        required: true
+        type: string
+    secrets:
+      DOCKER_HUB_USER:
+        description: 'Dockerhub username.'
+        required: true
+      DOCKERHUB_TOKEN:
+        description: 'Dockerhub token.'
+        required: true
+jobs:
+  setup-generation:
+    uses: ./.github/workflows/setup-environment.yml    
+    with:
+      requirement-file: "requirements.txt"
+      docker-tag: "${{ vars.GENERATION_TAG }}"
+      context: ".github/actions/tsl-generate"
+      ref: ${{ github.ref}}
+    secrets:
+      DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  publish-docker:
+    uses: ./.github/workflows/setup-environment.yml    
+    with:
+      requirement-file: "requirements.txt"
+      docker-tag: "${{ vars.GENERATOR_TAG }}"
+      context: .
+      ref: ${{ github.ref}}
+    secrets:
+      DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  
+  generate:
+    runs-on: ubuntu-latest
+    name: Job to generate hollistic TSL
+    needs: setup-generation
+    strategy:
+      matrix:
+        target_flags:
+          - "UNKNOWN"
+          - "sse"
+          - "sse,sse2"
+          - "sse,sse2,ssse3"
+          - "sse,sse2,ssse3,sse4_1"
+          - "sse,sse2,ssse3,sse4_1,sse4_2"
+          - "sse,sse2,ssse3,sse4_1,sse4_2,avx"
+          - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2"
+          - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2,avx512f"
+          - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2,avx512f,avx512cd,avx512er,avx512pf" #avx3.1
+          - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2,avx512f,avx512cd,avx512bw,avx512dq,avx512vl" #avx3.2
+          - "neon,asimd"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: TSL Generate
+        id: generate
+        uses: ./.github/actions/tsl-generate
+        with:
+          image: ${{ vars.GENERATION_TAG }}
+          targets: ${{ matrix.target_flags }}
+      - name: Upload Generated TSL
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generate_tsl_${{ steps.generate.outputs.name }}
+          path: ${{ github.workspace }}/${{ steps.generate.outputs.out }}
+          overwrite: true
+          retention-days: 1
+      - if: ${{ steps.generate.outputs.success == 'false' }}
+        run: |
+          echo "Generation failed with error."
+          echo "${{ steps.generate.outputs.msg }}"
+          exit 1
+  release:
+    runs-on: ubuntu-latest
+    name: Release TSL
+    needs: generate
+    permissions: write-all
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download Generated TSL
+        uses: actions/download-artifact@v4
+        with:
+          pattern: generate_tsl_*
+          path: ${{ github.workspace }}/tsl
+      - name: Package TSL
+        run: |
+          #iterate over all files in tsl/generate_tsl_*/tsl.conf
+          for f in ${{ github.workspace }}/tsl/generate_tsl_*/tsl.conf; do
+            cat $f >> ${{ github.workspace }}/tsl/tsl.conf
+          done
+          tar -czf tsl.tar.gz tsl
+          echo "TSL Package created"
+      - name: Create RPM Package
+        id: rpm
+        uses: ./.github/actions/tsl-rpm-build
+        with:
+          tag: ${{ inputs.tag-name }}
+          tsl: tsl.tar.gz
+          prefix: tsl/generate_tsl_
+      - name: Upload RPM
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rpm
+          path: ${{ github.workspace }}/${{ steps.rpm.outputs.out }}/${{ steps.rpm.outputs.name}}
+          overwrite: true
+          retention-days: 1
+      - name: RPM failed
+        if: ${{ steps.rpm.outputs.success == 'false' }}
+        run: |
+          echo "${{ steps.rpm.outputs.msg }}"  
+          "echo SUCCESS == false"
+          exit 1
+      - name: Create DEB Package
+        id: deb
+        uses: ./.github/actions/tsl-deb-build
+        with:
+          tag: ${{ inputs.tag-name }}
+          tsl: tsl.tar.gz
+          prefix: tsl/generate_tsl_
+      - name: Upload DEB
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deb
+          path: ${{ github.workspace }}/${{ steps.deb.outputs.out }}/${{ steps.deb.outputs.name}}
+          overwrite: true
+          retention-days: 1
+      - name: DEB failed
+        if: ${{ steps.deb.outputs.success == 'false' }}
+        run: |
+          echo "${{ steps.deb.outputs.msg }}"  
+          "echo SUCCESS == false"
+          exit 1
+      - name: ls
+        run: |
+          echo "Github.workspace: ${{ github.workspace }}"  
+          ls -la ${{ github.workspace }}
+          echo "RPM out: ${{ steps.rpm.outputs.out }}"
+          ls -la ${{ github.workspace }}/${{ steps.rpm.outputs.out }}
+          echo "DEB out: ${{ steps.deb.outputs.out }}"
+          ls -la ${{ github.workspace }}/${{ steps.deb.outputs.out }}
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ github.workspace }}/tsl.tar.gz
+            ${{ github.workspace }}/.github/workflows/install_tsl.sh
+            ${{ github.workspace }}/${{ steps.rpm.outputs.out }}/${{ steps.rpm.outputs.name}}
+            ${{ github.workspace }}/${{ steps.deb.outputs.out }}/${{ steps.deb.outputs.name}}
+          tag_name: ${{ inputs.tag-name }}

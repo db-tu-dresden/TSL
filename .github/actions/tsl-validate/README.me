@@ -1,0 +1,36 @@
+# TSL validation / linting action
+
+This action runs the docker container based on the image `docker://jpietrzyktud/tsl_validation:latest`, validates the TSL generator and provided primitive data.
+
+## Inputs
+
+### `python-version`: string
+
+**Required**  Python version to use for the validation, e.g., '3.8'.
+
+## Outputs
+
+### `name`: string
+
+**Required** Name of the generated files.
+  
+### `out`: string
+
+**Required** Path to the generated files.
+  
+### `msg`: string
+
+**Required** Verbose message from the action.
+
+### `success`:
+
+**Required** Whether the action was successful (1, 0 otherwise).
+
+## Example usage
+
+    - name: TSL Validate
+      id: validate
+      uses: ./.github/actions/tsl-validate
+      with:
+        python-version: ${{ matrix.python_version }}
+        image: ${{ vars.VALIDATION_TAG }}

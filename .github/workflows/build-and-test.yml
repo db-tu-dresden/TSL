@@ -1,0 +1,276 @@
+name: Build and test for Intel / ARM
+run-name: Generate the Template SIMD Library, builds it and run tests
+
+on: 
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  setup-generation:
+    name: Setup Environment for Generation
+    uses: ./.github/workflows/setup-environment.yml    
+    with:
+      requirement-file: "requirements.txt"
+      docker-tag: "${{ vars.GENERATION_TAG }}"
+      context: ".github/actions/tsl-generate"
+    secrets:
+      DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  setup-x86:
+    name: Setup Environment for x86
+    uses: ./.github/workflows/setup-environment.yml    
+    with:
+      requirement-file: "requirements.txt"
+      docker-tag: "${{ vars.BUILD_TEST_x86_TAG }}"
+      context: ".github/actions/tsl-test-x86"
+    secrets:
+      DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  setup-arm:
+    name: Setup Environment for ARM
+    uses: ./.github/workflows/setup-environment.yml    
+    with:
+      requirement-file: "requirements.txt"
+      docker-tag: "${{ vars.BUILD_TEST_ARM_TAG }}"
+      context: ".github/actions/tsl-test-arm"
+      platforms: linux/amd64,linux/arm64
+    secrets:
+      DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+
+  generate-for-x86:
+    runs-on: ubuntu-latest
+    needs: setup-generation
+    name: Generate TSL for Intel x86
+    strategy:
+      matrix:
+        target_flags:
+          - "sse"
+          - "sse,sse2"
+          - "sse,sse2,ssse3"
+          - "sse,sse2,ssse3,sse4_1"
+          - "sse,sse2,ssse3,sse4_1,sse4_2"
+          - "sse,sse2,ssse3,sse4_1,sse4_2,avx"
+          - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2"
+          - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2,avx512f"
+          - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2,avx512f,avx512cd,avx512er,avx512pf" #avx3.1
+          - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2,avx512f,avx512cd,avx512bw,avx512dq,avx512vl" #avx3.2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Checkout PR and merge
+        uses: check-spelling/checkout-merge@v0.0.4
+      - name: Cancel on Merge fail
+        if: env.MERGE_FAILED == '1'
+        run:
+          echo "Merge failed, c
+      - name: TSL Generate
+        id: generate
+        uses: ./.github/actions/tsl-generate
+        with:
+          # image: ${{ vars.GENERATION_TAG }}
+          targets: ${{ matrix.target_flags }}
+      - name: Upload Generated TSL
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generate_tsl_x86_${{ steps.generate.outputs.name }}
+          path: ${{ github.workspace }}/${{ steps.generate.outputs.out }}
+          overwrite: true
+          retention-days: 1
+      - name: Output on Error 
+        if: ${{ steps.generate.outputs.success == 'false' }}
+        run: |
+          echo "Generation for Intel x86 failed"
+          echo "${{ steps.generate.outputs.msg }}"
+          touch ${{ github.workspace }}/intel_generation_failed
+      - name: Upload on Error
+        if: ${{ steps.generate.outputs.success == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: intel_generation_failed
+          path: ${{ github.workspace }}
+          retention-days: 1
+      - name: Fail on Error
+        if: ${{ steps.generate.outputs.success == 'false' }}
+        run: exit 1
+  build-and-test-for-x86:
+    runs-on: ubuntu-latest
+    needs: [setup-x86, generate-for-x86]
+    name: Build and test TSL for Intel x86
+    strategy:
+      matrix:
+        compilers: ["clang++-17", "g++"]
+        tsl_folders:
+          - "sse"
+          - "sse-sse2"
+          - "sse-sse2-ssse3"
+          - "sse-sse2-ssse3-sse4_1"
+          - "sse-sse2-ssse3-sse4_1-sse4_2"
+          - "sse-sse2-ssse3-sse4_1-sse4_2-avx"
+          - "sse-sse2-ssse3-sse4_1-sse4_2-avx-avx2"
+          - "sse-sse2-ssse3-sse4_1-sse4_2-avx-avx2-avx512f"
+          - "sse-sse2-ssse3-sse4_1-sse4_2-avx-avx2-avx512f-avx512cd-avx512er-avx512pf" #avx3.1
+          - "sse-sse2-ssse3-sse4_1-sse4_2-avx-avx2-avx512f-avx512cd-avx512bw-avx512dq-avx512vl" #avx3.2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Checkout PR and merge
+        uses: check-spelling/checkout-merge@v0.0.4
+      - name: Download Generated TSL
+        uses: actions/download-artifact@v4
+        with:
+          name: generate_tsl_x86_${{ matrix.tsl_folders }}
+          path: ${{ github.workspace }}/generate/${{ matrix.tsl_folders }}
+      - name: TSL Build and Test
+        id: bat
+        uses: ./.github/actions/tsl-test-x86
+        with:
+          # image: ${{ vars.BUILD_TEST_X86_TAG }}
+          compiler: ${{ matrix.compilers }}
+          tsl: generate/${{ matrix.tsl_folders }}
+      - name: Upload Generated TSL
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_tsl_x86_${{ matrix.compilers }}_${{ matrix.tsl_folders }}
+          path: ${{ github.workspace }}/generate/${{ matrix.tsl_folders }}
+          overwrite: true
+          retention-days: 1
+      - name: Output on Error 
+        if: ${{ steps.bat.outputs.success == 'false' }}
+        run: |
+          echo "Build (with ${{ matrix.compilers }}, ${{ matrix.tsl_folders }}) and testing for Intel x86 failed"
+          echo "${{ steps.bat.outputs.msg }}"
+          touch ${{ github.workspace }}/intel_bat_failed
+      - name: Upload on Error
+        if: ${{ steps.bat.outputs.success == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: intel_bat_failed
+          path: ${{ github.workspace }}
+          retention-days: 1
+      - name: Fail on Error
+        if: ${{ steps.bat.outputs.success == 'false' }}
+        run: exit 1
+
+  generate-for-arm:
+    runs-on: ubuntu-latest
+    needs: setup-generation
+    name: Generate TSL for ARM
+    strategy:
+      matrix:
+        target_flags:
+          - "neon"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Checkout PR and merge
+        uses: check-spelling/checkout-merge@v0.0.4
+      - name: TSL Generate
+        id: generate
+        uses: ./.github/actions/tsl-generate
+        with:
+          # image: ${{ vars.GENERATION_TAG }}
+          targets: ${{ matrix.target_flags }}
+      - name: Upload Generated TSL
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generate_tsl_arm_${{ steps.generate.outputs.name }}
+          path: ${{ github.workspace }}/${{ steps.generate.outputs.out }}
+          overwrite: true
+          retention-days: 1
+      - name: Output on Error 
+        if: ${{ steps.generate.outputs.success == 'false' }}
+        run: |
+          echo "Generation for ARM failed"
+          echo "${{ steps.generate.outputs.msg }}"
+          touch ${{ github.workspace }}/arm_generation_failed
+      - name: Upload on Error
+        if: ${{ steps.generate.outputs.success == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm_generation_failed
+          path: ${{ github.workspace }}
+          retention-days: 1
+      - name: Fail on Error
+        if: ${{ steps.generate.outputs.success == 'false' }}
+        run: exit 1
+  build-and-test-for-arm:
+    runs-on: ubuntu-latest
+    name: Package TSL for ARM
+    needs: [setup-arm, generate-for-arm]
+    strategy:
+      matrix:
+        compilers: ["g++"]
+        tsl_folders:
+          - "neon"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Checkout PR and merge
+        uses: check-spelling/checkout-merge@v0.0.4
+      - name: Download Generated TSL
+        uses: actions/download-artifact@v4
+        with:
+          name: generate_tsl_arm_${{ matrix.tsl_folders }}
+          path: ${{ github.workspace }}/generate/${{ matrix.tsl_folders }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: TSL Build and Test
+        id: bat
+        uses: ./.github/actions/tsl-test-arm
+        with:
+          compiler: ${{ matrix.compilers }}
+          tsl: generate/${{ matrix.tsl_folders }}
+      - name: Upload Generated TSL
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_tsl_arm_${{ matrix.compilers }}_${{ matrix.tsl_folders }}
+          path: ${{ github.workspace }}/generate/${{ matrix.tsl_folders }}
+          overwrite: true
+          retention-days: 1
+      - name: Output on Error 
+        if: ${{ steps.bat.outputs.success == 'false' }}
+        run: |
+          echo "Build (with ${{ matrix.compilers }}, ${{ matrix.tsl_folders }}) and testing for ARM failed"
+          echo "${{ steps.bat.outputs.msg }}"
+          touch ${{ github.workspace }}/arm_bat_failed
+      - name: Upload on Error
+        if: ${{ steps.bat.outputs.success == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm_bat_failed
+          path: ${{ github.workspace }}
+          retention-days: 1
+      - name: Fail on Error
+        if: ${{ steps.bat.outputs.success == 'false' }}
+        run: exit 1
+  package-results:
+    runs-on: ubuntu-latest
+    needs: [build-and-test-for-x86, build-and-test-for-arm]
+    name: Package Results
+    steps:
+      - name: Download Generated TSL
+        uses: actions/download-artifact@v4
+        with:
+          pattern: generate_tsl*
+          path: ${{ github.workspace }}/build_and_test_pipe/generated
+      - name: Download Built TSL
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build_tsl*
+          path: ${{ github.workspace }}/build_and_test_pipe/build
+      - name: Upload 
+        uses: actions/upload-artifact@v4
+        with:
+          name: Results
+          path: ${{ github.workspace }}/build_and_test_pipe/
+          overwrite: true

@@ -25,7 +25,7 @@ RUN pip install -r /opt/py/requirements.txt
 
 RUN mkdir /tslgen
 
-LABEL org.opencontainers.image.source=https://github.com/db-tu-dresden/TVLGen
+LABEL org.opencontainers.image.source=https://github.com/db-tu-dresden/TSL
 LABEL org.opencontainers.image.description="TSLGenerator Image"
 LABEL org.opencontainers.image.licenses=Apache-2.0
 
