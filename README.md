@@ -3,14 +3,14 @@
 
 
 ---
-[![Generates with py3.8-3.12](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/generation-success.yml/badge.svg)](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/generation-success.yml)
-[![Generates for x86](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/x86-generation-success.yml/badge.svg)](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/x86-generation-success.yml)
-[![Generates for ARM](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/arm-generation-success.yml/badge.svg)](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/arm-generation-success.yml)
+[![Generates with py3.8-3.12](https://github.com/db-tu-dresden/TSL/actions/workflows/generation-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/generation-success.yml)
+[![Generates for x86](https://github.com/db-tu-dresden/TSL/actions/workflows/x86-generation-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/x86-generation-success.yml)
+[![Generates for ARM](https://github.com/db-tu-dresden/TSL/actions/workflows/arm-generation-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/arm-generation-success.yml)
 
-[![Builds on x86](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/x86-build-and-test-success.yml/badge.svg)](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/x86-build-and-test-success.yml)
-[![Builds on ARM](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/arm-build-and-test-success.yml/badge.svg)](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/arm-build-and-test-success.yml)
+[![Builds on x86](https://github.com/db-tu-dresden/TSL/actions/workflows/x86-build-and-test-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/x86-build-and-test-success.yml)
+[![Builds on ARM](https://github.com/db-tu-dresden/TSL/actions/workflows/arm-build-and-test-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/arm-build-and-test-success.yml)
 
-[![Packaged](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/publish-latest.yml/badge.svg)](https://github.com/JPietrzykTUD/tsl_ci/actions/workflows/publish-latest.yml)
+[![Packaged](https://github.com/db-tu-dresden/TSL/actions/workflows/publish-latest.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/publish-latest.yml)
 <!-- 
 ## **Current Status**
 
