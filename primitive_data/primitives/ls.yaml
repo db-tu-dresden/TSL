@@ -953,7 +953,11 @@ definitions:
       "double":   ["int64_t", "uint64_t"],
     }
     lscpu_flags: ["avx2"]
-    implementation: "return _mm256_i{{ intrin_tp[additional_simd_template_base_type][1] }}gather_{{ intrin_tp_full[ctype].replace('epu', 'epi') }}(memory, index, N);"
+    implementation: |
+      return
+        _mm256_i{{ intrin_tp[additional_simd_template_base_type][1] }}gather_{{ intrin_tp_full[ctype].replace('epu', 'epi') }}(
+            {% if "32" in ctype %}reinterpret_cast<int const *>{% elif "64" in ctype %}reinterpret_cast<long long int const*>{% else %}reinterpret_cast<typename Vec::base_type const *>{% endif %}(memory),
+          index, N);
   - target_extension: ["avx2"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx2"]
