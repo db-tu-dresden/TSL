@@ -1,29 +1,31 @@
 FROM ubuntu:latest
 RUN apt-get update 
-RUN apt-get -y install \
-    build-essential \
-    checkinstall \
-    cmake \
-    g++ \
-    clang \
-    graphviz-dev \
-    util-linux \
-    software-properties-common
+RUN apt-get -y install software-properties-common \
+  build-essential checkinstall \
+  g++ \
+  make cmake lsb-release software-properties-common \
+  python3 python3-pip python3-venv \
+  git wget bash
+
+RUN wget https://apt.llvm.org/llvm.sh && \
+  chmod +x llvm.sh && \
+  ./llvm.sh 17 && \
+  update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-17 100
 
 ENV TZ=Europe/Berlin
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN add-apt-repository -y ppa:deadsnakes/ppa
-RUN apt-get update
-RUN apt-get install -y python3.8 python3-pip
-
-#Installing python dependencies
-COPY requirements.txt /requirements.txt
-RUN python3 -m pip install --upgrade pip
-RUN pip install ruff yamllint yamlfix
-RUN pip install -r /requirements.txt
 
 RUN mkdir /tslgen
+COPY root.tar.gz /root.tar.gz
+RUN tar -xvf /root.tar.gz -C /tslgen
+RUN rm /root.tar.gz
+# COPY requirements.txt /requirements.txt
+
+RUN pip install -r /tslgen/requirements.txt
+RUN pip install ruff yamllint
+
+
 
 LABEL org.opencontainers.image.source=https://github.com/db-tu-dresden/TSL
 LABEL org.opencontainers.image.description="TSLGenerator Image"

@@ -26,8 +26,7 @@ jobs:
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-
-  publish-docker:
+  publish-all-in-one-docker:
     uses: ./.github/workflows/setup-environment.yml    
     with:
       requirement-file: "requirements.txt"
@@ -35,6 +34,8 @@ jobs:
       install-qemu: false
       context: ".github/actions/tsl-generator-all-in-one"
       ref: ${{ github.ref}}
+      copy-requirements: false
+      tar-and-copy-root: true
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
