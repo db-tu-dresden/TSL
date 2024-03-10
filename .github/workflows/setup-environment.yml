@@ -28,6 +28,11 @@ on:
         required: false
         type: boolean
         default: true
+      copy-requirements:
+        description: 'Copy the requirements file to the action.'
+        required: false
+        type: boolean
+        default: true
     secrets:
       DOCKERHUB_USER:
         description: 'Dockerhub username.'
@@ -44,6 +49,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
       - name: Copy python requirements to actions
+        if: ${{ inputs.copy-requirements }}
         run: cp ${{ inputs.requirement-file }} ${{ inputs.context }}
       - name: Set up QEMU
         if: ${{ inputs.install-qemu }}

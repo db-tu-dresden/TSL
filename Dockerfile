@@ -3,7 +3,7 @@ RUN apt-get update
 RUN apt-get -y install software-properties-common \
   build-essential checkinstall \
   g++ \
-  make cmake3 lsb-release software-properties-common \
+  make cmake lsb-release software-properties-common \
   python3 python3-pip python3-venv \
   git wget bash
 
