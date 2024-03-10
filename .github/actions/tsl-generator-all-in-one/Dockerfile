@@ -18,8 +18,8 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN mkdir /tslgen
 COPY root.tar.gz /root.tar.gz
-RUN tar -xvf /tslgen/root.tar.gz -C /tslgen
-RUN rm /tslgen/root.tar.gz
+RUN tar -xvf /root.tar.gz -C /tslgen
+RUN rm /root.tar.gz
 # COPY requirements.txt /requirements.txt
 
 RUN pip install -r /tslgen/requirements.txt
