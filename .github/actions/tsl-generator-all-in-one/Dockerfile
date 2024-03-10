@@ -16,13 +16,16 @@ ENV TZ=Europe/Berlin
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 
-COPY requirements.txt /requirements.txt
+RUN mkdir /tslgen
+COPY root.tar.gz /root.tar.gz
+RUN tar -xvf /tslgen/root.tar.gz -C /tslgen
+RUN rm /tslgen/root.tar.gz
+# COPY requirements.txt /requirements.txt
 
-RUN pip install -r /requirements.txt
-
+RUN pip install -r /tslgen/requirements.txt
 RUN pip install ruff yamllint
 
-RUN mkdir /tslgen
+
 
 LABEL org.opencontainers.image.source=https://github.com/db-tu-dresden/TSL
 LABEL org.opencontainers.image.description="TSLGenerator Image"
