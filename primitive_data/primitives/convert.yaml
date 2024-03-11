@@ -953,9 +953,9 @@ definitions:
         vmovl_high_{{ intrin_tp_full[ctype] }}(data)
       } };
       {% else %}
-      auto casted = vreinterpret_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(data);
+      auto casted = vreinterpretq_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(data);
       return { {
-        vmovl_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}(vget_low_{{ intrin_tp_full[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}(casted),
+        vmovl_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}(vget_low_{{ intrin_tp_full[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}(casted)),
         vmovl_high_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}(casted)
       } };
       {% endif %}
