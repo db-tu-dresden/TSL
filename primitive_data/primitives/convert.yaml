@@ -543,13 +543,14 @@ definitions:
 ...
 ---
 primitive_name: "convert_up"
+brief_description: "Converts a SIMD register to an array of SIMD registers with a larger base type."
 additional_simd_template_parameter:
   name: "ToType"
 parameters:
   - ctype: "const typename Vec::register_type"
     name: "data"
 returns:
-  ctype: "std::array<typename ToType::register_type, sizeof(typename ToType::base_type)/sizeof(typename Vec::base_type)>"
+  ctype: "std::array<typename ToType::register_type, Vec::vector_element_count() / ToType::vector_element_count()>"
   description: "Array containing the upconverted simd registers."
 testing:
   - test_name: "default"
@@ -934,6 +935,98 @@ definitions:
       return { {
         _mm_and_si128(_mm_cvtepi32_epi64(data), upper_zero),
         _mm_and_si128(_mm_cvtepi32_epi64(_mm_bsrli_si128(data,8)), upper_zero),
+      } };
+#NEON
+  - target_extension: "neon"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t"]
+    additional_simd_template_base_type_mapping_dict: { 
+      "uint8_t": [ "uint16_t", "int16_t" ], "int8_t": [ "uint16_t", "int16_t" ],
+      "uint16_t": [ "uint32_t", "int32_t" ], "int16_t": [ "uint32_t", "int32_t" ],
+      "uint32_t": [ "uint64_t", "int64_t" ], "int32_t": [ "uint64_t", "int64_t" ],
+    }
+    lscpu_flags: ["neon"]
+    is_native: False
+    implementation: |
+      {% if ctype[0] == additional_simd_template_base_type[0] %}
+      return { {
+        vmovl_{{ intrin_tp_full[ctype] }}(vget_low_{{ intrin_tp_full[ctype] }}(data)),
+        vmovl_high_{{ intrin_tp_full[ctype] }}(data)
+      } };
+      {% else %}
+      auto casted = vreinterpret_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(data);
+      return { {
+        vmovl_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}(vget_low_{{ intrin_tp_full[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}(casted),
+        vmovl_high_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}(casted)
+      } };
+      {% endif %}
+  - target_extension: "neon"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    additional_simd_template_base_type_mapping_dict: { 
+      "uint8_t": [ "uint32_t", "int32_t" ], "int8_t": [ "uint32_t", "int32_t" ],
+      "uint16_t": [ "uint64_t", "int64_t" ], "int16_t": [ "uint64_t", "int64_t" ],
+    }
+    lscpu_flags: ["neon"]
+    is_native: False
+    implementation: |
+      {% set orig_size = ctype | replace("int", "") | replace("u","") | replace("_t","") -%}
+      {% set target_size = additional_simd_template_base_type | replace("int", "") | replace("u","") | replace("_t","") -%}
+      {% set inter_size_int = orig_size | int * 2 -%}
+      {% set inter_size = inter_size_int | string -%}
+      {% set inter_type = additional_simd_template_base_type | replace(target_size, inter_size) -%}
+      auto data_{{ inter_size }}_bit = convert_up<simd<{{ ctype }}, neon>, simd<{{ inter_type }}, neon>, Idof>(data);
+      auto data_low_{{ inter_size }}_as_{{ target_size }}_bit = 
+        convert_up<simd<{{ inter_type }}, neon>, simd<{{ additional_simd_template_base_type }}, neon>, Idof>(data_{{ inter_size }}_bit[0]);
+      auto data_high_{{ inter_size }}_as_{{ target_size }}_bit = 
+        convert_up<simd<{{ inter_type }}, neon>, simd<{{ additional_simd_template_base_type }}, neon>, Idof>(data_{{ inter_size }}_bit[1]);
+      return { {
+        data_low_{{ inter_size }}_as_{{ target_size }}_bit[0],
+        data_low_{{ inter_size }}_as_{{ target_size }}_bit[1],
+        data_high_{{ inter_size }}_as_{{ target_size }}_bit[0],
+        data_high_{{ inter_size }}_as_{{ target_size }}_bit[1]
+      } };
+  - target_extension: "neon"
+    ctype: ["int8_t", "uint8_t"]
+    additional_simd_template_base_type_mapping_dict: { 
+      "uint8_t": [ "uint64_t", "int64_t" ], "int8_t": [ "uint64_t", "int64_t" ],
+    }
+    lscpu_flags: ["neon"]
+    is_native: False
+    implementation: |
+      {% set orig_size = ctype | replace("int", "") | replace("u","") | replace("_t","") -%}
+      {% set target_size = additional_simd_template_base_type | replace("int", "") | replace("u","") | replace("_t","") -%}
+      {% set inter_size_int = orig_size | int * 2 -%}
+      {% set inter_size = inter_size_int | string -%}
+      {% set inter_type = additional_simd_template_base_type | replace(target_size, inter_size) -%}
+      auto data_{{ inter_size }}_bit = convert_up<simd<{{ ctype }}, neon>, simd<{{ inter_type }}, neon>, Idof>(data);
+      auto data_low_{{ inter_size }}_as_{{ target_size }}_bit = 
+        convert_up<simd<{{ inter_type }}, neon>, simd<{{ additional_simd_template_base_type }}, neon>, Idof>(data_{{ inter_size }}_bit[0]);
+      auto data_high_{{ inter_size }}_as_{{ target_size }}_bit = 
+        convert_up<simd<{{ inter_type }}, neon>, simd<{{ additional_simd_template_base_type }}, neon>, Idof>(data_{{ inter_size }}_bit[1]);
+      return { {
+        data_low_{{ inter_size }}_as_{{ target_size }}_bit[0],
+        data_low_{{ inter_size }}_as_{{ target_size }}_bit[1],
+        data_low_{{ inter_size }}_as_{{ target_size }}_bit[2],
+        data_low_{{ inter_size }}_as_{{ target_size }}_bit[3],
+        data_high_{{ inter_size }}_as_{{ target_size }}_bit[0],
+        data_high_{{ inter_size }}_as_{{ target_size }}_bit[1],
+        data_high_{{ inter_size }}_as_{{ target_size }}_bit[2],
+        data_high_{{ inter_size }}_as_{{ target_size }}_bit[3]
+      } };
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t"]
+    additional_simd_template_base_type_mapping_dict: { 
+      "uint8_t": [ "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t" ],
+      "int8_t": [ "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t" ],
+      "uint16_t": [ "uint32_t", "int32_t", "uint64_t", "int64_t" ],
+      "int16_t": [ "uint32_t", "int32_t", "uint64_t", "int64_t" ],
+      "uint32_t": [ "uint64_t", "int64_t" ],
+      "int32_t": [ "uint64_t", "int64_t" ]
+    }
+    lscpu_flags: []
+    implementation: |
+      return { {
+        static_cast<{{ additional_simd_template_base_type }}>(data)
       } };
 ...
 ---
