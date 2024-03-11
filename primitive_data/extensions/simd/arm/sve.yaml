@@ -1,0 +1,66 @@
+---
+description: "Definition of the SIMD TargetExtension sve."
+vendor: "arm"
+extension_name: "sve"
+lscpu_flags: ["sve"]
+needs_arch_flags: true
+arch_flags: {sve: "arch=armv8-a+sve"}
+includes: ['<arm_sve.h>']
+simdT_name: "sve"
+simdT_mask_type: "svbool_t"
+simdT_register_type: |-
+   TSL_DEP_TYPE(
+                     std::is_integral_v< BaseType >,
+                     TSL_DEP_TYPE(
+                        std::is_unsigned_v< BaseType >,
+                        TSL_DEP_TYPE(
+                           (sizeof( BaseType ) == 1),
+                           svuint8_t,
+                           TSL_DEP_TYPE(
+                              (sizeof( BaseType ) == 2),
+                              svuint16_t,
+                              TSL_DEP_TYPE(
+                                 (sizeof( BaseType ) == 4),
+                                 svuint32_t,
+                                 svuint64_t
+                              )
+                           )
+                        ),
+                        TSL_DEP_TYPE(
+                           (sizeof( BaseType ) == 1),
+                           svint8_t,
+                           TSL_DEP_TYPE(
+                              (sizeof( BaseType ) == 2),
+                              svint16_t,
+                              TSL_DEP_TYPE(
+                                 (sizeof( BaseType ) == 4),
+                                 svint32_t,
+                                 svint64_t
+                              )
+                           )
+                        )
+                     ),
+                     TSL_DEP_TYPE(
+                        (sizeof( BaseType ) == 4),
+                        svfloat32_t,
+                        svfloat64_t
+                     )
+                  )
+simdT_integral_mask_type: |-
+   TSL_DEP_TYPE(
+      (VectorSizeInBits / (sizeof(BaseType)*8) == 64),
+      uint64_t,
+      TSL_DEP_TYPE(
+         VectorSizeInBits / (sizeof(BaseType)*8) == 32,
+         uint32_t,
+         TSL_DEP_TYPE(
+            VectorSizeInBits / (sizeof(BaseType)*8) == 16,
+            uint16_t,
+            uint8_t
+            )
+         )
+      )
+intrin_tp: {uint8_t: ["u", 8], uint16_t: ["u", 16], uint32_t: ["u", 32], uint64_t: ["u", 64], int8_t: ["s", 8], int16_t: ["s", 16], int32_t: ["s", 32], int64_t: ["s", 64], float: ["f", 32], double: ["f", 64]}
+intrin_tp_full: {uint8_t: "u8", uint16_t: "u16", uint32_t: "u32", uint64_t: "u64", int8_t: "s8", int16_t: "s16", int32_t: "s32", int64_t: "s64", float: "f32", double: "f64"}
+simdT_default_size_in_bits: 512 #can be adapted
+simdT_register_type_attributes: "__attribute__((arm_sve_vector_bits(VectorSizeInBits)))"

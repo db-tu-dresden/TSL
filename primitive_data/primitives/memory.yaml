@@ -13,6 +13,11 @@ returns:
   ctype: "typename Vec::base_type*"
   description: "Pointer to allocated memory."
 definitions:
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "return reinterpret_cast<typename Vec::base_type*>(malloc(count_bytes));"
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -49,6 +54,11 @@ returns:
   ctype: "typename Vec::base_type*"
   description: "Pointer to allocated memory."
 definitions:
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "return reinterpret_cast<typename Vec::base_type*>(aligned_alloc(alignment, count_bytes));"
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -78,6 +88,11 @@ parameters:
     name: "ptr"
     description: "Pointer to memory which should be deallocated."
 definitions:
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "free(ptr);"
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -119,6 +134,11 @@ parameters:
     declaration_attributes: "[[maybe_unused]]"
     description: "Which type of copy should be performed: {0: host->host, 1: host->device, 2: device->host, 3: device->device}"
 definitions:
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "std::memcpy(reinterpret_cast<void *>(dst), reinterpret_cast<void const *>(src), count_bytes);"
 #INTEL - AVX512
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]

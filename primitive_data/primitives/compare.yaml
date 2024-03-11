@@ -133,6 +133,11 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['neon']
     implementation: "return vceqq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "return svcmpeq_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec_a, vec_b);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -243,6 +248,11 @@ definitions:
     lscpu_flags: ['avx2']
     specialization_comment: "Signed comparison."
     implementation: "return _mm256_and_si256(_mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b), mask);"
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "return svcmpeq_{{intrin_tp_full[ctype]}}(mask, vec_a, vec_b);"
 ...
 ---
 primitive_name: "nequal"
@@ -406,6 +416,11 @@ definitions:
         result[i] = (vec_a[i] == vec_b[i]) ? 0 : checker;
       }
       return result;
+  #ARM - SVE
+  - target_extension: "sve"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "return svcmpne_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec_a, vec_b);"
 ...
 ---
 primitive_name: "between_inclusive"
@@ -547,6 +562,14 @@ definitions:
     ctype: "int64_t"
     lscpu_flags: [ 'neon' ]
     implementation: "return vandq_u64( vcgeq_s64( vec_data, vec_min ), vcleq_s64( vec_data, vec_max ) );"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: |
+      return svand_z(svptrue_b{{intrin_tp[ctype][1]}}(),
+      svcmple_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec_data, vec_max),
+      svcmpge_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec_data, vec_min));
 #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -692,6 +715,11 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['neon']
     implementation: "return vcltq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "return svcmplt_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec_a, vec_b);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -834,6 +862,11 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['neon']
     implementation: "return vcgtq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "return svcmpgt_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec_a, vec_b);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -987,6 +1020,11 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['neon']
     implementation: "return vcleq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "return svcmple_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec_a, vec_b);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -1141,6 +1179,11 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['neon']
     implementation: "return vcgeq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: "return svcmpge_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec_a, vec_b);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -1255,6 +1298,13 @@ definitions:
     lscpu_flags: [ ]
     implementation: "return (bool)vec;"
 #ARM - NEON
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: |
+      auto zero = svcmpne_n_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec, 0);
+      return svptest_any(svptrue_b{{intrin_tp[ctype][1]}}(), zero);
 #INTEL - FPGA
 ...
 ---
@@ -1487,4 +1537,11 @@ definitions:
     ctype: [ 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'int8_t', 'int16_t', 'int32_t', 'int64_t', 'float', 'double' ]
     lscpu_flags: [ ]
     implementation: return (vec == val);
+#ARM - SVE
+  - target_extension: "sve"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sve']
+    implementation: |
+      auto eq_val = svcmpeq_n_{{intrin_tp_full[ctype]}}(svptrue_b{{intrin_tp[ctype][1]}}(), vec, val);
+      return svcntp_b{{intrin_tp[ctype][1]}}(svptrue_b{{intrin_tp[ctype][1]}}(), eq_val);
 ...
