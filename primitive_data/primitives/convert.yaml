@@ -938,12 +938,8 @@ definitions:
       } };
 #NEON
   - target_extension: "neon"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t"]
-    additional_simd_template_base_type_mapping_dict: { 
-      "uint8_t": [ "uint16_t", "int16_t" ], "int8_t": [ "uint16_t", "int16_t" ],
-      "uint16_t": [ "uint32_t", "int32_t" ], "int16_t": [ "uint32_t", "int32_t" ],
-      "uint32_t": [ "uint64_t", "int64_t" ], "int32_t": [ "uint64_t", "int64_t" ],
-    }
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t"]
+    additional_simd_template_base_type_mapping_dict: {"uint8_t": [ "uint16_t", "int16_t" ], "int8_t": [ "uint16_t", "int16_t" ], "uint16_t": [ "uint32_t", "int32_t" ], "int16_t": [ "uint32_t", "int32_t" ], "uint32_t": [ "uint64_t", "int64_t" ], "int32_t": [ "uint64_t", "int64_t" ] }
     lscpu_flags: ["neon"]
     is_native: False
     implementation: |
@@ -960,11 +956,8 @@ definitions:
       } };
       {% endif %}
   - target_extension: "neon"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
-    additional_simd_template_base_type_mapping_dict: { 
-      "uint8_t": [ "uint32_t", "int32_t" ], "int8_t": [ "uint32_t", "int32_t" ],
-      "uint16_t": [ "uint64_t", "int64_t" ], "int16_t": [ "uint64_t", "int64_t" ],
-    }
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    additional_simd_template_base_type_mapping_dict: {"uint8_t": [ "uint32_t", "int32_t" ], "int8_t": [ "uint32_t", "int32_t" ], "uint16_t": [ "uint64_t", "int64_t" ], "int16_t": [ "uint64_t", "int64_t" ]}
     lscpu_flags: ["neon"]
     is_native: False
     implementation: |
@@ -985,10 +978,8 @@ definitions:
         data_high_{{ inter_size }}_as_{{ target_size }}_bit[1]
       } };
   - target_extension: "neon"
-    ctype: ["int8_t", "uint8_t"]
-    additional_simd_template_base_type_mapping_dict: { 
-      "uint8_t": [ "uint64_t", "int64_t" ], "int8_t": [ "uint64_t", "int64_t" ],
-    }
+    ctype: ["uint8_t", "int8_t"]
+    additional_simd_template_base_type_mapping_dict: {"uint8_t": [ "uint64_t", "int64_t" ], "int8_t": [ "uint64_t", "int64_t" ]}
     lscpu_flags: ["neon"]
     is_native: False
     implementation: |
@@ -1253,4 +1244,105 @@ definitions:
           ),
           0xd8
         );
+#NEON
+  - target_extension: "neon"
+    ctype: ["uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    additional_simd_template_base_type_mapping_dict: { 
+      "uint16_t": [ "uint8_t", "int8_t" ], "int16_t": [ "uint8_t", "int8_t" ],
+      "uint32_t": [ "uint16_t", "int16_t" ], "int32_t": [ "uint16_t", "int16_t" ],
+      "uint64_t": [ "uint32_t", "int32_t" ], "int64_t": [ "uint32_t", "int32_t" ]
+    }
+    lscpu_flags: ["neon"]
+    is_native: False
+    implementation: |
+      {% set TRANSFORM_STEPS = 1 -%}
+      {%- macro data_param(step, prefix, previous_size, idx) -%}
+      {%- if step == 0 -%}
+        {%- if ctype[0] == additional_simd_template_base_type[0] -%}data[{{idx}}]
+        {%- else -%}vreinterpretq_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(data[{{idx}}]){%- endif -%}
+      {%- else -%}result_{{ prefix }}{{ previous_size }}_{{idx}}{%- endif -%}
+      {%- endmacro -%}
+      {% set orig_size = ctype | replace("int", "") | replace("u","") | replace("_t","") -%}
+      {% set target_size = additional_simd_template_base_type | replace("int", "") | replace("u","") | replace("_t","") -%}
+      {% set prefix = intrin_tp[additional_simd_template_base_type][0] -%}
+      {% for steps in range(TRANSFORM_STEPS)  -%}
+        {% set current_target_int = orig_size | int // (2**(steps+1)) -%}
+        {% set current_target = prefix + current_target_int | string -%}
+        {% set current_source_int = current_target_int * 2 -%}
+        {% set current_source = prefix + current_source_int | string -%}
+        {% for data_idx in range(2**(TRANSFORM_STEPS-(steps+1))) %}
+        auto result_{{current_target}}_{{ data_idx}} = 
+          vcombine_{{current_target}}(
+            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx) }}),
+            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }}),
+          );
+        {% endfor -%}
+      {% endfor -%}
+        return result_{{ prefix }}{{target_size}}_0;
+  - target_extension: "neon"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    additional_simd_template_base_type_mapping_dict: { 
+      "uint32_t": [ "uint8_t", "int8_t" ], "int32_t": [ "uint8_t", "int8_t" ],
+      "uint64_t": [ "uint16_t", "int16_t", "uint8_t", "int8_t" ], "int64_t": [ "uint16_t", "int16_t", "uint8_t", "int8_t" ]
+    }
+    lscpu_flags: ["neon"]
+    is_native: False
+    implementation: |
+      {% set TRANSFORM_STEPS = 2 -%}
+      {%- macro data_param(step, prefix, previous_size, idx) -%}
+      {%- if step == 0 -%}
+        {%- if ctype[0] == additional_simd_template_base_type[0] -%}data[{{idx}}]
+        {%- else -%}vreinterpretq_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(data[{{idx}}]){%- endif -%}
+      {%- else -%}result_{{ prefix }}{{ previous_size }}_{{idx}}{%- endif -%}
+      {%- endmacro -%}
+      {% set orig_size = ctype | replace("int", "") | replace("u","") | replace("_t","") -%}
+      {% set target_size = additional_simd_template_base_type | replace("int", "") | replace("u","") | replace("_t","") -%}
+      {% set prefix = intrin_tp[additional_simd_template_base_type][0] -%}
+      {% for steps in range(TRANSFORM_STEPS)  -%}
+        {% set current_target_int = orig_size | int // (2**(steps+1)) -%}
+        {% set current_target = prefix + current_target_int | string -%}
+        {% set current_source_int = current_target_int * 2 -%}
+        {% set current_source = prefix + current_source_int | string -%}
+        {% for data_idx in range(2**(TRANSFORM_STEPS-(steps+1))) %}
+        auto result_{{current_target}}_{{ data_idx}} = 
+          vcombine_{{current_target}}(
+            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx) }}),
+            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }}),
+          );
+        {% endfor -%}
+      {% endfor -%}
+        return result_{{ prefix }}{{target_size}}_0;
+  - target_extension: "neon"
+    ctype: ["uint64_t", "int64_t"]
+    additional_simd_template_base_type_mapping_dict: { 
+      "uint64_t": [ "uint8_t", "int8_t" ], "int64_t": [ "uint8_t", "int8_t" ]
+    }
+    lscpu_flags: ["neon"]
+    is_native: False
+    implementation: |
+      {% set TRANSFORM_STEPS = 3 -%}
+      {%- macro data_param(step, prefix, previous_size, idx) -%}
+      {%- if step == 0 -%}
+        {%- if ctype[0] == additional_simd_template_base_type[0] -%}data[{{idx}}]
+        {%- else -%}vreinterpretq_{{ intrin_tp[additional_simd_template_base_type][0] }}{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(data[{{idx}}]){%- endif -%}
+      {%- else -%}result_{{ prefix }}{{ previous_size }}_{{idx}}{%- endif -%}
+      {%- endmacro -%}
+      {% set orig_size = ctype | replace("int", "") | replace("u","") | replace("_t","") -%}
+      {% set target_size = additional_simd_template_base_type | replace("int", "") | replace("u","") | replace("_t","") -%}
+      {% set prefix = intrin_tp[additional_simd_template_base_type][0] -%}
+      {% for steps in range(TRANSFORM_STEPS)  -%}
+        {% set current_target_int = orig_size | int // (2**(steps+1)) -%}
+        {% set current_target = prefix + current_target_int | string -%}
+        {% set current_source_int = current_target_int * 2 -%}
+        {% set current_source = prefix + current_source_int | string -%}
+        {% for data_idx in range(2**(TRANSFORM_STEPS-(steps+1))) %}
+        auto result_{{current_target}}_{{ data_idx}} = 
+          vcombine_{{current_target}}(
+            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx) }}),
+            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }}),
+          );
+        {% endfor -%}
+      {% endfor -%}
+        return result_{{ prefix }}{{target_size}}_0;
+
 ...
