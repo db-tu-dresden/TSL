@@ -369,6 +369,8 @@ class TSLPrimitive:
             known_conversions = result_te[aste]
             tsdict: Dict[str, List[str]] = definition.types_dict
             for tstype in tsdict:
+                if te not in specializations:
+                    specializations[te] = []
                 if tstype in specializations[te]:
                     if tstype not in known_conversions:
                         known_conversions[tstype] = []
