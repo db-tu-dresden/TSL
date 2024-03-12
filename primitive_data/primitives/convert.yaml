@@ -1274,7 +1274,7 @@ definitions:
         auto result_{{current_target}}_{{ data_idx}} = 
           vcombine_{{current_target}}(
             vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx) }}),
-            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }}),
+            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }})
           );
         {% endfor -%}
       {% endfor -%}
@@ -1307,7 +1307,7 @@ definitions:
         auto result_{{current_target}}_{{ data_idx}} = 
           vcombine_{{current_target}}(
             vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx) }}),
-            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }}),
+            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }})
           );
         {% endfor -%}
       {% endfor -%}
@@ -1339,7 +1339,7 @@ definitions:
         auto result_{{current_target}}_{{ data_idx}} = 
           vcombine_{{current_target}}(
             vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx) }}),
-            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }}),
+            vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }})
           );
         {% endfor -%}
       {% endfor -%}

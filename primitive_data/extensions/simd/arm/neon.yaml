@@ -81,4 +81,5 @@ simdT_mask_base_type_mapping: {
   float: "uint32_t",
   double: "uint64_t"
 }
+runtime_headers: ["cpu/include/tslCPUrt.hpp"]
 ...
