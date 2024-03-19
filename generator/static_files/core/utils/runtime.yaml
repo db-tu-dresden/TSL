@@ -11,6 +11,9 @@ implementations:
 
     template<class ExecTarget>
       class executor {
+        public:
+          template<typename T, int Par>
+          using simd_ext_t = typename ExecTarget::template simd_ext_t<T, Par>;
         private:
           ExecTarget target;
         public:
