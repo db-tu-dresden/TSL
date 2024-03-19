@@ -9,7 +9,21 @@
 namespace tsl {
   namespace runtime {
     class cpu {
+      private:
+        template<int SimdSize>
+        struct simd_ext_helper_t;
+        {% for avail_extension_type_size in avail_extension_types_dict %}
+        template<>
+        struct simd_ext_helper_t<{{ avail_extension_type_size }}> { 
+          using extension_t = {{ avail_extension_types_dict[avail_extension_type_size] }};
+        };
+        {% endfor %}
       public:
+        template<typename T, int Par>
+        using simd_ext_t = 
+          std::conditional_t<
+            (Par==1), scalar, typename cpu::simd_ext_helper_t<sizeof(T)*CHAR_BIT*Par>::extension_t>;
+
         using max_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|max] }};
         using min_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|min] }};
         using available_extensions_tuple = 
@@ -124,3 +138,4 @@ namespace tsl {
   }
 }
 #endif
+
