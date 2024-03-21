@@ -51,7 +51,7 @@ jobs:
           pip3 install ruff
           if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
       - 
-        name: Try generating the whole TSL with python ${{ matrix.python-version }}
+        name: Try generating the whole TSL
         id: generate
         continue-on-error: true
         run: |

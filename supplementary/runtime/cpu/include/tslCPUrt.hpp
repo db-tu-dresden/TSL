@@ -8,10 +8,41 @@
 
 namespace tsl {
   namespace runtime {
+    namespace details {
+      template<int SimdSize> struct simd_ext_helper_t;
+      {% for avail_extension_type_size in avail_extension_types_dict %}
+      template<>
+      struct simd_ext_helper_t<{{ avail_extension_type_size }}> { 
+        using extension_t = {{ avail_extension_types_dict[avail_extension_type_size] }};
+      };
+      {% endfor %}
+    }
     class cpu {
       public:
+        template<typename T, int Par>
+        using simd_ext_t = typename std::conditional_t<
+            (Par==1), scalar, typename details::simd_ext_helper_t<sizeof(T)*CHAR_BIT*Par>::extension_t
+          >;
+
         using max_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|max] }};
         using min_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|min] }};
+        using available_extensions_tuple = 
+          std::tuple< 
+            scalar,
+            {% for key in avail_extension_types_dict.keys() | sort %}
+            {{avail_extension_types_dict[key]}}{% if not loop.last %}, 
+            {% endif %}
+            {% endfor %} 
+          > ;
+        template<typename T>
+        using available_vector_processing_styles_tuple = 
+          std::tuple< 
+            simd<T, scalar>,
+            {% for key in avail_extension_types_dict.keys() | sort %}
+            simd<T, {{avail_extension_types_dict[key]}}>{% if not loop.last %}, 
+            {% endif %}
+            {% endfor %} 
+          >;
       public:
         cpu() = default;
       public:
@@ -55,6 +86,14 @@ namespace tsl {
             }
           }
       public:
+        template<class Functor, typename... Args>
+        decltype(auto) submit(Functor& fun, Args... args) {
+          return fun(args...);
+        }
+        template<class Functor, typename... Args>
+        decltype(auto) submit(Functor&& fun, Args... args) {
+          return fun(args...);
+        }
         template<VectorProcessingStyle PS, template<typename...> class Fun, typename... Args>
           decltype(auto) submit(Args... args) {
             return Fun<PS, Args...>::apply(args...);
@@ -68,9 +107,9 @@ namespace tsl {
             if constexpr(VectorLength == 1) {
               return Fun<simd<BaseT, scalar>, Args...>::apply(args...);
             } 
-            {% for avail_extension_type_size in avail_extension_types_dict %}
-            else if constexpr(sizeof(BaseT)*CHAR_BIT*VectorLength == {{ avail_extension_type_size }}) {
-              return Fun<simd<BaseT, {{ avail_extension_types_dict[avail_extension_type_size] }}>, Args...>::apply(args...);
+            {% for key in avail_extension_types_dict.keys() | sort %}
+            else if constexpr(sizeof(BaseT)*CHAR_BIT*VectorLength == {{ key }}) {
+              return Fun<simd<BaseT, {{ avail_extension_types_dict[key] }}>, Args...>::apply(args...);
             }
             {% endfor %}
             else {
@@ -87,9 +126,17 @@ namespace tsl {
           decltype(auto) detach(Args... args) {
             Fun::apply(args...);
           }
+        
+        template<TSLArithmetic BaseT>
+          static constexpr std::array<uint32_t, {{avail_extension_types_dict.keys() | length + 1}}> available_parallelism() {
+          	{% set keys = avail_extension_types_dict.keys() | sort | list %}
+          	return { 1, {% for i in keys %}{% if not loop.first %}, {% endif %}{{i}} / (sizeof(BaseT)*CHAR_BIT){% endfor %} };
+          }
 
         void wait() { }
     };
   }
 }
 #endif
+
+

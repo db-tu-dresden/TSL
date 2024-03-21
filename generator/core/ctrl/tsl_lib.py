@@ -76,6 +76,12 @@ class TSLLib:
                     result[headerFile].append(extension.data)
         return result
     
+    def relevant_runtime_headers_abs_path(self) -> Generator[Path, None, None]:
+        supplementary_root_path = Path(config.generation_out_path)
+        for fpath in self.runtime_headers_with_extension_dict:
+            yield supplementary_root_path.joinpath(fpath).resolve()
+
+
     def copy_relevant_supplementary_files(self) -> None:
         supplementary_root_path = Path(config.generation_out_path)
         for libData in self.relevant_supplementary_libraries:

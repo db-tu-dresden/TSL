@@ -96,6 +96,17 @@ implementations:
       }
   - |
       template<typename T>
+      void alternate_2value_init(T* data, std::size_t element_count, T val1, T val2) {
+        for (auto i = 0; i < element_count; ++i) {
+          if ((i%2) == 0) {
+            data[i] = val1;
+          } else {
+            data[i] = val2;
+          }
+        }
+      }
+  - |
+      template<typename T>
       void seq_init_start_0(T* data, std::size_t element_count) {
           for(std::size_t i = 0; i < element_count; ++i) {
             data[i] = i;
@@ -256,7 +267,11 @@ implementations:
                 tsl::memory_cp<outVec>(tmp_reference_buf, tmp_target_buf, outVec::vector_size_B(), 2);
                 bool result = true;
                 for(auto i = 0; i < outVec::vector_element_count(); ++i) {
-                  result &= check_value<base_t>(tmp_reference_buf[i], m_result_ref[i]);
+                  bool ok = check_value<base_t>(tmp_reference_buf[i], m_result_ref[i]);
+                  if (!ok) {
+                    std::cerr << "Error in validate_simd_register: " << i << " " << tmp_reference_buf[i] << " " << m_result_ref[i] << std::endl;
+                  }
+                  result &= ok;
                 }
                 tsl::deallocate<tsl::simd<base_t, tsl::scalar>>(tmp_reference_buf);
                 tsl::deallocate<outVec>(tmp_target_buf);

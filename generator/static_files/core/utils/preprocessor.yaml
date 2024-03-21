@@ -18,6 +18,38 @@ implementations:
       #ifndef TSL_CVAL
       #   define TSL_CVAL(type, value) std::integral_constant<type,value>{}
       #endif
+      #define TSL_TO_STRING_HELPER(X) #X
+      #define TSL_TO_STRING(X) TSL_TO_STRING_HELPER(X)
+      #define TSL_DEFAULT_OR_PARAM(...) TSL_DEFAULT_OR_PARAM_(__VA_ARGS__, 2, 1, )
+      #define TSL_DEFAULT_OR_PARAM_(_1, _2, X, ...) X
+      #define TSL_CAT(A, B) TSL_CAT_(A, B)
+      #define TSL_CAT_(A, B) A##B
+      #define TSL_UNROLL_IMPL_ ,
+      #if defined (__INTEL_LLVM_COMPILER)
+      #   define TSL_UNROLL_2(_) _Pragma("unroll (1)")
+      #   define TSL_UNROLL_1(X) _Pragma(TSL_TO_STRING(unroll (X)))
+      #   define TSL_UNROLL(X) TSL_CAT(TSL_UNROLL_, TSL_DEFAULT_OR_PARAM(TSL_UNROLL_IMPL_##X))(X)
+      #elif defined(__clang__)
+      #   define TSL_UNROLL_2(_) _Pragma("unroll")
+      #   define TSL_UNROLL_1(X) _Pragma(TSL_TO_STRING(unroll(X)))
+      #   define TSL_UNROLL(X) TSL_CAT(TSL_UNROLL_, TSL_DEFAULT_OR_PARAM(TSL_UNROLL_IMPL_##X))(X)
+      #elif defined(__GNUC__) && !defined(__clang__)
+      #   if (__GNUC__ < 14)
+      #     pragma message("TSL_UNROLL is disabled. Apparently, GCC<14 does not support pragma unroll based on template parameters, see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102855.")
+      #     define TSL_UNROLL(X)
+      #   else
+      #     define TSL_UNROLL_2(_) _Pragma(TSL_TO_STRING(GCC unroll (1)))
+      #     define TSL_UNROLL_1(X) _Pragma(TSL_TO_STRING(GCC unroll (X)))
+      #     define TSL_UNROLL(X) TSL_CAT(TSL_UNROLL_, TSL_DEFAULT_OR_PARAM(TSL_UNROLL_IMPL_##X))(X)
+      #   endif
+      #elif defined(_MSC_BUILD)
+      #pragma message( \
+          "Microsoft Visual C++ (MSVC) detected: Loop unrolling not supported!")
+      #   define TSL_UNROLL(...)
+      #else
+      #warning "Unknown compiler: Loop unrolling not supported!"
+      #   define TSL_UNROLL(...)
+      #endif
     - |
       template <typename T, class = void> struct class_declared : std::false_type {};
       template <typename T> struct class_declared<T,decltype(void(sizeof(T)))> : std::true_type {};

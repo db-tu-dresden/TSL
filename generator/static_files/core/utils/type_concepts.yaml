@@ -6,13 +6,18 @@ implementations:
     - |
       #ifdef TSL_USE_CONCEPTS
       #   include <concepts> //this is ugly, but the generator does not support conditional includes
-          template<typename T>
-          concept TSLArithmetic = std::is_arithmetic_v<T>;
-
-          template<typename T>
-          concept TSL_Tuple = is_tuple<T>::value;
+          template<typename T> concept TSLArithmetic = std::is_arithmetic_v<T>;
+          template<typename T> concept TSLConstArithmetic = TSLArithmetic<T> && std::is_const_v<T>;
+          template<typename T> concept TSLArithmeticReference = std::is_reference_v<T> && TSLArithmetic<std::remove_reference_t<T>>;
+          template<typename T> concept TSLArithmeticPointer = std::is_pointer_v<T> && TSLArithmetic<std::remove_pointer_t<T>>;
+          template<typename T> concept TSLConstArithmeticPointer = TSLArithmeticPointer<T> && TSLConstArithmetic<std::remove_pointer_t<T>>;
+          template<typename T> concept TSLTuple = is_tuple<T>::value;
       #else
       #   define TSLArithmetic typename
-      #   define TSL_Tuple typename
+      #   define TSLConstArithmetic typename
+      #   define TSLArithmeticReference typename
+      #   define TSLArithmeticPointer typename
+      #   define TSLConstArithmeticPointer typename
+      #   define TSLTuple typename
       #endif
 ...

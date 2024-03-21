@@ -150,6 +150,9 @@ namespace tsl {
     
     template<typename Selector>
     class oneAPI_fpga {
+      public:
+        template<typename T, int Par>
+        using simd_ext_t = tsl::simd<T, tsl::oneAPIfpga, sizeof(T)*CHAR_BIT*Par>;
       private:
         Selector selector;
         sycl::queue& q;

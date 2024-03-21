@@ -5,6 +5,7 @@
 {% else %}
    {% set ns.default_vector_size = simdT_default_size_in_bits %}
 {% endif %}
+#define TSL_CONTAINS_{{ extension_name | upper }}
 struct {{ extension_name }} {
 {% for custom_type in custom_types %}
       template<TSLArithmetic BaseType, std::size_t VectorSizeInBits = {{ ns.default_vector_size }}>
