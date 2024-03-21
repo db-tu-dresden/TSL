@@ -91,3 +91,16 @@ def remove_path(folder: Path) -> bool:
         shutil.rmtree(folder)
         return True
     return False
+
+
+def get_relative_path(from_path: Path, to_path: Path) -> Path:
+    first_divergence = 0
+    for idx in range(min(len(from_path.parts), len(to_path.parts))):
+        if from_path.parts[idx] != to_path.parts[idx]:
+            first_divergence = idx
+            break
+    from_path_parts = from_path.parts[first_divergence:]
+    to_path_parts = to_path.parts[first_divergence:]
+    relative_parts_to_path = ['../'] * (len(from_path_parts) - 1) + list(to_path_parts)
+    result = Path(*relative_parts_to_path)
+    return result
