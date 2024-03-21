@@ -967,9 +967,9 @@ definitions:
       {% set inter_size = inter_size_int | string -%}
       {% set inter_type = additional_simd_template_base_type | replace(target_size, inter_size) -%}
       auto data_{{ inter_size }}_bit = convert_up<simd<{{ ctype }}, neon>, simd<{{ inter_type }}, neon>, Idof>(data);
-      auto data_low_{{ inter_size }}_as_{{ target_size }}_bit = 
+      auto data_low_{{ inter_size }}_as_{{ target_size }}_bit =
         convert_up<simd<{{ inter_type }}, neon>, simd<{{ additional_simd_template_base_type }}, neon>, Idof>(data_{{ inter_size }}_bit[0]);
-      auto data_high_{{ inter_size }}_as_{{ target_size }}_bit = 
+      auto data_high_{{ inter_size }}_as_{{ target_size }}_bit =
         convert_up<simd<{{ inter_type }}, neon>, simd<{{ additional_simd_template_base_type }}, neon>, Idof>(data_{{ inter_size }}_bit[1]);
       return { {
         data_low_{{ inter_size }}_as_{{ target_size }}_bit[0],
@@ -989,9 +989,9 @@ definitions:
       {% set inter_size = inter_size_int | string -%}
       {% set inter_type = additional_simd_template_base_type | replace(target_size, inter_size) -%}
       auto data_{{ inter_size }}_bit = convert_up<simd<{{ ctype }}, neon>, simd<{{ inter_type }}, neon>, Idof>(data);
-      auto data_low_{{ inter_size }}_as_{{ target_size }}_bit = 
+      auto data_low_{{ inter_size }}_as_{{ target_size }}_bit =
         convert_up<simd<{{ inter_type }}, neon>, simd<{{ additional_simd_template_base_type }}, neon>, Idof>(data_{{ inter_size }}_bit[0]);
-      auto data_high_{{ inter_size }}_as_{{ target_size }}_bit = 
+      auto data_high_{{ inter_size }}_as_{{ target_size }}_bit =
         convert_up<simd<{{ inter_type }}, neon>, simd<{{ additional_simd_template_base_type }}, neon>, Idof>(data_{{ inter_size }}_bit[1]);
       return { {
         data_low_{{ inter_size }}_as_{{ target_size }}_bit[0],
@@ -1006,7 +1006,7 @@ definitions:
 #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t"]
-    additional_simd_template_base_type_mapping_dict: { 
+    additional_simd_template_base_type_mapping_dict: {
       "uint8_t": [ "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t" ],
       "int8_t": [ "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t" ],
       "uint16_t": [ "uint32_t", "int32_t", "uint64_t", "int64_t" ],
@@ -1247,7 +1247,7 @@ definitions:
 #NEON
   - target_extension: "neon"
     ctype: ["uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
-    additional_simd_template_base_type_mapping_dict: { 
+    additional_simd_template_base_type_mapping_dict: {
       "uint16_t": [ "uint8_t", "int8_t" ], "int16_t": [ "uint8_t", "int8_t" ],
       "uint32_t": [ "uint16_t", "int16_t" ], "int32_t": [ "uint16_t", "int16_t" ],
       "uint64_t": [ "uint32_t", "int32_t" ], "int64_t": [ "uint32_t", "int32_t" ]
@@ -1271,7 +1271,7 @@ definitions:
         {% set current_source_int = current_target_int * 2 -%}
         {% set current_source = prefix + current_source_int | string -%}
         {% for data_idx in range(2**(TRANSFORM_STEPS-(steps+1))) %}
-        auto result_{{current_target}}_{{ data_idx}} = 
+        auto result_{{current_target}}_{{ data_idx}} =
           vcombine_{{current_target}}(
             vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx) }}),
             vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }})
@@ -1281,7 +1281,7 @@ definitions:
         return result_{{ prefix }}{{target_size}}_0;
   - target_extension: "neon"
     ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
-    additional_simd_template_base_type_mapping_dict: { 
+    additional_simd_template_base_type_mapping_dict: {
       "uint32_t": [ "uint8_t", "int8_t" ], "int32_t": [ "uint8_t", "int8_t" ],
       "uint64_t": [ "uint16_t", "int16_t", "uint8_t", "int8_t" ], "int64_t": [ "uint16_t", "int16_t", "uint8_t", "int8_t" ]
     }
@@ -1304,7 +1304,7 @@ definitions:
         {% set current_source_int = current_target_int * 2 -%}
         {% set current_source = prefix + current_source_int | string -%}
         {% for data_idx in range(2**(TRANSFORM_STEPS-(steps+1))) %}
-        auto result_{{current_target}}_{{ data_idx}} = 
+        auto result_{{current_target}}_{{ data_idx}} =
           vcombine_{{current_target}}(
             vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx) }}),
             vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }})
@@ -1314,7 +1314,7 @@ definitions:
         return result_{{ prefix }}{{target_size}}_0;
   - target_extension: "neon"
     ctype: ["uint64_t", "int64_t"]
-    additional_simd_template_base_type_mapping_dict: { 
+    additional_simd_template_base_type_mapping_dict: {
       "uint64_t": [ "uint8_t", "int8_t" ], "int64_t": [ "uint8_t", "int8_t" ]
     }
     lscpu_flags: ["neon"]
@@ -1336,7 +1336,7 @@ definitions:
         {% set current_source_int = current_target_int * 2 -%}
         {% set current_source = prefix + current_source_int | string -%}
         {% for data_idx in range(2**(TRANSFORM_STEPS-(steps+1))) %}
-        auto result_{{current_target}}_{{ data_idx}} = 
+        auto result_{{current_target}}_{{ data_idx}} =
           vcombine_{{current_target}}(
             vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx) }}),
             vmovn_{{current_source}}({{ data_param(steps, prefix, current_source_int, 2* data_idx + 1) }})
