@@ -1524,7 +1524,7 @@ definitions:
       alignas(Vec::vector_size_B()) std::array<typename Vec::offset_base_type, Vec::vector_element_count()> mask_array{};
       tsl::store<Vec>(val_array.data(), data);
       tsl::store<typename Vec::transform_extension<Vec::offset_base_type>>(idx_array.data(), index);
-      tsl::store<Vec>(mask_array.data(), mask);
+      tsl::store<typename Vec::transform_extension<Vec::offset_base_type>>(mask_array.data(), mask);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
