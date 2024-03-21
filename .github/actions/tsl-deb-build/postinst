@@ -40,9 +40,13 @@ fi
 TMP=$(mktemp -ud /tmp/libtsl-dev-XXXXXX)
 mkdir -p ${TMP}
 tar -xf ${{ INSTALL_BASE }}/${{ TSL_TARBALL }} -C ${TMP} ${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}
-cp -a ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/include/* ${{ POSTINSTALL_BASE }}
+cp -r ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/include ${{ POSTINSTALL_BASE }}
 
 #check if supplementary directory exists
 if [ -d "${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/supplementary" ]; then
   cp -r ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/supplementary ${{ POSTINSTALL_BASE }}
 fi
+
+echo '\
+#pragma once\n\
+#include "include/tslintrin.hpp"\n\' > ${{ POSTINSTALL_BASE }}/tsl.hpp
