@@ -21,6 +21,7 @@ jobs:
           name: intel_bat_failed
           path: ${{ github.workspace }}/status
           if_no_artifact_found: ignore
+          skip_unpack: true
       - name: Fail on status existing
         run: |
           found_file=false

@@ -12,7 +12,7 @@ from typing import List, Dict
 from generator.core.model.tsl_extension import TSLExtensionSet, TSLExtension
 from generator.core.model.tsl_file import TSLHeaderFile
 from generator.core.model.tsl_primitive import TSLPrimitiveClassSet
-from generator.utils.file_utils import get_relative_path, strip_common_path_prefix
+from generator.utils.file_utils import strip_common_path_prefix
 from generator.utils.log_utils import LogInit
 from generator.utils.yaml_utils import yaml_load, YamlDataType
 from generator.core.ctrl.tsl_dependencies import TSLDependencyGraph
@@ -131,22 +131,19 @@ class TSLFileGenerator:
             self.__primitive_class_declarations.append(declaration_file)
             self.__primitive_class_definitions.extend(definition_files_per_extension_dict.values())
 
-    def __create_static_header_files(self, lib: TSLLib) -> None:
+    def __create_static_header_files(self) -> None:
         self.log(logging.INFO, f"Starting generation of static header.")
         for static_yaml_file_path in config.static_lib_files():
-            print(f"Processing static file {static_yaml_file_path}")
             if static_yaml_file_path.stem == config.lib_root_header.stem:
                 file_path = config.lib_root_header
-                is_root_file = True
             else:
-                is_root_file = False
                 static_file_path_without_prefix = strip_common_path_prefix(static_yaml_file_path,
                                                                            config.static_lib_files_root_path)
                 static_file_name = static_file_path_without_prefix.name
                 static_file_path = static_file_path_without_prefix.parent
                 file_path: Path = config.lib_static_files_root_path.joinpath(static_file_path).joinpath(
                     static_file_name).with_suffix(config.get_config_entry("header_file_extension"))
-            print(f"Creating file {file_path}")
+
             data_dict: YamlDataType = yaml_load(static_yaml_file_path)
             tsl_file: TSLHeaderFile = TSLHeaderFile.create_from_dict(file_path, data_dict)
             if "implementations" in data_dict:
@@ -174,7 +171,7 @@ class TSLFileGenerator:
         self.__create_extension_header_files(lib.extension_set)
         self.__create_primitive_header_files(lib.extension_set, lib.primitive_class_set)
 
-        self.__create_static_header_files(lib)
+        self.__create_static_header_files()
         # dep_graph = TSLDependencyGraph(lib)
         # print("Checking implementation dependencies:")
         # ordered_primitive_classes = list(dep_graph.sort_tsl_classes("get_implementations"))
@@ -192,9 +189,6 @@ class TSLFileGenerator:
             generated_files_root.add_file_include(primitive_declaration)
         for primitive_definition in sorted(self.primitive_definition_files, key=include_sort_fun):
             generated_files_root.add_file_include(primitive_definition)
-        for runtime_header in lib.relevant_runtime_headers_abs_path():
-            # print(f"Adding runtime header {runtime_header}")
-            # print(f"generated path: {config.lib_generated_files_root_header}")
-            # print(f"Adding inclue to {get_relative_path(config.lib_generated_files_root_header, runtime_header)}")
-            generated_files_root.add_predefined_tsl_file_include(f'"{get_relative_path(config.lib_generated_files_root_header, runtime_header)}"')
+        for runtime_header in lib.relevant_runtime_headers:
+            generated_files_root.add_predefined_tsl_file_include(f'"{runtime_header.name}"')
         self.__static_files.append(generated_files_root)

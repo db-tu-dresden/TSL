@@ -170,8 +170,18 @@ class TSLDependencyGraph:
   def get_required_classes(self, node: NodeType) -> Set[TSLDependencyGraph.PrimitiveClassNode]:
     node_set: Set[TSLDependencyGraph.PrimitiveClassNode] = set()
     if not isinstance(node, TSLDependencyGraph.PrimitiveClassNode):
-      node_set.add(self.get_associated_class(node))
+      node_cls = self.get_associated_class(node)
+      node_set.add(node_cls)
+    else:
+      node_cls = node
+
     for child_node in self.traverse_by_type([node], [TSLDependencyGraph.PrimitiveNode, TSLDependencyGraph.PrimitiveTestNode], True, False):
+      cls = self.get_associated_class(child_node)
+      if (cls != self.get_associated_class(node)):
+        if isinstance(child_node, TSLDependencyGraph.PrimitiveNode):
+          print(f"Node {node.name} ({node_cls}) depends on Primitive {child_node.name} ({cls})")
+        else:
+          print(f"Node {node.name} ({node_cls}) depends on Test {child_node.name} ({cls})")
       node_set.add(self.get_associated_class(child_node))
     return node_set
 
@@ -189,6 +199,7 @@ class TSLDependencyGraph:
       for required_class in self.get_required_classes(cls):
         if required_class != cls:
           class_graph.add_edge(required_class, cls)
+    nx.drawing.nx_pydot.write_dot(class_graph, "class_graph.dot")
     try:
       ordered_class_graph = nx.topological_sort(class_graph)
     except nx.NetworkXUnfeasible:
