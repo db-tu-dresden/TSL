@@ -14,7 +14,7 @@ returns:
   description: "Integral value representing of the vector mask register."
 testing: #optional
   - test_name: "mask_match_zero_to_vec_count"
-    requires: ["loadu"]
+    requires: []
     includes: ["<cstddef>", "<array>"]
     implementation: |
       if constexpr (std::is_same_v<bool, typename Vec::mask_type>) {

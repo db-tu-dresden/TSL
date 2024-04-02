@@ -387,7 +387,7 @@ definitions:
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f", "avx512vl"]
-    implementation: "return _mm256_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+    implementation: "return _mm256_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
@@ -412,7 +412,7 @@ definitions:
   - target_extension: "sse"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f", "avx512vl"]
-    implementation: "return _mm_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+    implementation: "return _mm_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
