@@ -563,22 +563,15 @@ testing:
       upper_type upper_init_start_value;
       lower_type lower_init_start_value;
       if constexpr (std::is_unsigned_v<upper_type>) {
-        if constexpr (std::is_unsigned_v<lower_type>) {
-          upper_init_start_value = 0;
           lower_init_start_value = 0;
-        } else {
-          lower_init_start_value = std::numeric_limits<lower_type>::lowest();
-          upper_init_start_value = ((upper_type)std::numeric_limits<lower_type>::max())+1;
-        }
       } else {
         if constexpr (std::is_unsigned_v<lower_type>) {
-          upper_init_start_value = 0;
           lower_init_start_value = 0;
         } else {
           lower_init_start_value = std::numeric_limits<lower_type>::lowest();
-          upper_init_start_value = lower_init_start_value;
         }
       }
+      upper_init_start_value = static_cast<upper_type>(lower_init_start_value);
       uint64_t max = 0;
       if(sizeof(lower_type)>2) {
         max = 1<<16;

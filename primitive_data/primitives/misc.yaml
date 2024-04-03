@@ -345,7 +345,7 @@ testing:
         testing::rnd_init(&mask, 1);
         base_t arr[vec_count];
         for(size_t j = 0; j < vec_count; j++){
-          (mask & (1 << j)) ? arr[j] = ref_data_ptr[i+j+vec_count] : arr[j] = ref_data_ptr[j+i];
+          (((mask >> j) & 1) == 0) ? arr[j] = ref_data_ptr[j+i] : arr[j] = ref_data_ptr[i+j+vec_count];
         }
         auto ref_result = loadu<Vec>(arr);
 
