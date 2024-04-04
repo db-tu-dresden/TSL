@@ -590,7 +590,7 @@ definitions:
 ...
 ---
 primitive_name: "set"
-brief_description: "Transfers provided elements into a vector register."
+brief_description: "Transfers provided elements into a vector register. This implementation is currently (errorneous) in the reverse order."
 parameters:
   - ctype: "Ts"
     name: "args"
@@ -666,6 +666,17 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return std::get<0>(std::make_tuple(args...));"
+  #ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["neon"]
+    implementation: |
+      std::array<Vec::base_type,sizeof...(Ts)> data{args...};
+      constexpr size_t len = sizeof...(args);
+      for (auto i = 0; i < len/2; ++i) {
+        std::swap(data[i],data[len-1-i]);
+      }
+      return tsl::loadu<Vec>(data.data());
 ...
 ---
 primitive_name: "sequence"
@@ -1342,6 +1353,20 @@ definitions:
     implementation: |
       if(mask){
         *memory = data;
+      }
+  #ARM - Neon
+  - target_extension: ["neon"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    is_native: False
+    lscpu_flags: ["neon"]
+    implementation: |
+      auto const data_array = tsl::to_array<Vec>(data);
+
+      for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
+        if((mask >> i) & 1){
+          *memory = data_array[i];
+          memory ++;
+        }
       }
 ...
 ---

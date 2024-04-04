@@ -66,6 +66,37 @@ testing:
         allOk &= test_helper.validate();
       }
       return allOk;
+  - test_name: "random_mask"
+    requires: ["to_mask", "integral_all_true", "set1"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+
+      typename Vec::imask_type imask;
+      testing::rnd_init(&imask, 1);
+      const auto mask = tsl::to_mask<Vec>(imask);
+
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+
+      for(std::size_t i = 0; i < element_count; i += Vec::vector_element_count()){
+        for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+          if ( (imask >> (j-i)) & 0b1 == 1 ) {
+            reference_result_ptr[j-i] = i;
+          } else {
+            reference_result_ptr[j-i] = 0;
+          }
+        }
+        memset(test_result_ptr, 0, sizeof(typename Vec::base_type) + Vec::vector_element_count());
+        auto vec = set1<Vec>(i);
+        storeu<Vec>(mask, test_result_ptr, vec);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
@@ -111,6 +142,17 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: []
     implementation: "if(mask){*memory = data;}"
+#ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["neon"]
+    implementation: |
+      const auto imask = tsl::to_integral<Vec>(mask);
+      for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+        if ((imask >> i) & 0b1 == true) {
+          memory[i] = data[i];
+        }
+      }
 ...
 ---
 primitive_name: "gather"
@@ -496,4 +538,103 @@ definitions:
      ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
      lscpu_flags: []
      implementation: "return (mask & 1) ? value : src;"
+...
+---
+primitive_name: "load_mask"
+brief_description: "Loads data from memory to a mask."
+parameters:
+  - ctype: "typename Vec::imask_type const*"
+    name: "memory"
+    description: "Memory where the mask data should be loaded from."
+returns:
+  ctype: "typename Vec::mask_type"
+  name: "result"
+  description: "Mask containing the loaded data."
+definitions:
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return *memory;"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return tsl::to_mask<Vec>(*memory);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return tsl::to_mask<Vec>(*memory);"
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return *memory;"
+...
+---
+primitive_name: "load_imask"
+brief_description: "Loads data from memory to a mask."
+parameters:
+  - ctype: "typename Vec::imask_type const*"
+    name: "memory"
+    description: "Memory where the mask data should be loaded from."
+returns:
+  ctype: "typename Vec::imask_type"
+  name: "result"
+  description: "Mask containing the loaded data."
+definitions:
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return *memory;"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return *memory;"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return *memory;"
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return *memory;"
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return *memory;"    
+...
+---
+primitive_name: "store_imask"
+brief_description: "Stores an integral mask to memory."
+parameters:
+  - ctype: "typename Vec::imask_type *"
+    name: "memory"
+    description: "Memory where the mask data should be loaded from."
+  - ctype: "typename Vec::imask_type"
+    name: "mask"
+    description: "Mask to be stored."
+definitions:
+#AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "*memory = mask;"
+#AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "*memory = mask;"
+#SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse2"]
+    implementation: "*memory = mask;"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "*memory = mask;"
+#NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["neon"]
+    implementation: "*memory = mask;"
 ...
