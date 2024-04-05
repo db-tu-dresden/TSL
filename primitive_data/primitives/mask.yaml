@@ -167,7 +167,7 @@ definitions:
       auto const and_vec = tsl::set<Vec>(0x2u, 0x1u);
       auto const data_vec = tsl::set1<Vec>(mask);
       auto const anded_vec = tsl::binary_and<Vec>(data_vec, and_vec);
-      return tsl::equal<Vec>(anded_vec, and_vec);
+      return vceqq_{{ intrin_tp_full[ctype] }}(anded_vec, and_vec);
   - target_extension: ["neon"]
     ctype: ["uint32_t", "int32_t"]
     lscpu_flags: ["neon"]
@@ -175,7 +175,7 @@ definitions:
       auto const and_vec = tsl::set<Vec>(0x8u, 0x4u, 0x2u, 0x1u);
       auto const data_vec = tsl::set1<Vec>(mask);
       auto const anded_vec = tsl::binary_and<Vec>(data_vec, and_vec);
-      return tsl::equal<Vec>(anded_vec, and_vec);
+      return vceqq_{{ intrin_tp_full[ctype] }}(anded_vec, and_vec);
   - target_extension: ["neon"]
     ctype: ["uint16_t", "int16_t"]
     lscpu_flags: ["neon"]
@@ -183,7 +183,7 @@ definitions:
       auto const and_vec = tsl::set<Vec>(0x80u, 0x40u, 0x20u, 0x10u, 0x8u, 0x4u, 0x2u, 0x1u);
       auto const data_vec = tsl::set1<Vec>(mask);
       auto const anded_vec = tsl::binary_and<Vec>(data_vec, and_vec);
-      return tsl::equal<Vec>(anded_vec, and_vec);
+      return vceqq_{{ intrin_tp_full[ctype] }}(anded_vec, and_vec);
   - target_extension: ["neon"]
     ctype: ["uint8_t", "int8_t"]
     is_native: False
