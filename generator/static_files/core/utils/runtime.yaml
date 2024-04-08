@@ -11,6 +11,9 @@ implementations:
 
     template<class ExecTarget>
       class executor {
+        public:
+          template<typename T, int Par>
+          using simd_ext_t = typename ExecTarget::template simd_ext_t<T, Par>;
         private:
           ExecTarget target;
         public:
@@ -33,6 +36,14 @@ implementations:
               target.copy(out, in, element_count);
             }
         public:
+          template<class Functor, typename... Args>
+            decltype(auto) submit(Functor& fun, Args... args) {
+              return target.template submit<Functor>(fun, args...);
+            }
+          template<class Functor, typename... Args>
+            decltype(auto) submit(Functor&& fun, Args... args) {
+              return target.template submit<Functor>(std::forward<Functor>(fun), args...);
+          }
           template<VectorProcessingStyle PS, template<typename...> class Fun, typename... Args>
             decltype(auto) submit(Args... args) {
               return target.template submit<PS, Fun>(args...);
@@ -66,6 +77,11 @@ implementations:
             decltype(auto) detach(Args... args) {
               return target.template detach<Fun>(args...);
             }
+
+          template<TSLArithmetic T>
+          static constexpr auto available_parallelism() {
+            return ExecTarget::template available_parallelism<T>();
+          }
 
           void wait() {
             target.wait();

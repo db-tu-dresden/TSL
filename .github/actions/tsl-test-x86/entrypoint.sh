@@ -49,12 +49,14 @@ cmake -S ${TSL_ROOT} -B ${BUILD_PATH} -DCMAKE_CXX_COMPILER=${COMPILER_BIN} -DCMA
 if [ $? -ne 0 ]; then
   echo "msg=cmake failed for $TSL_ROOT" >> $GITHUB_OUTPUT
   echo "success=false" >> $GITHUB_OUTPUT
+  echo "failout=tsl.log" >> $GITHUB_OUTPUT
   exit
 fi
 cmake --build ${BUILD_PATH} --config Release >> ${LOG_FILE} 2>&1
 if [ $? -ne 0 ]; then
   echo "msg=Build failed for $TSL_ROOT" >> $GITHUB_OUTPUT
   echo "success=false" >> $GITHUB_OUTPUT
+  echo "failout=tsl.log" >> $GITHUB_OUTPUT
   exit
 fi
 echo "Done"
@@ -71,6 +73,7 @@ for flag in "${TSL_SUPPORTED_FLAGS[@]}"; do
   if [[ -z "${AVAIL_MAP[$flag]}" ]]; then
     echo "msg=CPU does not support required flag for TSL_STRIPPED=${TSL_STRIPPED}" >> $GITHUB_OUTPUT
     echo "success=skipped" >> $GITHUB_OUTPUT
+    echo "failout=tsl.log" >> $GITHUB_OUTPUT
     exit
   fi
 done
@@ -78,6 +81,7 @@ ${EXECUTABLE} >> ${LOG_FILE} 2>&1
 if [ $? -ne 0 ]; then
   echo "msg=Tests failed for $TSL_ROOT" >> $GITHUB_OUTPUT
   echo "success=false" >> $GITHUB_OUTPUT
+  echo "failout=tsl.log" >> $GITHUB_OUTPUT
   exit
 fi
 echo "Done"

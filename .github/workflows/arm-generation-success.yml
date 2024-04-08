@@ -21,6 +21,7 @@ jobs:
           name: arm_generation_failed
           path: ${{ github.workspace }}/status
           if_no_artifact_found: ignore
+          skip_unpack: true
       - name: Fail on status existing
         run: |
           if [ -f ${{ github.workspace }}/status/arm_generation_failed ]; then

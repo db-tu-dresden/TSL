@@ -22,17 +22,20 @@ ruff check --ignore E501,F541,F401,F841,E731 --target-version="py${PY_VERSION}" 
 if [ $? -ne 0 ]; then
   echo "msg=ruff failed" >> $GITHUB_OUTPUT
   echo "success=false" >> $GITHUB_OUTPUT
+  echo "failout=ruff.log" >> $GITHUB_OUTPUT
   exit
 else
   yamllint --no-warnings -d relaxed ./primitive_data > ${LOG_PATH}/yamllint.log 2>&1
   if [ $? -ne 0 ]; then
     echo "msg=yamllint failed" >> $GITHUB_OUTPUT
     echo "success=false" >> $GITHUB_OUTPUT
+    echo "failout=yamllint.log" >> $GITHUB_OUTPUT
   else
     python main.py -o $GENERATION_PATH > ${LOG_PATH}/TSL.log 2>&1
     if [ $? -ne 0 ]; then
       echo "msg=TSL generation failed" >> $GITHUB_OUTPUT
       echo "success=false" >> $GITHUB_OUTPUT
+      echo "failout=TSL.log" >> $GITHUB_OUTPUT
       exit
     else
       echo "msg=\"TSL can be generated successfully.\"" >> $GITHUB_OUTPUT

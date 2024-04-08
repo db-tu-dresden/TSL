@@ -21,9 +21,17 @@ jobs:
           name: intel_bat_failed
           path: ${{ github.workspace }}/status
           if_no_artifact_found: ignore
+          skip_unpack: true
       - name: Fail on status existing
         run: |
-          if [ -f ${{ github.workspace }}/status/intel_bat_failed ]; then
+          found_file=false
+          for file in ${{ github.workspace }}/status/intel_bat_failed*; do
+            if [ -f $file ]; then
+              found_file=true
+              break
+            fi
+          done
+          if $found_file; then
             echo "Generation failed"
             exit 1
           fi

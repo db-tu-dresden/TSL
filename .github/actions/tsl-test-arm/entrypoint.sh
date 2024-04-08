@@ -57,12 +57,14 @@ cmake -S ${TSL_ROOT} -B ${BUILD_PATH} -DCMAKE_CXX_COMPILER=${COMPILER_BIN} -DCMA
 if [ $? -ne 0 ]; then
   echo "msg=cmake failed for $TSL_ROOT" >> $GITHUB_OUTPUT
   echo "success=false" >> $GITHUB_OUTPUT
+  echo "failout=tsl.log" >> $GITHUB_OUTPUT
   exit
 fi
 cmake --build ${BUILD_PATH} --config Release >> ${LOG_FILE} 2>&1
 if [ $? -ne 0 ]; then
   echo "msg=Build failed for $TSL_ROOT" >> $GITHUB_OUTPUT
   echo "success=false" >> $GITHUB_OUTPUT
+  echo "failout=tsl.log" >> $GITHUB_OUTPUT
   exit
 fi
 echo "Done"
@@ -87,6 +89,7 @@ ${EXECUTABLE} >> ${LOG_FILE} 2>&1
 if [ $? -ne 0 ]; then
   echo "msg=Tests failed for $TSL_ROOT" >> $GITHUB_OUTPUT
   echo "success=false" >> $GITHUB_OUTPUT
+  echo "failout=tsl.log" >> $GITHUB_OUTPUT
   exit
 fi
 echo "Done"

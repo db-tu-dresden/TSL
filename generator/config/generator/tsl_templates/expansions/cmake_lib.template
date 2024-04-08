@@ -42,5 +42,5 @@ add_dependencies({{ tsl_lib_name}} {{ supplementary_lib["name"] }})
 target_include_directories({{ tsl_lib_name}} INTERFACE {{ supplementary_lib["include_path"] }})
 {% endfor %}
 {% for include_path in tsl_additional_include_paths %}
-target_include_directories({{ tsl_lib_name }} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/{{ include_path }}> $<INSTALL_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/{{ include_path }} )
+target_include_directories({{ tsl_lib_name }} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/{{ include_path }}> $<INSTALL_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/{{ include_path }}> )
 {% endfor %}

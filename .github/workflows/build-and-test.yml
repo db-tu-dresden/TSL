@@ -86,6 +86,7 @@ jobs:
         run: |
           echo "Generation for Intel x86 failed"
           echo "${{ steps.generate.outputs.msg }}"
+          cat ${{ github.workspace }}/${{ steps.generate.outputs.out }}/${{ steps.generate.outputs.failout}}
           touch ${{ github.workspace }}/intel_generation_failed
       - name: Upload on Error
         if: ${{ steps.generate.outputs.success == 'false' }}
@@ -145,6 +146,7 @@ jobs:
         run: |
           echo "Build (with ${{ matrix.compilers }}, ${{ matrix.tsl_folders }}) and testing for Intel x86 failed"
           echo "${{ steps.bat.outputs.msg }}"
+          cat ${{ github.workspace }}/${{ steps.bat.outputs.out }}/${{ steps.generate.bat.failout}}
           touch ${{ github.workspace }}/intel_bat_failed
       - name: Upload on Error
         if: ${{ steps.bat.outputs.success == 'false' }}
@@ -189,6 +191,7 @@ jobs:
         run: |
           echo "Generation for ARM failed"
           echo "${{ steps.generate.outputs.msg }}"
+          cat ${{ github.workspace }}/${{ steps.generate.outputs.out }}/${{ steps.generate.outputs.failout}}
           touch ${{ github.workspace }}/arm_generation_failed
       - name: Upload on Error
         if: ${{ steps.generate.outputs.success == 'false' }}
@@ -242,6 +245,7 @@ jobs:
         run: |
           echo "Build (with ${{ matrix.compilers }}, ${{ matrix.tsl_folders }}) and testing for ARM failed"
           echo "${{ steps.bat.outputs.msg }}"
+          cat ${{ github.workspace }}/${{ steps.bat.outputs.out }}/${{ steps.bat.outputs.failout}}
           touch ${{ github.workspace }}/arm_bat_failed
       - name: Upload on Error
         if: ${{ steps.bat.outputs.success == 'false' }}

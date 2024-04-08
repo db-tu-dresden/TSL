@@ -19,6 +19,7 @@ from generator.utils.log_utils import LogInit
 from generator.utils.requirement import requirement
 from generator.utils.yaml_utils import yaml_load, yaml_load_all, yaml_store
 from parseForPrimitiveTable import create_primitive_index_html
+from generator.core.model.tsl_file import TSLHeaderFile
 
 
 class TSLGenerator:
@@ -215,6 +216,20 @@ class TSLGenerator:
 
             tsl_translation_units: TSLTranslationUnitContainer = TSLTranslationUnitContainer()
 
+            #Generate Install file
+            print(config.generation_out_path)
+            print(config.lib_root_header)
+            print([f"{p.parent}" for p in lib.relevant_runtime_headers])
+            root_header_fname = Path(config.get_library_config_entry("top_level_header_fname")).with_suffix(config.lib_header_file_extension)
+            header_fname = Path(config.get_library_config_entry("root_path")).joinpath(root_header_fname)
+
+            install_header = TSLHeaderFile.create_from_dict(config.generation_out_path.joinpath(f"tsl{config.lib_header_file_extension}"), {
+                "includes": [f'"{header_fname}"']+[f'"{p}"' for p in lib.relevant_runtime_headers],
+                "tsl_file_includes": [],
+            })
+            
+            install_header.render_to_file()
+                
             try:
                 for path, tu in TSLTestGenerator.generate(lib, dep_graph):
                     tsl_translation_units.add_tu(path, tu)

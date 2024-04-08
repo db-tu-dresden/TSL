@@ -59,10 +59,12 @@ fi
 TMP=$(mktemp -ud %{_tmppath}/%{name}-XXXXXX)
 mkdir -p ${TMP}
 tar -xf %{tsl_hollistic_dir}/${{ TSL_TARBALL }} -C ${TMP} ${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}
-cp -a ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/include/* %{tsl_dir}
+cp -r ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/include %{tsl_dir}
 if [ -d "${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/supplementary" ]; then
   cp -r ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/supplementary %{tsl_dir}
 fi
+cp ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/tsl.hpp %{tsl_dir}
+
 
 %postun
 rm -rf %{tsl_dir}

@@ -134,7 +134,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] + vec_b[i];
       }
@@ -272,7 +272,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] - vec_b[i];
       }
@@ -356,10 +356,26 @@ testing:
 definitions:
 #INTEL - AVX512
   - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f"]
     implementation: "return _mm512_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
 #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["avx"]
@@ -368,7 +384,19 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["avx"]
     implementation: "return _mm256_add_{{ intrin_tp_full[ctype] }}(vec_a, _mm256_and_{{ intrin_tp_full[ctype] }}(vec_b, mask));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
 #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
   - target_extension: "sse"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["sse2"]
@@ -381,6 +409,10 @@ definitions:
     ctype: ["double"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_add_pd(vec_a, _mm_and_pd(vec_b, mask));"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -482,15 +514,23 @@ testing:
       if(std::is_unsigned<T>::value){
         return true;
       }else{
-        testing::test_memory_helper_t<Vec> test_helper{ Vec::vector_element_count(), false };
+        testing::test_memory_helper_t<Vec> test_helper{ Vec::vector_element_count(), Vec::vector_element_count(), false, testing::seq_init<T>, 1 };
         auto reference_result_ptr = test_helper.result_ref();
         auto test_result_ptr = test_helper.result_target();
+        auto test_data_ptr = test_helper.data_target();
+        auto reference_data_ptr = test_helper.data_ref();
 
-        auto neg = set1<Vec>(-1);
-        auto pos = set1<Vec>(1);
+        auto neg = tsl::set1<Vec>(-1);
+        auto pos_ref = tsl::loadu<Vec>(reference_data_ptr);
+        auto pos_target = tsl::loadu<Vec>(test_data_ptr);
 
-        storeu<Vec>(reference_result_ptr, neg);
-        storeu<Vec>(test_result_ptr, mul<Vec>(pos, neg));
+        storeu<Vec>(reference_result_ptr, tsl::mul<Vec>(pos_ref, neg));
+        storeu<Vec>(test_result_ptr, tsl::mul<Vec>(pos_target, neg));
+        //std::cout << "========Multiply neg * pos" << tsl::type_name<Vec>() << "==================" << std::endl;
+        //for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        //  std::cerr << reference_data_ptr[i] << " * -1 = " << test_result_ptr[i] << " !=?== " << reference_result_ptr[i] << std::endl;
+        //}
+        //std::cerr << "=======================================================" << std::endl;
 
         test_helper.synchronize();
         return test_helper.validate();
@@ -616,12 +656,22 @@ definitions:
     lscpu_flags: [ 'neon' ]
     is_native: False
     implementation: |
+      return
+        vsetq_lane_{{ intrin_tp_full[ctype] }}(
+          vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_a, 0) *
+          vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_b, 0),
+          vmovq_n_{{ intrin_tp_full[ctype ]}}(
+            vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_a, 1) *
+            vgetq_lane_{{ intrin_tp_full[ctype] }}(vec_b, 1)
+          ),
+          0
+        );
       //Found this on stackoverflow. This seems like an overkill. Maybe an extract and scalar multiply would do the trick more efficient.
       //@todo: benchmark this.
-      const auto ac = vmovn_{{ intrin_tp[ctype][0] }}64(vec_a);
-      const auto pr = vmovn_{{ intrin_tp[ctype][0] }}64(vec_b);
-      const auto hi = vmulq_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_b), vrev64q_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_a)));
-      return vmlal_{{ intrin_tp[ctype][0] }}32(vshlq_n_{{ intrin_tp[ctype][0] }}64(vpaddlq_{{ intrin_tp[ctype][0] }}32(hi), 32), ac, pr);
+      //const auto ac = vmovn_{{ intrin_tp[ctype][0] }}64(vec_a);
+      //const auto pr = vmovn_{{ intrin_tp[ctype][0] }}64(vec_b);
+      //const auto hi = vmulq_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_b), vrev64q_{{ intrin_tp[ctype][0] }}32(vreinterpretq_{{ intrin_tp[ctype][0] }}32_{{ intrin_tp[ctype][0] }}64(vec_a)));
+      //return vmlal_{{ intrin_tp[ctype][0] }}32(vshlq_n_{{ intrin_tp[ctype][0] }}64(vpaddlq_{{ intrin_tp[ctype][0] }}32(hi), 32), ac, pr);
 #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
@@ -635,7 +685,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] * vec_b[i];
       }
@@ -773,7 +823,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] * mul_var;
       }
@@ -841,7 +891,7 @@ definitions:
   #   implementation: |
   #     using T = typename Vec::base_type;
   #     T result = 0; //initialize the result
-  #     #pragma unroll
+  #     TSL_UNROLL(Vec::vector_element_count())
   #     for(int i = 0; i < Vec::vector_element_count(); i+=16) {
   #       T add_1_1 = value[i  ] + value[i+1];
   #       T add_1_2 = value[i+2] + value[i+3];
@@ -1144,7 +1194,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] < vec_b[i] ? vec_a[i] : vec_b[i];
       }
@@ -1267,43 +1317,77 @@ definitions:
           buffer_a[i] /= buffer_b[i];
         }
         return _mm_load_si128(reinterpret_cast<__m128i const *>(buffer_a.data()));
-#ARM - NEON - TODO: Cant check if Correct
+#ARM - NEON
   - target_extension: "neon"
     ctype: ["float", "double"]
-    lscpu_flags: [ 'neon' ]
-    implementation: "return vdivq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );"
-  - target_extension: "neon"
-    ctype: ["uint64_t"]
     lscpu_flags: ['neon']
     implementation: |
-      typename Vec::register_type recipocal_estimate = vshrq_n_u64(vdupq_n_u64(0xFFFFFFFFFFFFFFFF), vclzq_u64(vec_b));
-      recipocal_estimate = vmulq_u64(recipocal_estimate, vsubq_u64(vdupq_n_u64(2), vmulq_u64(vec_b, recipocal_estimate)));
-      typename Vec::register_type temp = vmulq_u64(vec_a, recipocal_estimate);
-      temp = vqrdmulhq_u64(temp, vec_b);
-      return temp;
+      return vdivq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );
   - target_extension: "neon"
-    ctype: ["uint32_t"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ['neon']
-    is_native: False
     implementation: |
-      typename Vec::register_type temp = vrecpe_{{intrin_tp_full[ctype]}}(vec_b);
-      temp = vmulq_{{intrin_tp_full[ctype]}}(temp, vrecpsq_{{intrin_tp_full[ctype]}}(vec_b, temp));
-      return vmulq_{{intrin_tp_full[ctype]}}(vec_a, temp);
+      {% if '32' in ctype %}
+        auto float_a = tsl::cast<Vec, typename Vec::template transform_extension<float>>(vec_a);
+        auto float_b = tsl::cast<Vec, typename Vec::template transform_extension<float>>(vec_b);
+      {% else %}
+        auto float_a = tsl::cast<Vec, typename Vec::template transform_extension<double>>(vec_a);
+        auto float_b = tsl::cast<Vec, typename Vec::template transform_extension<double>>(vec_b);
+      {% endif %}
+      auto float_result = vdivq_f{{ intrin_tp[ctype][1] }}( float_a, float_b );
+      {% if '32' in ctype %}
+        return tsl::cast<typename Vec::template transform_extension<float>, Vec>(float_result);
+      {% else %}
+        return tsl::cast<typename Vec::template transform_extension<double>, Vec>(float_result);
+      {% endif %}
   - target_extension: "neon"
-    ctype: ["uint16_t"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ['neon']
-    is_native: False
-    implementation: return vdivq_u16(vec_a, vdupq_n_u16(vec_b));
-  - target_extension: "neon"
-    ctype: ["uint8_t"]
-    lscpu_flags: ['neon']
-    is_native: False
     implementation: |
-      typename Vec::register_type temp = vmol_u8(vec_a);
-      temp = vmulq_n_u16(temp, 0x100);
-      typename Vec::register_type result = vqrdmulhq_u8(temp, vec_b);
-      result = vshrn_n_u16(result, 8);
-      return result;
+      auto arr_a = tsl::to_array<Vec>(vec_a);
+      auto arr_b = tsl::to_array<Vec>(vec_b);
+      for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        arr_a[i] /= arr_b[i];
+      }
+      return tsl::load<Vec>(arr_a.data());
+# #ARM - NEON - TODO: Cant check if Correct
+#   - target_extension: "neon"
+#     ctype: ["float", "double"]
+#     lscpu_flags: [ 'neon' ]
+#     implementation: "return vdivq_{{ intrin_tp_full[ctype] }}( vec_a, vec_b );"
+#   - target_extension: "neon"
+#     ctype: ["uint64_t"]
+#     lscpu_flags: ['neon']
+#     implementation: |
+
+#       typename Vec::register_type reciprocal_estimate = vshrq_n_u64(vdupq_n_u64(0xFFFFFFFFFFFFFFFF), vclzq_u64(vec_b));
+#       reciprocal_estimate = vmulq_u64(reciprocal_estimate, vsubq_u64(vdupq_n_u64(2), vmulq_u64(vec_b, reciprocal_estimate)));
+#       typename Vec::register_type temp = vmulq_u64(vec_a, reciprocal_estimate);
+#       temp = vqrdmulhq_u64(temp, vec_b);
+#       return temp;
+#   - target_extension: "neon"
+#     ctype: ["uint32_t"]
+#     lscpu_flags: ['neon']
+#     is_native: False
+#     implementation: |
+#       typename Vec::register_type temp = vrecpe_{{intrin_tp_full[ctype]}}(vec_b);
+#       temp = vmulq_{{intrin_tp_full[ctype]}}(temp, vrecpsq_{{intrin_tp_full[ctype]}}(vec_b, temp));
+#       return vmulq_{{intrin_tp_full[ctype]}}(vec_a, temp);
+#   - target_extension: "neon"
+#     ctype: ["uint16_t"]
+#     lscpu_flags: ['neon']
+#     is_native: False
+#     implementation: return vdivq_u16(vec_a, vdupq_n_u16(vec_b));
+#   - target_extension: "neon"
+#     ctype: ["uint8_t"]
+#     lscpu_flags: ['neon']
+#     is_native: False
+#     implementation: |
+#       typename Vec::register_type temp = vmol_u8(vec_a);
+#       temp = vmulq_n_u16(temp, 0x100);
+#       typename Vec::register_type result = vqrdmulhq_u8(temp, vec_b);
+#       result = vshrn_n_u16(result, 8);
+#       return result;
 #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
@@ -1317,7 +1401,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_a[i] / vec_b[i];
       }
@@ -1489,7 +1573,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_data[i] % vec_mod[i];
       }
@@ -1501,7 +1585,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec_data[i] - ((vec_data[i] / vec_mod[i]) * vec_mod[i]);
       }
@@ -1721,7 +1805,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec[i] % val;//vec[i] - ((vec[i] / val) * val);
       }
@@ -1733,7 +1817,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result; //initialize the result
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(int i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = vec[i] - ((vec[i] / val) * val);
       }

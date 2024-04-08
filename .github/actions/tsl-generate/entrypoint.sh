@@ -24,6 +24,7 @@ python3 ${REPO_ROOT}/main.py --targets ${TARGETS} --out ${GENERATION_PATH} >>${G
 if [ $? -ne 0 ]; then
   echo "msg=Could not generate TSL (with $TARGETS)" >> $GITHUB_OUTPUT
   echo "success=false" >> $GITHUB_OUTPUT
+  echo "failout=generation.log" >> $GITHUB_OUTPUT
   exit
 fi
 

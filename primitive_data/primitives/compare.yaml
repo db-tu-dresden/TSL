@@ -154,7 +154,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] == vec_b[i]) ? checker : 0;
       }
@@ -237,12 +237,65 @@ testing: #optional
       }
       return allOk;
 definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    specialization_comment: "Signed comparison."
+    implementation: "return mask & functors::equal<Vec, Idof>::apply(vec_a, vec_b);"
   #INTEL - AVX2
   - target_extension: "avx2"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['avx2']
     specialization_comment: "Signed comparison."
-    implementation: "return _mm256_and_si256(_mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b), mask);"
+    implementation: "return _mm256_and_si256(functors::equal<Vec, Idof>::apply(vec_a, vec_b), mask);"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sse2']
+    specialization_comment: "Signed comparison."
+    implementation: "return _mm_and_si128(functors::equal<Vec, Idof>::apply(vec_a, vec_b), mask);"
+  #Scalar
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (vec_a == vec_b) & mask;"
+...
+---
+primitive_name: "equal"
+functor_name: "equal_masks"
+brief_description: "Compares two imasks for equality."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask_a"
+    description: "Left vector."
+  - ctype: "const typename Vec::imask_type"
+    name: "mask_b"
+    description: "Right vector."
+returns:
+  ctype: "bool"
+  description: "bool indicating whether mask_a[*]==mask_b[*]."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: "return mask_a == mask_b;"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx2']
+    implementation: "return mask_a == mask_b;"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sse']
+    implementation: "return mask_a == mask_b;"
+  #Scalar
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return mask_a == mask_b;"
 ...
 ---
 primitive_name: "nequal"
@@ -385,6 +438,28 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (vec_a != vec_b);"
+#ARM - NEON
+  - target_extension: "neon"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ['neon']
+    implementation: |
+      const auto all_set = vceqq_{{ intrin_tp_full[ctype] }}(vec_a, vec_a);
+      const auto res = vceqq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);
+      return veorq_{{ intrin_tp_full[ctype] }}(all_set, res);
+  - target_extension: "neon"
+    ctype: ["float"]
+    lscpu_flags: ['neon']
+    implementation: |
+      const auto all_set = vceqq_f32(vec_a, vec_a);
+      const auto res = vceqq_f32(vec_a, vec_b);
+      return veorq_u32(all_set, res);
+  - target_extension: "neon"
+    ctype: ["double"]
+    lscpu_flags: ['neon']
+    implementation: |
+      const auto all_set = vceqq_f64(vec_a, vec_a);
+      const auto res = vceqq_f64(vec_a, vec_b);
+      return veorq_u64(all_set, res);
   #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -401,178 +476,109 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] == vec_b[i]) ? 0 : checker;
       }
       return result;
 ...
 ---
-primitive_name: "between_inclusive"
-brief_description: "Checks if the values of a vector are in a specific range (min[*] <= d[*] <= max[*])."
+primitive_name: "equal_as_imask"
+brief_description: "Compares two registers for equality and returns an integral mask."
 parameters:
   - ctype: "const typename Vec::register_type"
-    name: "vec_data"
-    description: "Data vector."
+    name: "vec_a"
+    description: "Left vector."
   - ctype: "const typename Vec::register_type"
-    name: "vec_min"
-    description: "Minimum vector."
-  - ctype: "typename Vec::register_type"
-    attributes: "const"
-    name: "vec_max"
-    description: "Maximum vector."
+    name: "vec_b"
+    description: "Right vector."
 returns:
-  ctype: "typename Vec::mask_type"
-  description: "Vector mask type indicating whether the data is in the given range."
-testing:
-  - test_name: "complete_range"
-    requires: ["to_integral", "loadu", "set1"]
-    includes: ["<cstddef>"]
-    implementation: |
-      using T = typename Vec::base_type;
-      std::size_t element_count = 1024;
-      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
-      bool allOk = true;
-      auto reference_data_ptr = test_helper.data_ref();
-      auto reference_result_ptr = test_helper.result_ref();
-      auto test_data_ptr = test_helper.data_target();
-      auto test_result_ptr = test_helper.result_target();
-
-      auto vec_min = set1<Vec>(0);
-      auto vec_max = set1<Vec>(std::numeric_limits<T>::max());
-
-      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
-        *reference_result_ptr = Vec::vector_element_count();
-        auto vec = loadu<Vec>(&test_data_ptr[i]);
-        auto result_mask = between_inclusive<Vec>( vec, vec_min, vec_max );
-        auto result_integral = to_integral<Vec>( result_mask );
-        size_t matches = 0;
-        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-          if(((result_integral >> i) & 0b1) == 1) {
-            matches += 1;
-          }
-        }
-        *test_result_ptr = matches;
-        test_helper.synchronize();
-        allOk &= test_helper.validate();
-      }
-      return allOk;
-  - test_name: "not_in_range"
-    requires: ["to_integral", "loadu", "set1"]
-    includes: ["<cstddef>"]
-    implementation: |
-      using T = typename Vec::base_type;
-      std::size_t element_count = 1024;
-      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false, testing::alternate_init_no_zero<T>};
-      bool allOk = true;
-      auto reference_data_ptr = test_helper.data_ref();
-      auto reference_result_ptr = test_helper.result_ref();
-      auto test_data_ptr = test_helper.data_target();
-      auto test_result_ptr = test_helper.result_target();
-      auto vec_min = set1<Vec>(0);
-      auto vec_max = set1<Vec>(0);
-      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
-        *reference_result_ptr = 0;
-        auto vec = loadu<Vec>(&test_data_ptr[i]);
-        auto result_mask = between_inclusive<Vec>( vec, vec_min, vec_max );
-        auto result_integral = to_integral<Vec>( result_mask );
-        size_t matches = 0;
-        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-          if(((result_integral >> i) & 0b1) == 1) {
-            matches += 1;
-          }
-        }
-        *test_result_ptr = matches;
-        test_helper.synchronize();
-        allOk &= test_helper.validate();
-      }
-      return allOk;
-  - test_name: "check_boundaries"
-    requires: ["to_integral", "loadu", "set1"]
-    includes: ["<cstddef>"]
-    implementation: |
-      using T = typename Vec::base_type;
-      testing::test_memory_helper_t<Vec> test_helper{ 1, false };
-      auto reference_result_ptr = test_helper.result_ref();
-      auto test_result_ptr = test_helper.result_target();
-      auto vec = set1<Vec>(0);
-      auto result_mask = between_inclusive<Vec>(vec, vec, vec);
-      auto result_imask = to_integral<Vec>(result_mask);
-      size_t matches = 0;
-      for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-        if(((result_imask >> i) & 0b1) == 1) {
-          matches += 1;
-        }
-      }
-      *test_result_ptr = matches;
-      *reference_result_ptr = Vec::vector_element_count();
-      test_helper.synchronize();
-      return test_helper.validate();
+  ctype: "typename Vec::imask_type"
+  description: "Integral mask indicating whether vec_a[*]==vec_b[*]."
 definitions:
-#INTEL - AVX512
+  #INTEL - AVX512
   - target_extension: "avx512"
-    ctype: "int64_t"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['avx512f']
-    implementation: "return _mm512_cmple_epu64_mask( vec_min, vec_data ) & _mm512_cmpge_epu64_mask( vec_max, vec_data );"
-  - target_extension: "avx512"
-    ctype: ["float", "double"]
-    lscpu_flags: ["avx512f"]
-    implementation: "return _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_min, vec_data) & _mm512_cmple_{{ intrin_tp_full[ctype] }}_mask(vec_data, vec_max);"
-#INTEL - AVX2
+    implementation: "return functors::equal<Vec, Idof>::apply(vec_a, vec_b);"
+  #INTEL - AVX2
   - target_extension: "avx2"
-    ctype: "int64_t"
-    lscpu_flags: [ 'avx2' ]
-    note: "EPI64 INSTEAD OF EPU64!!!"
-    implementation: "return _mm256_andnot_si256( _mm256_cmpgt_epi64( vec_min, vec_data ), _mm256_andnot_si256( _mm256_cmpgt_epi64( vec_data, vec_max ), _mm256_set1_epi64x(-1)));"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx2']
+    requires: ["to_integral"]
+    implementation: "return functors::to_integral<Vec, Idof>::apply(functors::equal<Vec, Idof>::apply(vec_a, vec_b));"
+  - target_extension: "avx2"
+    ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "return _mm256_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl", "avx512bw"]
+    implementation: "return _mm256_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
   - target_extension: "avx2"
     ctype: ["float", "double"]
-    lscpu_flags: ['avx']
-    implementation: "return _mm256_and_{{ intrin_tp_full[ctype] }}(_mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_data, vec_min, _CMP_GE_OQ ), _mm256_cmp_{{ intrin_tp_full[ctype] }}(vec_max, vec_data, _CMP_GE_OQ));"
-#INTEL - SSE
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "return _mm256_cmp_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b, _CMP_EQ_OQ);"
+  #INTEL - SSE
   - target_extension: "sse"
-    ctype: "int64_t"
-    lscpu_flags: [ 'sse2', 'sse4_2' ]
-    note: "EPI64 INSTEAD OF EPU64!!!"
-    implementation: "return _mm_andnot_si128( _mm_cmpgt_epi64( vec_min, vec_data ), _mm_andnot_si128( _mm_cmpgt_epi64( vec_data, vec_max ), _mm_set1_epi64x(-1)));"
-  - target_extension: "sse"
-    ctype: ["float"]
-    lscpu_flags: ['sse']
-    implementation: "return _mm_and_ps(_mm_cmpge_ps(vec_data, vec_min), _mm_cmpge_ps(vec_max, vec_data));"
-  - target_extension: "sse"
-    ctype: ["double"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['sse2']
-    implementation: "return _mm_and_pd(_mm_cmpge_pd(vec_data, vec_min), _mm_cmpge_pd(vec_max, vec_data));"
-#ARM - NEON
-  - target_extension: "neon"
-    ctype: "int64_t"
-    lscpu_flags: [ 'neon' ]
-    implementation: "return vandq_u64( vcgeq_s64( vec_data, vec_min ), vcleq_s64( vec_data, vec_max ) );"
-#INTEL - FPGA
-  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
-    lscpu_flags: ["oneAPIfpgaDev"]
-    vector_length_agnostic: True
-    implementation: |
-      using T = typename Vec::register_type;
-      T result{};
-      // Create a value with all bits set to 1, regardless of underlying type
-      {% if ctype in ["float", "double"] %}
-      typename Vec::base_type checker;
-      memset((void*)&checker, 0xff, sizeof(checker));
-      {% else %}
-      typename Vec::base_type checker = ~0;
-      {% endif %}
-      //
-      #pragma unroll
-      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        result[i] = ((vec_data[i] >= vec_min[i]) && (vec_data[i] <= vec_max[i])) ? checker : 0;
-      }
-      return result;
-#SCALAR
+    requires: ["to_integral"]
+    implementation: "return functors::to_integral<Vec, Idof>::apply(functors::equal<Vec, Idof>::apply(vec_a, vec_b));"
+  - target_extension: "sse"
+    ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["sse", "avx512f", "avx512vl"]
+    implementation: "return _mm_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    lscpu_flags: ["sse", "avx512f", "avx512vl", "avx512bw"]
+    implementation: "return _mm_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["sse", "avx512f", "avx512vl"]
+    implementation: "return _mm_cmp_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b, _CMP_EQ_OQ);"
+  #Scalar
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
-    implementation: "return (vec_data >= vec_min && vec_data <= vec_max);"
+    requires: ["to_integral"]
+    implementation: "return functors::to_integral<Vec, Idof>::apply(functors::equal<Vec, Idof>::apply(vec_a, vec_b));"
+...
+---
+primitive_name: "nequal"
+functor_name: "nequal_masks"
+brief_description: "Compares two imasks for non-equality."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask_a"
+    description: "Left vector."
+  - ctype: "const typename Vec::imask_type"
+    name: "mask_b"
+    description: "Right vector."
+returns:
+  ctype: "bool"
+  description: "bool indicating whether mask_a[*]==mask_b[*]."
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: "return mask_a != mask_b;"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['avx2']
+    implementation: "return mask_a != mask_b;"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ['sse']
+    implementation: "return mask_a != mask_b;"
+  #Scalar
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return mask_a != mask_b;"
 ...
 ---
 primitive_name: "less_than"
@@ -640,7 +646,6 @@ definitions:
   - target_extension: "avx2"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ['avx2']
-    specialization_comment: "Signed comparison."
     implementation: "return _mm256_cmpgt_{{ intrin_tp_full[ctype] }}(vec_b, vec_a);"
   - target_extension: "avx2"
     ctype: ["float", "double"]
@@ -649,44 +654,102 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t"]
     lscpu_flags: ['avx2']
-    specialization_comment: "Unsigned comparison."
-    is_native: False
-    implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
+    implementation: |
+      return _mm256_andnot_si256(
+        _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b),
+        _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b))
+      );
+    #implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
   - target_extension: "avx2"
     ctype: ["uint64_t"]
     lscpu_flags: ['avx2']
-    specialization_comment: "Unsigned comparison."
-    is_native: False
-    implementation: "__m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_b, sign_bits), _mm256_xor_si256(vec_a, sign_bits));"
+    implementation: |
+      auto const lower_32_bit = _mm256_srli_epi64(_mm256_cmpeq_epi64(_mm256_setzero_si256(), _mm256_setzero_si256()), 32);
+      auto const upper_vec_a  = _mm256_srli_epi64(vec_a, 32);
+      auto const upper_vec_b  = _mm256_srli_epi64(vec_b, 32);
+      auto const lower_vec_a  = _mm256_and_si256(vec_a, lower_32_bit);
+      auto const lower_vec_b  = _mm256_and_si256(vec_b, lower_32_bit);
+
+      auto const upper_vec_a_lt_upper_vec_b = _mm256_cmpeq_epi64(upper_vec_a, _mm256_and_si256(lower_32_bit, _mm256_min_epu32(upper_vec_a, upper_vec_b)));
+      auto const lower_vec_a_lt_lower_vec_b = _mm256_cmpeq_epi64(lower_vec_a, _mm256_and_si256(lower_32_bit, _mm256_min_epu32(lower_vec_a, lower_vec_b)));
+      auto const upper_vec_a_eq_upper_vec_b = _mm256_cmpeq_epi64(upper_vec_a, upper_vec_b);
+      auto const lower_vec_a_eq_lower_vec_b = _mm256_cmpeq_epi64(lower_vec_a, lower_vec_b);
+
+      // a < b ?
+      /**
+       * a_upper <= b_upper | a_upper == b_upper | a_lower <= b_lower | a_upper == b_upper | RESULT
+       *         1          |          0         |         *          |         *          |   1
+       *         1          |          1         |         1          |         0          |   1
+       *         0          |          *         |         *          |         *          |   0
+       * -------------------------------------------------------------------------------------------
+       * ((a_upper <= b_upper) & (~(a_upper == b_upper))) | ((a_upper <= b_upper) & (a_upper == b_upper) & (a_lower <= b_lower) & ~(a_upper == b_upper))
+       * <==>
+       * (a_upper <= b_upper) & (~((a_upper == b_upper)&~(a_lower <= b_lower))) & (~((a_upper == b_upper) & (a_upper == b_upper)))
+       */
+      return
+        _mm256_andnot_si256(
+          _mm256_and_si256(upper_vec_a_eq_upper_vec_b, lower_vec_a_eq_lower_vec_b),
+          _mm256_andnot_si256(
+            _mm256_andnot_si256(lower_vec_a_lt_lower_vec_b, upper_vec_a_eq_upper_vec_b),
+            upper_vec_a_lt_upper_vec_b
+          )
+        );
+    # is_native: False
+    # implementation: "__m256i sign_bits = _mm256_set1_epi64x(static_cast<int64_t>(1) << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_b, sign_bits), _mm256_xor_si256(vec_a, sign_bits));"
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["int8_t", "int16_t", "int32_t", "float", "double"]
     lscpu_flags: ['sse2']
-    specialization_comment: "Signed comparison."
     implementation: "return _mm_cmplt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
   - target_extension: "sse"
     ctype: ["int64_t"]
     lscpu_flags: ['sse4_2']
-    specialization_comment: "Signed comparison."
     implementation: "return _mm_cmpgt_epi64(vec_b, vec_a);"
-  - target_extension: "sse"
-    ctype: ["uint8_t"]
-    lscpu_flags: ['sse2']
-    specialization_comment: "Unsigned comparison."
-    is_native: False
-    implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t"]
     lscpu_flags: ['sse2', 'sse4_1']
-    specialization_comment: "Unsigned comparison."
-    is_native: False
-    implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
+    implementation: |
+      return _mm_andnot_si128(
+        _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b),
+        _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b))
+      );
+    # implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
   - target_extension: "sse"
     ctype: ["uint64_t"]
-    lscpu_flags: ['sse4_2']
-    specialization_comment: "Unsigned comparison."
-    is_native: False
-    implementation: "__m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63); return _mm_cmpgt_epi64(_mm_xor_si128(vec_b, sign_bits), _mm_xor_si128(vec_a, sign_bits));"
+    lscpu_flags: ['sse2', 'sse4_1', 'sse4_2']
+    implementation: |
+      //vec_a < vec_b === vec_b > vec_a
+      auto const lower_32_bit = _mm_srli_epi64(_mm_cmpeq_epi64(_mm_setzero_si128(), _mm_setzero_si128()), 32);
+      auto const upper_vec_a  = _mm_srli_epi64(vec_a, 32);
+      auto const upper_vec_b  = _mm_srli_epi64(vec_b, 32);
+      auto const lower_vec_a  = _mm_and_si128(vec_a, lower_32_bit);
+      auto const lower_vec_b  = _mm_and_si128(vec_b, lower_32_bit);
+
+      auto const upper_vec_a_lt_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, _mm_and_si128(lower_32_bit, _mm_min_epu32(upper_vec_a, upper_vec_b)));
+      auto const lower_vec_a_lt_lower_vec_b = _mm_cmpeq_epi64(lower_vec_a, _mm_and_si128(lower_32_bit, _mm_min_epu32(lower_vec_a, lower_vec_b)));
+      auto const upper_vec_a_eq_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, upper_vec_b);
+      auto const lower_vec_a_eq_lower_vec_b = _mm_cmpeq_epi64(lower_vec_a, lower_vec_b);
+
+      // a < b ?
+      /**
+       * a_upper <= b_upper | a_upper == b_upper | a_lower <= b_lower | a_upper == b_upper | RESULT
+       *         1          |          0         |         *          |         *          |   1
+       *         1          |          1         |         1          |         0          |   1
+       *         0          |          *         |         *          |         *          |   0
+       * -------------------------------------------------------------------------------------------
+       * ((a_upper <= b_upper) & (~(a_upper == b_upper))) | ((a_upper <= b_upper) & (a_upper == b_upper) & (a_lower <= b_lower) & ~(a_upper == b_upper))
+       * <==>
+       * (a_upper <= b_upper) & (~((a_upper == b_upper)&~(a_lower <= b_lower))) & (~((a_upper == b_upper) & (a_upper == b_upper)))
+       */
+      return
+        _mm_andnot_si128(
+          _mm_and_si128(upper_vec_a_eq_upper_vec_b, lower_vec_a_eq_lower_vec_b),
+          _mm_andnot_si128(
+            _mm_andnot_si128(lower_vec_a_lt_lower_vec_b, upper_vec_a_eq_upper_vec_b),
+            upper_vec_a_lt_upper_vec_b
+          )
+        );
+    # implementation: "__m128i sign_bits = _mm_set1_epi64x(static_cast<int64_t>(1) << 63); return _mm_cmpgt_epi64(_mm_xor_si128(vec_b, sign_bits), _mm_xor_si128(vec_a, sign_bits));"
 #ARM - NEON
   - target_extension: "neon"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -713,7 +776,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] < vec_b[i]) ? checker : 0;
       }
@@ -731,7 +794,7 @@ parameters:
     description: "Right vector."
 returns:
   ctype: "typename Vec::mask_type"
-  description: "Vector mask type indicating whether vec_a[*] < vec_b[*]."
+  description: "Vector mask type indicating whether vec_a[*] > vec_b[*]."
 testing: #optional
   - requires: ["to_integral", "loadu"]
     includes: ["<cstddef>", "<limits>"]
@@ -794,41 +857,101 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t"]
     lscpu_flags: ['avx2']
-    is_native: False
-    implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
+    implementation: |
+      return _mm256_andnot_si256(
+        _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b),
+        _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b))
+      );
+    # implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
   - target_extension: "avx2"
     ctype: ["uint64_t"]
     lscpu_flags: ['avx2']
-    specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
-    is_native: False
-    implementation: "__m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_a, sign_bits), _mm256_xor_si256(vec_b, sign_bits));"
+    # specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
+    implementation: |
+      auto const lower_32_bit = _mm256_srli_epi64(_mm256_cmpeq_epi64(_mm256_setzero_si256(), _mm256_setzero_si256()), 32);
+      auto const upper_vec_a  = _mm256_srli_epi64(vec_a, 32);
+      auto const upper_vec_b  = _mm256_srli_epi64(vec_b, 32);
+      auto const lower_vec_a  = _mm256_and_si256(vec_a, lower_32_bit);
+      auto const lower_vec_b  = _mm256_and_si256(vec_b, lower_32_bit);
+
+      auto const upper_vec_a_gt_upper_vec_b = _mm256_cmpeq_epi64(upper_vec_a, _mm256_and_si256(lower_32_bit, _mm256_max_epu32(upper_vec_a, upper_vec_b)));
+      auto const lower_vec_a_gt_lower_vec_b = _mm256_cmpeq_epi64(lower_vec_a, _mm256_and_si256(lower_32_bit, _mm256_max_epu32(lower_vec_a, lower_vec_b)));
+      auto const upper_vec_a_eq_upper_vec_b = _mm256_cmpeq_epi64(upper_vec_a, upper_vec_b);
+      auto const lower_vec_a_eq_lower_vec_b = _mm256_cmpeq_epi64(lower_vec_a, lower_vec_b);
+
+      // a > b ?
+      /**
+       * a_upper >= b_upper | a_upper == b_upper | a_lower >= b_lower | a_upper == b_upper | RESULT
+       *         1          |          0         |         *          |         *          |   1
+       *         1          |          1         |         1          |         0          |   1
+       *         0          |          *         |         *          |         *          |   0
+       * -------------------------------------------------------------------------------------------
+       * ((a_upper >= b_upper) & (~(a_upper == b_upper))) | ((a_upper >= b_upper) & (a_upper == b_upper) & (a_lower >= b_lower) & ~(a_upper == b_upper))
+       * <==>
+       * (a_upper >= b_upper) & (~((a_upper == b_upper)&~(a_lower >= b_lower))) & (~((a_upper == b_upper) & (a_upper == b_upper)))
+       */
+      return
+        _mm256_andnot_si256(
+          _mm256_and_si256(upper_vec_a_eq_upper_vec_b, lower_vec_a_eq_lower_vec_b),
+          _mm256_andnot_si256(
+            _mm256_andnot_si256(lower_vec_a_gt_lower_vec_b, upper_vec_a_eq_upper_vec_b),
+            upper_vec_a_gt_upper_vec_b
+          )
+        );
+    # implementation: "__m256i sign_bits = _mm256_set1_epi64x(static_cast<int64_t>(1) << 63); return _mm256_cmpgt_epi64(_mm256_xor_si256(vec_a, sign_bits), _mm256_xor_si256(vec_b, sign_bits));"
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["int8_t", "int16_t", "int32_t", "float", "double"]
     lscpu_flags: ['sse2']
-    specialization_comment: "Signed comparison."
     implementation: "return _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
   - target_extension: "sse"
     ctype: ["int64_t"]
     lscpu_flags: ['sse4_2']
-    specialization_comment: "Signed comparison."
     implementation: "return _mm_cmpgt_epi64(vec_a, vec_b);"
   - target_extension: "sse"
-    ctype: ["uint8_t"]
-    lscpu_flags: ['sse2']
-    is_native: False
-    implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
-  - target_extension: "sse"
-    ctype: ["uint16_t", "uint32_t"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t"]
     lscpu_flags: ['sse2', 'sse4_1']
-    is_native: False
-    implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)));"
+    implementation: |
+      return _mm_andnot_si128(
+        _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b),
+        _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b))
+      );
   - target_extension: "sse"
     ctype: ["uint64_t"]
-    lscpu_flags: ['sse4_2']
-    specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
-    is_native: False
-    implementation: "__m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63); return _mm_cmpgt_epi64(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits));"
+    lscpu_flags: ['sse2', 'sse4_1', 'sse4_2']
+    # specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
+    implementation: |
+      auto const lower_32_bit = _mm_srli_epi64(_mm_cmpeq_epi64(_mm_setzero_si128(), _mm_setzero_si128()), 32);
+      auto const upper_vec_a  = _mm_srli_epi64(vec_a, 32);
+      auto const upper_vec_b  = _mm_srli_epi64(vec_b, 32);
+      auto const lower_vec_a  = _mm_and_si128(vec_a, lower_32_bit);
+      auto const lower_vec_b  = _mm_and_si128(vec_b, lower_32_bit);
+
+      auto const upper_vec_a_gt_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, _mm_and_si128(lower_32_bit, _mm_max_epu32(upper_vec_a, upper_vec_b)));
+      auto const lower_vec_a_gt_lower_vec_b = _mm_cmpeq_epi64(lower_vec_a, _mm_and_si128(lower_32_bit, _mm_max_epu32(lower_vec_a, lower_vec_b)));
+      auto const upper_vec_a_eq_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, upper_vec_b);
+      auto const lower_vec_a_eq_lower_vec_b = _mm_cmpeq_epi64(lower_vec_a, lower_vec_b);
+
+      // a > b ?
+      /**
+       * a_upper >= b_upper | a_upper == b_upper | a_lower >= b_lower | a_upper == b_upper | RESULT
+       *         1          |          0         |         *          |         *          |   1
+       *         1          |          1         |         1          |         0          |   1
+       *         0          |          *         |         *          |         *          |   0
+       * -------------------------------------------------------------------------------------------
+       * ((a_upper <= b_upper) & (~(a_upper == b_upper))) | ((a_upper >= b_upper) & (a_upper == b_upper) & (a_lower <= b_lower) & ~(a_upper == b_upper))
+       * <==>
+       * (a_upper >= b_upper) & (~((a_upper == b_upper)&~(a_lower >= b_lower))) & (~((a_upper == b_upper) & (a_upper == b_upper)))
+       */
+      return
+        _mm_andnot_si128(
+          _mm_and_si128(upper_vec_a_eq_upper_vec_b, lower_vec_a_eq_lower_vec_b),
+          _mm_andnot_si128(
+            _mm_andnot_si128(lower_vec_a_gt_lower_vec_b, upper_vec_a_eq_upper_vec_b),
+            upper_vec_a_gt_upper_vec_b
+          )
+        );
+    #implementation: "__m128i sign_bits = _mm_set1_epi64x(static_cast<int64_t>(1) << 63); return _mm_cmpgt_epi64(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits));"
 #ARM - NEON
   - target_extension: "neon"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -855,7 +978,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] > vec_b[i]) ? checker : 0;
       }
@@ -873,7 +996,7 @@ parameters:
     description: "Right vector."
 returns:
   ctype: "typename Vec::mask_type"
-  description: "Vector mask type indicating whether vec_a[*] < vec_b[*]."
+  description: "Vector mask type indicating whether vec_a[*] <= vec_b[*]."
 testing: #optional
   - requires: ["to_integral", "loadu"]
     includes: ["<cstddef>", "<limits>"]
@@ -927,9 +1050,12 @@ definitions:
   - target_extension: "avx2"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ['avx2']
-    specialization_comment: "Signed comparison."
-    is_native: False
-    implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));"
+    implementation: |
+      return
+        _mm256_andnot_si256(
+          _mm256_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b),
+          _mm256_cmpeq_{{ intrin_tp_full[ctype] }}(_mm256_setzero_si256(), _mm256_setzero_si256())
+        );
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ['avx']
@@ -937,22 +1063,47 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t"]
     lscpu_flags: ['avx2']
-    is_native: False
-    implementation: "return _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm256_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));"
+    implementation: |
+      return _mm256_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));
   - target_extension: "avx2"
     ctype: ["uint64_t"]
     lscpu_flags: ['avx2']
-    is_native: False
-    specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
     implementation: |
-      __m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63);
-      return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpgt_epi64(_mm256_xor_si256(vec_a, sign_bits), _mm256_xor_si256(vec_b, sign_bits)));
+      auto const lower_32_bit = _mm256_srli_epi64(_mm256_cmpeq_epi64(_mm256_setzero_si256(), _mm256_setzero_si256()), 32);
+      auto const upper_vec_a  = _mm256_srli_epi64(vec_a, 32);
+      auto const upper_vec_b  = _mm256_srli_epi64(vec_b, 32);
+      auto const lower_vec_a  = _mm256_and_si256(vec_a, lower_32_bit);
+      auto const lower_vec_b  = _mm256_and_si256(vec_b, lower_32_bit);
+
+      auto const upper_vec_a_le_upper_vec_b = _mm256_cmpeq_epi64(upper_vec_a, _mm256_and_si256(lower_32_bit, _mm256_min_epu32(upper_vec_a, upper_vec_b)));
+      auto const lower_vec_a_le_lower_vec_b = _mm256_cmpeq_epi64(lower_vec_a, _mm256_and_si256(lower_32_bit, _mm256_min_epu32(lower_vec_a, lower_vec_b)));
+      auto const upper_vec_a_eq_upper_vec_b = _mm256_cmpeq_epi64(upper_vec_a, upper_vec_b);
+
+      // a <= b ?
+      /**
+       * a_upper <= b_upper | a_upper == b_upper | a_lower <= b_lower | a_upper == b_upper | RESULT
+       *         1          |          0         |         *          |         *          |   1
+       *         1          |          1         |         1          |         *          |   1
+       *         0          |          *         |         *          |         *          |   0
+       * -------------------------------------------------------------------------------------------
+       * ((a_upper <= b_upper) & (~(a_upper == b_upper)))| ((a_upper <= b_upper) & (a_upper == b_upper) & (a_lower <= b_lower))
+       * <==>
+       * (a_upper <= b_upper) & (~((a_upper == b_upper) & ~(a_lower <= b_lower)))
+       */
+      return _mm256_andnot_si256(
+        _mm256_andnot_si256(lower_vec_a_le_lower_vec_b, upper_vec_a_eq_upper_vec_b),
+        upper_vec_a_le_upper_vec_b
+      );
+    # implementation: |
+    # __m256i sign_bits = _mm256_set1_epi64x(static_cast<int64_t>(1) << 63);
+    # return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpgt_epi64(_mm256_xor_si256(vec_a, sign_bits), _mm256_xor_si256(vec_b, sign_bits)));
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["int8_t", "int16_t", "int32_t"]
     lscpu_flags: ['sse2']
-    is_native: False
-    implementation: "return  _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));"
+    implementation: |
+      return _mm_or_si128(_mm_cmpeq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_b, vec_a));
+    # implementation: "return  _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));"
   - target_extension: "sse"
     ctype: ["float", "double"]
     lscpu_flags: ['sse2']
@@ -960,28 +1111,57 @@ definitions:
   - target_extension: "sse"
     ctype: ["int64_t"]
     lscpu_flags: ['sse4_2']
-    implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_epi64(vec_a, vec_b));"
+    implementation: "return _mm_or_si128(_mm_cmpeq_epi64(vec_a, vec_b), _mm_cmpgt_epi64(vec_b, vec_a));"
+    # implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_epi64(vec_a, vec_b));"
   - target_extension: "sse"
-    ctype: ["uint8_t"]
-    lscpu_flags: ['sse2']
-    is_native: False
-    implementation: "return _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_b, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));"
-  - target_extension: "sse"
-    ctype: ["uint16_t", "uint32_t", "uint64_t"]
-    lscpu_flags: ['sse4_2']
-    is_native: False
-    specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
+    ctype: ["uint8_t", "uint16_t", "uint32_t"]
+    lscpu_flags: ['sse2', 'sse4_1']
     implementation: |
-      {% if ctype == "uint16_t" %}
-      __m128i sign_bits = _mm_set1_epi16(0x8000);
-      {% endif %}
-      {% if ctype == "uint32_t" %}
-      __m128i sign_bits = _mm_set1_epi32(0x80000000);
-      {% endif %}
-      {% if ctype == "uint64_t" %}
-      __m128i sign_bits = _mm_set1_epi64x((int64_t)0x8000000000000000);
-      {% endif %}
-      return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_epi{{ intrin_tp[ctype][1] }}(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits)));
+      return _mm_or_si128(
+        _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b),
+        _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_min_{{ intrin_tp_full[ctype] }}(vec_a, vec_b))
+      );
+    # {% if ctype == "uint16_t" %}
+    # __m128i sign_bits = _mm_set1_epi16(0x8000);
+    # {% endif %}
+    # {% if ctype == "uint32_t" %}
+    # __m128i sign_bits = _mm_set1_epi32(0x80000000);
+    # {% endif %}
+    # {% if ctype == "uint64_t" %}
+    # __m128i sign_bits = _mm_set1_epi64x(static_cast<int64_t>(0x8000000000000000));
+    # {% endif %}
+    # return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_epi{{ intrin_tp[ctype][1] }}(_mm_xor_si128(vec_a, sign_bits), _mm_xor_si128(vec_b, sign_bits)));
+  - target_extension: "sse"
+    ctype: ["uint64_t"]
+    lscpu_flags: ['sse2', 'sse4_1', 'sse4_2']
+    implementation: |
+      auto const lower_32_bit = _mm_srli_epi64(_mm_cmpeq_epi64(_mm_setzero_si128(), _mm_setzero_si128()), 32);
+      auto const upper_vec_a  = _mm_srli_epi64(vec_a, 32);
+      auto const upper_vec_b  = _mm_srli_epi64(vec_b, 32);
+      auto const lower_vec_a  = _mm_and_si128(vec_a, lower_32_bit);
+      auto const lower_vec_b  = _mm_and_si128(vec_b, lower_32_bit);
+
+      auto const upper_vec_a_le_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, _mm_and_si128(lower_32_bit, _mm_min_epu32(upper_vec_a, upper_vec_b)));
+      auto const lower_vec_a_le_lower_vec_b = _mm_cmpeq_epi64(lower_vec_a, _mm_and_si128(lower_32_bit, _mm_min_epu32(lower_vec_a, lower_vec_b)));
+      auto const upper_vec_a_eq_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, upper_vec_b);
+
+      // a <= b ?
+      /**
+       * a_upper <= b_upper | a_upper == b_upper | a_lower <= b_lower | a_upper == b_upper | RESULT
+       *         1          |          0         |         *          |         *          |   1
+       *         1          |          1         |         1          |         *          |   1
+       *         1          |          1         |         0          |         0          |   0
+       *         0          |          *         |         *          |         *          |   0
+       * -------------------------------------------------------------------------------------------
+       * (A & ~B) | (A & B & C) <==> A & ~(B & ~C) <==> ~(~c & B) & A
+       * ((a_upper <= b_upper) & (~(a_upper == b_upper)))| ((a_upper == b_upper) & (a_lower <= b_lower) & (a_lower <= b_lower))
+       * <==>
+       * (a_upper <= b_upper) & (~((a_upper == b_upper) & ~(a_lower <= b_lower)))
+       */
+      return _mm_andnot_si128(
+        _mm_andnot_si128(lower_vec_a_le_lower_vec_b, upper_vec_a_eq_upper_vec_b),
+        upper_vec_a_le_upper_vec_b
+      );
 #ARM - NEON
   - target_extension: "neon"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -1008,7 +1188,7 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] <= vec_b[i]) ? checker : 0;
       }
@@ -1026,10 +1206,10 @@ parameters:
     description: "Right vector."
 returns:
   ctype: "typename Vec::mask_type"
-  description: "Vector mask type indicating whether vec_a[*] < vec_b[*]."
+  description: "Vector mask type indicating whether vec_a[*] >= vec_b[*]."
 testing: #optional
   - requires: ["to_integral", "loadu"]
-    includes: ["<cstddef>", "<limits>"]
+    includes: ["<cstddef>", "<limits>", "<iostream>", "<bitset>"]
     implementation: |
       using T = typename Vec::base_type;
       std::size_t element_count = 1024;
@@ -1040,8 +1220,15 @@ testing: #optional
           auto vec2 = &test_helper.data_target()[element_count + i];
           auto result_mask = greater_than_or_equal<Vec>(loadu<Vec>(vec1), loadu<Vec>(vec2));
           auto result_integral = to_integral<Vec>(result_mask);
-          for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
-              allOk &= (((result_integral >> i) & 0b1) == (vec1[i] >= vec2[i]));
+          for (size_t j = 0; j < Vec::vector_element_count(); ++j) {
+              auto tmp_ok = (((result_integral >> j) & 0b1) == (vec1[j] >= vec2[j]));
+              allOk &= tmp_ok;
+              if (!tmp_ok) {
+                std::cout << "Wrong result in greater_than_or_equal default for " << tsl::type_name<Vec>() << " (size of T: " << sizeof(typename Vec::base_type) << ")" << " at index " << i << std::endl;
+                auto bm = std::bitset<Vec::vector_element_count()>((unsigned long long)result_integral);
+                std::cout << "[" << i+j << "]: ";
+                std::cout << vec1[j] << " >= " << vec2[j] << " ? " << bm[j] << std::endl;
+              }
           }
       }
       return allOk;
@@ -1080,8 +1267,13 @@ definitions:
   - target_extension: "avx2"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ['avx2']
-    is_native: false
-    implementation:  "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpgt_{{ intrin_tp_full[ctype] }}(vec_b, vec_a));"
+    implementation: |
+      return
+        _mm256_or_si256(
+          _mm256_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b),
+          _mm256_cmpeq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b)
+        );
+    #implementation:  "return _mm256_xor_si256(_mm256_set1_epi8(-1), _mm256_cmpgt_{{ intrin_tp_full[ctype] }}(vec_b, vec_a));"
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ['avx']
@@ -1094,48 +1286,105 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint64_t"]
     lscpu_flags: ['avx2']
-    specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
-    is_native: False
     implementation: |
-      __m256i sign_bits = _mm256_set1_epi64x((int64_t)1 << 63);
-      __m256i less_than = _mm256_cmpgt_epi64(_mm256_xor_si256(vec_b, sign_bits), _mm256_xor_si256(vec_a, sign_bits));
-      return _mm256_xor_si256(_mm256_set1_epi8(-1), less_than);
+      auto const lower_32_bit = _mm256_srli_epi64(_mm256_cmpeq_epi64(_mm256_setzero_si256(), _mm256_setzero_si256()), 32);
+      auto const upper_vec_a  = _mm256_srli_epi64(vec_a, 32);
+      auto const upper_vec_b  = _mm256_srli_epi64(vec_b, 32);
+      auto const lower_vec_a  = _mm256_and_si256(vec_a, lower_32_bit);
+      auto const lower_vec_b  = _mm256_and_si256(vec_b, lower_32_bit);
 
+      auto const upper_vec_a_ge_upper_vec_b = _mm256_cmpeq_epi64(upper_vec_a, _mm256_and_si256(lower_32_bit, _mm256_max_epu32(upper_vec_a, upper_vec_b)));
+      auto const lower_vec_a_ge_lower_vec_b = _mm256_cmpeq_epi64(lower_vec_a, _mm256_and_si256(lower_32_bit, _mm256_max_epu32(lower_vec_a, lower_vec_b)));
+      auto const upper_vec_a_eq_upper_vec_b = _mm256_cmpeq_epi64(upper_vec_a, upper_vec_b);
+
+      // a >= b ?
+      /**
+       * a_upper >= b_upper | a_upper == b_upper | a_lower >= b_lower | a_upper == b_upper | RESULT
+       *         1          |          0         |         *          |         *          |   1
+       *         1          |          1         |         1          |         *          |   1
+       *         0          |          *         |         *          |         *          |   0
+       * -------------------------------------------------------------------------------------------
+       * ((a_upper >= b_upper) & (~(a_upper == b_upper)))| ((a_upper == b_upper) & (a_lower >= b_lower))
+       * <==>
+       * (a_upper >= b_upper) & (~((a_upper == b_upper) & ~(a_lower >= b_lower)))
+       */
+      return _mm256_andnot_si256(
+        _mm256_andnot_si256(
+          lower_vec_a_ge_lower_vec_b,
+          upper_vec_a_eq_upper_vec_b
+        ),
+        upper_vec_a_ge_upper_vec_b
+      );
+    #specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
+    #is_native: False
+    #implementation: |
+    #  __m256i sign_bits = _mm256_set1_epi64x(static_cast<int64_t>(1) << 63);
+    #  __m256i less_than = _mm256_cmpgt_epi64(_mm256_xor_si256(vec_b, sign_bits), _mm256_xor_si256(vec_a, sign_bits));
+    #  return _mm256_xor_si256(_mm256_set1_epi8(-1), less_than);
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["int8_t", "int16_t", "int32_t"]
     lscpu_flags: ['sse2']
-    specialization_comment: "Signed comparison."
-    implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_b, vec_a));"
+    implementation: |
+      return _mm_or_si128(_mm_cmpeq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));
+    #specialization_comment: "Signed comparison."
+    #implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_b, vec_a));"
   - target_extension: "sse"
     ctype: ["int64_t"]
     lscpu_flags: ['sse4_2']
-    specialization_comment: "Signed comparison."
-    implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_b, vec_a));"
+    implementation: "return _mm_or_si128(_mm_cmpeq_epi64(vec_a, vec_b), _mm_cmpgt_epi64(vec_a, vec_b));"
+    #implementation: "return _mm_xor_si128(_mm_set1_epi8(-1), _mm_cmpgt_{{ intrin_tp_full[ctype] }}(vec_b, vec_a));"
   - target_extension: "sse"
     ctype: [ "float", "double"]
     lscpu_flags: ['sse2']
-    specialization_comment: "Signed comparison."
     implementation: "return _mm_cmpge_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);"
   - target_extension: "sse"
-    ctype: ["uint8_t"]
-    lscpu_flags: ['sse2']
-    is_native: False
-    implementation: "return _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));"
-  - target_extension: "sse"
-    ctype: ["uint16_t", "uint32_t"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t"]
     lscpu_flags: ['sse2', 'sse4_1']
-    is_native: False
-    implementation: "return _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));"
+    implementation: |
+      return _mm_or_si128(
+        _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, vec_b),
+        _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b))
+      );
+    #implementation: "return _mm_cmpeq_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_max_{{ intrin_tp_full[ctype] }}(vec_a, vec_b));"
   - target_extension: "sse"
     ctype: ["uint64_t"]
-    lscpu_flags: ['sse4_2']
-    specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
-    is_native: False
+    lscpu_flags: ['sse2', 'sse4_1', 'sse4_2']
     implementation: |
-      __m128i sign_bits = _mm_set1_epi64x((int64_t)1 << 63);
-      __m128i less_than = _mm_cmpgt_epi64(_mm_xor_si128(vec_b, sign_bits), _mm_xor_si128(vec_a, sign_bits));
-      return _mm_xor_si128(_mm_set1_epi8(-1), less_than);
+      auto const lower_32_bit = _mm_srli_epi64(_mm_cmpeq_epi64(_mm_setzero_si128(), _mm_setzero_si128()), 32);
+      auto const upper_vec_a  = _mm_srli_epi64(vec_a, 32);
+      auto const upper_vec_b  = _mm_srli_epi64(vec_b, 32);
+      auto const lower_vec_a  = _mm_and_si128(vec_a, lower_32_bit);
+      auto const lower_vec_b  = _mm_and_si128(vec_b, lower_32_bit);
+
+      auto const upper_vec_a_ge_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, _mm_and_si128(lower_32_bit, _mm_max_epu32(upper_vec_a, upper_vec_b)));
+      auto const lower_vec_a_ge_lower_vec_b = _mm_cmpeq_epi64(lower_vec_a, _mm_and_si128(lower_32_bit, _mm_max_epu32(lower_vec_a, lower_vec_b)));
+      auto const upper_vec_a_eq_upper_vec_b = _mm_cmpeq_epi64(upper_vec_a, upper_vec_b);
+
+      // a >= b ?
+      /**
+       * a_upper >= b_upper | a_upper == b_upper | a_lower >= b_lower | a_upper == b_upper | RESULT
+       *         1          |          0         |         *          |         *          |   1
+       *         1          |          1         |         1          |         *          |   1
+       *         0          |          *         |         *          |         *          |   0
+       * -------------------------------------------------------------------------------------------
+       * ((a_upper >= b_upper) & (~(a_upper == b_upper)))| ((a_upper == b_upper) & (a_lower >= b_lower))
+       * <==>
+       * (a_upper >= b_upper) & (~((a_upper == b_upper) & ~(a_lower >= b_lower)))
+       */
+      return _mm_andnot_si128(
+        _mm_andnot_si128(
+          lower_vec_a_ge_lower_vec_b,
+          upper_vec_a_eq_upper_vec_b
+        ),
+        upper_vec_a_ge_upper_vec_b
+      );
+    #specialization_comment: "Using signed comparison as unsigned by flipping the sign bit."
+    #is_native: False
+    #implementation: |
+    #  __m128i sign_bits = _mm_set1_epi64x(static_cast<int64_t>(1) << 63);
+    #  __m128i less_than = _mm_cmpgt_epi64(_mm_xor_si128(vec_b, sign_bits), _mm_xor_si128(vec_a, sign_bits));
+    #  return _mm_xor_si128(_mm_set1_epi8(-1), less_than);
 #ARM - NEON
   - target_extension: "neon"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
@@ -1162,11 +1411,221 @@ definitions:
       typename Vec::base_type checker = ~0;
       {% endif %}
       //
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (vec_a[i] >= vec_b[i]) ? checker : 0;
       }
       return result;
+...
+---
+primitive_name: "between_inclusive"
+brief_description: "Checks if the values of a vector are in a specific range (min[*] <= d[*] <= max[*])."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "vec_data"
+    description: "Data vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_min"
+    description: "Minimum vector."
+  - ctype: "typename Vec::register_type"
+    attributes: "const"
+    name: "vec_max"
+    description: "Maximum vector."
+returns:
+  ctype: "typename Vec::mask_type"
+  description: "Vector mask type indicating whether the data is in the given range."
+testing:
+  - test_name: "complete_range"
+    requires: ["to_integral", "loadu", "set1"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+
+      auto vec_min = set1<Vec>(0);
+      auto vec_max = set1<Vec>(std::numeric_limits<T>::max());
+
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        *reference_result_ptr = Vec::vector_element_count();
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto result_mask = between_inclusive<Vec>( vec, vec_min, vec_max );
+        auto result_integral = to_integral<Vec>( result_mask );
+        size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(((result_integral >> i) & 0b1) == 1) {
+            matches += 1;
+          }
+        }
+        *test_result_ptr = matches;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "not_in_range"
+    requires: ["to_integral", "loadu", "set1"]
+    includes: ["<cstddef>", "<bitset>", "<iostream>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, 1, false, testing::alternate_init_no_zero<T>};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec_min = set1<Vec>(0);
+      auto vec_max = set1<Vec>(0);
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
+        *reference_result_ptr = 0;
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto result_mask = between_inclusive<Vec>( vec, vec_min, vec_max );
+        auto result_integral = to_integral<Vec>( result_mask );
+        if (result_integral != 0) {
+          auto ltmin = std::bitset<Vec::vector_element_count()>{(unsigned long long)to_integral<Vec>(less_than_or_equal<Vec>(vec_min, vec))};
+          auto gtmax = std::bitset<Vec::vector_element_count()>{(unsigned long long)to_integral<Vec>(less_than_or_equal<Vec>(vec, vec_max))};
+          auto r     = std::bitset<Vec::vector_element_count()>{(unsigned long long)result_integral};
+          std::cout << "Wrong result for " << tsl::type_name<Vec>() << " (size of T: " << sizeof(typename Vec::base_type) << ")" << " at index " << i << std::endl;
+          for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+            std::cout <<"[" << i << "]: " << "0 < " << (int)test_data_ptr[i] << " ? => " << ltmin[i] << " & " << (int)test_data_ptr[i] << " < 0 ? => " << gtmax[i] << " ==> " << r[i] << "\n";
+          }
+        }
+        size_t matches = 0;
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if(((result_integral >> i) & 0b1) == 1) {
+            matches += 1;
+          }
+        }
+        *test_result_ptr = matches;
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "check_boundaries"
+    requires: ["to_integral", "loadu", "set1"]
+    includes: ["<cstddef>"]
+    implementation: |
+      using T = typename Vec::base_type;
+      testing::test_memory_helper_t<Vec> test_helper{ 1, false };
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto vec = set1<Vec>(0);
+      auto result_mask = between_inclusive<Vec>(vec, vec, vec);
+      auto result_imask = to_integral<Vec>(result_mask);
+      size_t matches = 0;
+      for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+        if(((result_imask >> i) & 0b1) == 1) {
+          matches += 1;
+        }
+      }
+      *test_result_ptr = matches;
+      *reference_result_ptr = Vec::vector_element_count();
+      test_helper.synchronize();
+      return test_helper.validate();
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    lscpu_flags: ['avx512f', 'avx512bw']
+    implementation: |
+      return functors::less_than_or_equal<Vec, Idof>::apply(vec_min, vec_data) & functors::less_than_or_equal<Vec, Idof>::apply(vec_data, vec_max);
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ['avx512f']
+    implementation: |
+      return functors::less_than_or_equal<Vec, Idof>::apply(vec_min, vec_data) & functors::less_than_or_equal<Vec, Idof>::apply(vec_data, vec_max);
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: [ 'avx2' ]
+    implementation: |
+      return _mm256_and_si256(functors::less_than_or_equal<Vec, Idof>::apply(vec_min, vec_data), functors::less_than_or_equal<Vec, Idof>::apply(vec_data, vec_max));
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ['avx']
+    implementation: |
+      return _mm256_and_{{ intrin_tp_full[ctype] }}(functors::less_than_or_equal<Vec, Idof>::apply(vec_min, vec_data), functors::less_than_or_equal<Vec, Idof>::apply(vec_data, vec_max));
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ['sse2', 'sse4_1', 'sse4_2']
+    implementation: |
+      return _mm_and_si128(functors::less_than_or_equal<Vec, Idof>::apply(vec_min, vec_data), functors::less_than_or_equal<Vec, Idof>::apply(vec_data, vec_max));
+#  - target_extension: "sse"
+#    ctype: "uint64_t"
+#    lscpu_flags: ['sse2']
+#    is_native: False
+#    specialization_comment: "@todo: This is a very bad implementation. It should be replaced by a better one."
+#    implementation: |
+#      typedef std::array<uint64_t, 2> arr_t __attribute__((aligned(16)));
+#      arr_t data, min, max, result;
+#      _mm_store_si128(reinterpret_cast<__m128i*>(data.data()), vec_data);
+#      _mm_store_si128(reinterpret_cast<__m128i*>(min.data()), vec_min);
+#      _mm_store_si128(reinterpret_cast<__m128i*>(max.data()), vec_max);
+#      result[0] = (data[0] >= min[0]) && (data[0] <= max[0]) ? 0 : 1;
+#      result[1] = (data[1] >= min[1]) && (data[1] <= max[1]) ? 0 : 1;
+#      return _mm_cmpeq_epi64(
+#        _mm_load_si128(reinterpret_cast<__m128i*>(result.data())),
+#        _mm_setzero_si128()
+#      );
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ['sse2']
+    implementation: |
+      return _mm_and_{{ intrin_tp_full[ctype] }}(functors::less_than_or_equal<Vec, Idof>::apply(vec_min, vec_data), functors::less_than_or_equal<Vec, Idof>::apply(vec_data, vec_max));
+#ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: |
+      const auto lower = vcgeq_{{ intrin_tp_full[ctype] }}( vec_data, vec_min );
+      const auto upper = vcleq_{{ intrin_tp_full[ctype] }}( vec_data, vec_max );
+      return vandq_{{ intrin_tp_full[ctype] }}( lower, upper );
+  - target_extension: "neon"
+    ctype: ["float"]
+    lscpu_flags: [ 'neon' ]
+    implementation: |
+      const auto lower = vcgeq_f32( vec_data, vec_min );
+      const auto upper = vcleq_f32( vec_data, vec_max );
+      return vandq_u32( lower, upper );
+  - target_extension: "neon"
+    ctype: ["double"]
+    lscpu_flags: [ 'neon' ]
+    implementation: |
+      const auto lower = vcgeq_f64( vec_data, vec_min );
+      const auto upper = vcleq_f64( vec_data, vec_max );
+      return vandq_u64( lower, upper );
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      using T = typename Vec::register_type;
+      T result{};
+      // Create a value with all bits set to 1, regardless of underlying type
+      {% if ctype in ["float", "double"] %}
+      typename Vec::base_type checker;
+      memset((void*)&checker, 0xff, sizeof(checker));
+      {% else %}
+      typename Vec::base_type checker = ~0;
+      {% endif %}
+      //
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = ((vec_data[i] >= vec_min[i]) && (vec_data[i] <= vec_max[i])) ? checker : 0;
+      }
+      return result;
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (vec_data >= vec_min && vec_data <= vec_max);"
 ...
 ---
 primitive_name: "unequal_zero"
@@ -1253,7 +1712,7 @@ definitions:
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ ]
-    implementation: "return (bool)vec;"
+    implementation: "return static_cast<bool>(vec);"
 #ARM - NEON
 #INTEL - FPGA
 ...
@@ -1396,7 +1855,7 @@ definitions:
       _mm256_storeu_si256(reinterpret_cast<__m256i*>(mask), is_equal);
 
       for (int i = 0; i < Vec::vector_element_count(); i++){
-        if(mask[i] == ((T)-1)){
+        if(mask[i] == (static_cast<T>(-1))){
           result ++;
         }
       }
@@ -1440,7 +1899,7 @@ definitions:
       _mm_storeu_si128(reinterpret_cast<__m128i*>(mask), is_equal);
 
       for (int i = 0; i < Vec::vector_element_count(); i++){
-        if(mask[i] == ((T)-1)){
+        if(mask[i] == (static_cast<T>(-1))){
           result ++;
         }
       }

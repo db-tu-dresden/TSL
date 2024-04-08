@@ -93,7 +93,14 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vandq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));"
+    implementation: |
+      return
+        vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
+          vandq_u{{ intrin_tp[ctype][1] }}(
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)
+          )
+        );
 #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -141,7 +148,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = a[i] & b[i];
       }
@@ -224,11 +231,18 @@ definitions:
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: [ 'neon' ]
-    implementation: "return vorq_{{ intrin_tp_full[ctype] }}( a, b );"
+    implementation: "return vorrq_{{ intrin_tp_full[ctype] }}( a, b );"
   - target_extension: "neon"
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
-    implementation: "return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(vorq_u{{ intrin_tp[ctype][1] }}( vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));"
+    implementation: |
+      return
+        vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
+          vorrq_u{{ intrin_tp[ctype][1] }}(
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)
+          )
+        );
 #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -238,12 +252,16 @@ definitions:
     ctype: ["float"]
     lscpu_flags: []
     is_native: False
-    implementation: "uint32_t r = *((uint32_t *)&a) | *((uint32_t *)&b); return *(float*)&r;"
+    implementation: |
+      uint32_t r = *(reinterpret_cast<uint32_t const*>(&a)) | *(reinterpret_cast<uint32_t const *>(&b));
+      return *reinterpret_cast<float const *>(&r);
   - target_extension: "scalar"
     ctype: ["double"]
     lscpu_flags: []
     is_native: False
-    implementation: "uint64_t r = *((uint64_t *)&a) | *((uint64_t *)&b); return *(double*)&r;"
+    implementation: |
+      uint64_t r = *(reinterpret_cast<uint64_t const *>(&a)) | *(reinterpret_cast<uint64_t const *>(&b));
+      return *reinterpret_cast<double const*>(&r);
 #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
@@ -252,7 +270,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = a[i] | b[i];
       }
@@ -404,7 +422,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = a[i] ^ b[i];
       }
@@ -452,11 +470,7 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: |
-      vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
-        vshlq_n_{{ intrin_tp[ctype][1] }}(
-          vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
-          vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));
+    implementation: return vcvtq_{{intrin_tp_full[ctype]}}_u{{intrin_tp[ctype][1]}}(vshlq_n_u{{intrin_tp[ctype][1]}}(vcvtq_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(data), shift));
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -472,7 +486,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = data[i] << (typename Vec::base_type) shift;
       }
@@ -482,6 +496,7 @@ testing:
     includes: ["<cstddef>", "<climits>"]
     implementation: |
       using T = typename Vec::base_type;
+      using OffsetT = typename Vec::offset_base_type;
       std::size_t element_count = 1024;
       testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false, testing::alternate_init<T>};
       bool allOk = true;
@@ -493,12 +508,13 @@ testing:
       for (size_t i = 0; i < element_count - Vec::vector_element_count(); i+=Vec::vector_element_count()) {
         for (unsigned shift = 0; shift < sizeof(typename Vec::base_type)*CHAR_BIT; ++shift) {
           for (size_t j = 0; j < Vec::vector_element_count(); ++j) {
-            expected_result[j] = ref_data[i+j] << shift;
+            expected_result[j] = ((OffsetT)ref_data[i+j]) << shift;
           }
           auto vec = loadu<Vec>(&test_data[i]);
           storeu<Vec>(test_result, shift_left<Vec>(vec, (typename Vec::base_type)shift));
           test_helper.synchronize();
-          allOk &= test_helper.validate();
+          auto res = test_helper.validate();
+          allOk &= res;
         }
       }
       return allOk;
@@ -565,7 +581,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = data[i] << shift[i];
       }
@@ -731,20 +747,14 @@ definitions:
         if constexpr (PreserveSign) {
           return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);
         } else {
-          return vshrq_n_u{{ intrin_tp[ctype][1] }}(vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data), shift);
+          return vshrq_n_u{{ intrin_tp[ctype][1] }}(
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data),
+            shift
+          );
         }
       } else {
-        return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);
+        return vshrq_n_u{{ intrin_tp[ctype][1] }}(data, shift);
       }
-  # - target_extension: "neon"
-  #   ctype: ["float", "double"]
-  #   lscpu_flags: ["neon"]
-  #   note: "is it a good idea to support bitmanipulation for floats and doubles?"
-  #   implementation: |
-  #     vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(
-  #       vshrq_n_{{ intrin_tp[ctype][1] }}(
-  #         vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(a),
-  #         vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(b)));
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -764,7 +774,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = data[i] >> shift;
       }
@@ -977,14 +987,21 @@ definitions:
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ['neon']
-    is_native: False
     implementation: |
-      std::array<typename Vec::base_type, Vec::vector_element_count()> tmp{};
-      vst1q_{{ intrin_tp_full[ctype] }}(tmp.data(), data);
-      for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        tmp[i] >>= shift;
+      // use negative shift, bcs shift left intrinsic shifts right for negative values.
+      auto neg_shift = vsubq_{{intrin_tp_full[ctype]}}(vmovq_n_{{intrin_tp_full[ctype]}}(0), shift);
+      if constexpr (std::is_signed_v<typename Vec::base_type>) {
+        if constexpr (PreserveSign) {
+          return vshlq_{{ intrin_tp_full[ctype] }}(data, neg_shift);
+        } else {
+          return vshlq_u{{ intrin_tp[ctype][1] }}(
+            vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data),
+            neg_shift
+          );
+        }
+      } else {
+        return vshlq_u{{ intrin_tp[ctype][1] }}(data, neg_shift);
       }
-      return vld1q_{{ intrin_tp_full[ctype] }}(tmp.data());
   #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"]
@@ -1004,7 +1021,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = data[i] >> shift[i];
       }
@@ -1063,75 +1080,67 @@ testing:
       return allOk;
 ...
 ---
-primitive_name: "lzc"
-brief_description: "Leading zeros counter."
+primitive_name: "shift_right"
+functor_name: "shift_right_imask"
+additional_non_specialized_template_parameters:
+  - ctype: "bool"
+    name: "PreserveSign"
+    default_value: "true"
+brief_description: "Arithmetic shift of data to the right by n bits."
 parameters:
-  - ctype: "const typename Vec::register_type"
+  - ctype: "const typename Vec::imask_type"
     name: "data"
-    description: "First vector."
+    description: "Data."
+  - ctype: "const unsigned int"
+    name: "shift"
+    description: "Amount of bits, data should be shifted."
 returns:
-  ctype: "typename Vec::offset_base_register_type"
-  description: "Vector containing leading zeros number."
+  ctype: "typename Vec::imask_type"
+  description: "Integral mask containing result of the left shift."
 definitions:
-  - target_extension: ["avx512"]
-    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
-    lscpu_flags: ["avx512f", "avx512cd"]
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
     implementation: |
-      return _mm512_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
-  - target_extension: ["avx2"]
-    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
-    lscpu_flags: ["avx2", "avx512cd", "avx512vl"]
-    implementation: |
-      return _mm256_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
-  - target_extension: ["sse"]
-    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
-    lscpu_flags: ["sse", "avx512cd", "avx512vl"]
-    implementation: |
-      return _mm_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
-  - target_extension: ["oneAPIfpgaRTL"]
-    ctype: ["uint32_t", "int32_t", "float"]
-    lscpu_flags: ["oneAPIfpgaDev"]
-    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
-    vector_length_agnostic: True
-    implementation: |
-      typename Vec::offset_base_register_type result{};
-      typename Vec::offset_base_register_type lzc_data{};
-      #pragma unroll
-      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        lzc_data[i] = Lzc32Uint(data[i]);
+      if constexpr ((std::is_signed_v<typename Vec::imask_type>) && (!PreserveSign)) {
+        return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(data) >> shift;
+      } else {
+        return data >> shift;
       }
-      #pragma unroll
-      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        if(lzc_data[i]>32)
-          result[i] = 32;
-        else
-          result[i] = lzc_data[i];
-      }
-      return result;
-  - target_extension: "oneAPIfpga"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    lscpu_flags: ["oneAPIfpgaDev"]
-    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
-    vector_length_agnostic: True
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx"]
     implementation: |
-      typename Vec::offset_base_register_type result{};
-      using base_t = typename Vec::base_type;
-      // as the current version of oneAPI does not properly implement ac_int::leading_sign() we "reimplemented" it
-      // /glob/development-tools/versions/oneapi/2023.0.1/oneapi/compiler/2023.0.0/linux/lib/oclfpga/include/sycl/ext/intel/ac_types/ac_int.hpp
-      using bitInt = ac_int<(sizeof(base_t)*CHAR_BIT), false>;
-      #pragma unroll
-      for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
-        bitInt val(data[idx]);
-        int k = (sizeof(base_t)*CHAR_BIT)-1;
-        #pragma unroll
-        for(; k >= 0 && val[k] == 0; k--) {}
-        result[idx] = (sizeof(base_t)*CHAR_BIT-1) - k;
+      if constexpr ((std::is_signed_v<typename Vec::imask_type>) && (!PreserveSign)) {
+        return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(data) >> shift;
+      } else {
+        return data >> shift;
       }
-      return result;
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::imask_type>) && (!PreserveSign)) {
+        return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(data) >> shift;
+      } else {
+        return data >> shift;
+      }
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::imask_type>) && (!PreserveSign)) {
+        return static_cast<std::make_unsigned_t<typename Vec::imask_type>>(data) >> shift;
+      } else {
+        return data >> shift;
+      }
 ...
 ---
 primitive_name: "lzc"
-functor_name: "lzc_scalar"
 parameters:
   - ctype: "const typename Vec::base_type"
     name: "data"
@@ -1193,6 +1202,119 @@ definitions:
       return details::clz_recursive<typename Vec::base_type, typename Vec::offset_base_type>::apply(data);
 ...
 ---
+primitive_name: "lzc"
+functor_name: "lzc_vector"
+brief_description: "Leading zeros counter."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "First vector."
+returns:
+  ctype: "typename Vec::offset_base_register_type"
+  description: "Vector containing leading zeros number."
+definitions:
+  - target_extension: ["avx512"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512cd"]
+    implementation: |
+      return _mm512_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_alignment()) typename Vec::base_type data_arr[Vec::vector_element_count()];
+      tsl::store<Vec>(data_arr, data);
+      alignas(Vec::vector_alignment()) typename Vec::base_type result[Vec::vector_element_count()];
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data_arr[i]);
+      }
+      return tsl::load<Vec>(result);
+  - target_extension: ["avx2"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2", "avx512cd", "avx512vl"]
+    implementation: |
+      return _mm256_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_alignment()) typename Vec::base_type data_arr[Vec::vector_element_count()];
+      tsl::store<Vec>(data_arr, data);
+      alignas(Vec::vector_alignment()) typename Vec::base_type result[Vec::vector_element_count()];
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data_arr[i]);
+      }
+      return tsl::load<Vec>(result);
+  - target_extension: ["sse"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse", "avx512cd", "avx512vl"]
+    implementation: |
+      return _mm_lzcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_alignment()) typename Vec::base_type data_arr[Vec::vector_element_count()];
+      tsl::store<Vec>(data_arr, data);
+      alignas(Vec::vector_alignment()) typename Vec::base_type result[Vec::vector_element_count()];
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data_arr[i]);
+      }
+      return tsl::load<Vec>(result);
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: []
+    is_native: False
+    implementation: |
+      return details::clz<typename Vec::base_type, typename Vec::offset_base_type>(data);
+  - target_extension: ["oneAPIfpgaRTL"]
+    ctype: ["uint32_t", "int32_t", "float"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    vector_length_agnostic: True
+    implementation: |
+      typename Vec::offset_base_register_type result{};
+      typename Vec::offset_base_register_type lzc_data{};
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        lzc_data[i] = Lzc32Uint(data[i]);
+      }
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        if(lzc_data[i]>32)
+          result[i] = 32;
+        else
+          result[i] = lzc_data[i];
+      }
+      return result;
+  - target_extension: "oneAPIfpga"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    includes: ["<sycl/ext/intel/ac_types/ac_int.hpp>"]
+    vector_length_agnostic: True
+    implementation: |
+      typename Vec::offset_base_register_type result{};
+      using base_t = typename Vec::base_type;
+      // as the current version of oneAPI does not properly implement ac_int::leading_sign() we "reimplemented" it
+      // /glob/development-tools/versions/oneapi/2023.0.1/oneapi/compiler/2023.0.0/linux/lib/oclfpga/include/sycl/ext/intel/ac_types/ac_int.hpp
+      using bitInt = ac_int<(sizeof(base_t)*CHAR_BIT), false>;
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
+        bitInt val(data[idx]);
+        int k = (sizeof(base_t)*CHAR_BIT)-1;
+        TSL_UNROLL(val[k])
+        for(; k >= 0 && val[k] == 0; k--) {}
+        result[idx] = (sizeof(base_t)*CHAR_BIT-1) - k;
+      }
+      return result;
+...
+---
 primitive_name: "lzc_alt"
 brief_description: "Leading zeros counter."
 parameters:
@@ -1213,7 +1335,7 @@ definitions:
     implementation: |
       typename Vec::offset_base_register_type result{};
       using base_t = typename Vec::base_type;
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         result[idx] = details::clz_recursive<base_t, typename Vec::offset_base_type>::apply(data[idx]);
       }
@@ -1248,7 +1370,7 @@ definitions:
     implementation: |
       typename Vec::offset_base_register_type result{};
       using base_t = typename Vec::base_type;
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         {%- set type_size_in_bytes = {
           "uint8_t" : 1, "int8_t" : 1,
@@ -1320,7 +1442,7 @@ definitions:
     implementation: |
       typename Vec::offset_base_register_type result{};
       using base_t = typename Vec::base_type;
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         {%- set type_size_in_bytes = {
           "uint8_t" : 1, "int8_t" : 1,
@@ -1386,7 +1508,7 @@ definitions:
     implementation: |
       typename Vec::offset_base_register_type result{};
       using base_t = typename Vec::base_type;
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t idx = 0; idx < Vec::vector_element_count(); idx++) {
         {%- set type_size_in_bits = {
           "uint8_t" :  8, "int8_t" :  8,
@@ -1425,6 +1547,87 @@ definitions:
         {% endfilter %}
       }
       return result;
+...
+---
+primitive_name: "lzc"
+functor_name: "lzc_imask"
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "data"
+    description: "Value."
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Number of leading zeros."
+definitions:
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: |
+      return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["neon"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["neon"]
+    implementation: |
+      return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: |
+      return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
+#INTEL - FPGA
+  - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["oneAPIfpgaDev"]
+    vector_length_agnostic: True
+    implementation: |
+      return details::clz_recursive<typename Vec::imask_type, typename Vec::imask_type>::apply(data);
+...
+---
+primitive_name: "tzc"
+functor_name: "tzc_imask"
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "data"
+    description: "Value."
+returns:
+  ctype: "typename Vec::imask_type"
+  description: "Number of trailing zeros."
+definitions:
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: |
+      return details::ctz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: |
+      return details::ctz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse"]
+    implementation: |
+      return details::ctz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["neon"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["neon"]
+    implementation: |
+      return details::ctz<typename Vec::imask_type, typename Vec::imask_type>(data);
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: []
+    implementation: |
+      return details::ctz<typename Vec::imask_type, typename Vec::imask_type>(data);
 ...
 ---
 primitive_name: "hor"
@@ -1605,7 +1808,7 @@ definitions:
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "uint8_t", "int8_t"]
-    lscpu_flags: [ 'sse2' ]
+    lscpu_flags: [ 'sse2', 'sse4_1' ]
     implementation: |
         // Reduce Lanes dependend on datatype
         Vec::register_type temp = _mm_or_si128(vec, _mm_srli_si128(vec, 8));
@@ -1855,7 +2058,7 @@ definitions:
     implementation: |
       using T = typename Vec::register_type;
       T result{};
-      #pragma unroll
+      TSL_UNROLL(Vec::vector_element_count())
       for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
           result[i] = ~vec[i];
       }
