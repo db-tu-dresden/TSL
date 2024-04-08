@@ -6,3 +6,4 @@ PyYAML>=6.0.1
 tools>=0.1.9
 wget>=3.2
 pydot==2.0.0
+py-cpuinfo==9.0.0
