@@ -618,8 +618,8 @@ definitions:
     is_native: False
     implementation: |
       auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
-      auto tmp = vdupq_n_s64( ( mask[ 0 ] == 0 ) ? source[ 0 ] : mem[ index[0] ] );
-      return vsetq_lane_s64( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : mem[ index[1] ] ), tmp, 1 );
+      auto tmp = vdupq_n_{{ intrin_tp_mask_full[ctype] }}( ( mask[ 0 ] == 0 ) ? source[ 0 ] : mem[ index[0] ] );
+      return vsetq_lane_{{ intrin_tp_mask_full[ctype] }}( ( ( mask[ 1 ] == 0 ) ? source[ 1 ] : mem[ index[1] ] ), tmp, 1 );
   #SCALAR
   - target_extension: "scalar"
     additional_simd_template_extension: "scalar"

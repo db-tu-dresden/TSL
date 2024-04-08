@@ -190,11 +190,11 @@ definitions:
     lscpu_flags: ["neon"]
     implementation: |
       using T = typename Vec::offset_base_type;
-      typename Vec::base_type result [Vec::vector_element_count()];
+      T result [Vec::vector_element_count()];
       for(int i = 0; i < Vec::vector_element_count(); i++){
         ((mask >> i) & 0b1) ? result[i] = static_cast<T>(-1) : result[i] = 0;
       }
-      return tsl::loadu<Vec>(result);
+      return tsl::loadu<tsl::simd<uint8_t,tsl::neon>>(result);
   - target_extension: ["neon"]
     ctype: ["float","double"]
     is_native: False
@@ -334,9 +334,21 @@ definitions:
     implementation: "return _mm_and_pd(first, second);"
   #ARM - NEON
   - target_extension: "neon"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    ctype: ["uint8_t", "int8_t"]
     lscpu_flags: [ 'neon' ]
-    implementation: "return vandq_{{ intrin_tp_mask_full[ctype] }}(first, second);"
+    implementation: "return vandq_u8(first, second);"
+  - target_extension: "neon"
+    ctype: ["uint16_t","int16_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vandq_u16(first, second);"
+  - target_extension: "neon"
+    ctype: ["uint32_t","int32_t","float"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vandq_u32(first, second);"
+  - target_extension: "neon"
+    ctype: ["uint64_t","int64_t","double"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vandq_u64(first, second);"
   #SCARLAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -440,9 +452,21 @@ definitions:
     implementation: "return _mm_or_pd(first, second);"
   #ARM - NEON
   - target_extension: "neon"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    ctype: ["uint8_t", "int8_t"]
     lscpu_flags: [ 'neon' ]
-    implementation: "return vorrq_{{ intrin_tp_mask_full[ctype] }}(first, second);"
+    implementation: "return vorrq_u8(first, second);"
+  - target_extension: "neon"
+    ctype: ["uint16_t","int16_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vorrq_u16(first, second);"
+  - target_extension: "neon"
+    ctype: ["uint32_t","int32_t","float"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vorrq_u32(first, second);"
+  - target_extension: "neon"
+    ctype: ["uint64_t","int64_t","double"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vorrq_u64(first, second);"
 ...
 ---
 primitive_name: "mask_binary_or"
@@ -536,9 +560,21 @@ definitions:
     implementation: "return _mm_xor_pd(first, second);"
   #ARM - NEON
   - target_extension: "neon"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    ctype: ["uint8_t", "int8_t"]
     lscpu_flags: [ 'neon' ]
-    implementation: "return veorq_{{ intrin_tp_mask_full[ctype] }}(first, second);"
+    implementation: "return veorq_u8(first, second);"
+  - target_extension: "neon"
+    ctype: ["uint16_t","int16_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return veorq_u16(first, second);"
+  - target_extension: "neon"
+    ctype: ["uint32_t","int32_t","float"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return veorq_u32(first, second);"
+  - target_extension: "neon"
+    ctype: ["uint64_t","int64_t","double"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return veorq_u64(first, second);"
 ...
 ---
 primitive_name: "mask_binary_xor"

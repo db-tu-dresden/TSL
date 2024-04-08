@@ -440,26 +440,12 @@ definitions:
     implementation: "return (vec_a != vec_b);"
 #ARM - NEON
   - target_extension: "neon"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['neon']
     implementation: |
       const auto all_set = vceqq_{{ intrin_tp_full[ctype] }}(vec_a, vec_a);
       const auto res = vceqq_{{ intrin_tp_full[ctype] }}(vec_a, vec_b);
-      return veorq_{{ intrin_tp_full[ctype] }}(all_set, res);
-  - target_extension: "neon"
-    ctype: ["float"]
-    lscpu_flags: ['neon']
-    implementation: |
-      const auto all_set = vceqq_f32(vec_a, vec_a);
-      const auto res = vceqq_f32(vec_a, vec_b);
-      return veorq_u32(all_set, res);
-  - target_extension: "neon"
-    ctype: ["double"]
-    lscpu_flags: ['neon']
-    implementation: |
-      const auto all_set = vceqq_f64(vec_a, vec_a);
-      const auto res = vceqq_f64(vec_a, vec_b);
-      return veorq_u64(all_set, res);
+      return veorq_u{{ intrin_tp[ctype][1] }}(all_set, res);
   #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -1580,26 +1566,12 @@ definitions:
       return _mm_and_{{ intrin_tp_full[ctype] }}(functors::less_than_or_equal<Vec, Idof>::apply(vec_min, vec_data), functors::less_than_or_equal<Vec, Idof>::apply(vec_data, vec_max));
 #ARM - NEON
   - target_extension: "neon"
-    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
     lscpu_flags: [ 'neon' ]
     implementation: |
       const auto lower = vcgeq_{{ intrin_tp_full[ctype] }}( vec_data, vec_min );
       const auto upper = vcleq_{{ intrin_tp_full[ctype] }}( vec_data, vec_max );
-      return vandq_{{ intrin_tp_full[ctype] }}( lower, upper );
-  - target_extension: "neon"
-    ctype: ["float"]
-    lscpu_flags: [ 'neon' ]
-    implementation: |
-      const auto lower = vcgeq_f32( vec_data, vec_min );
-      const auto upper = vcleq_f32( vec_data, vec_max );
-      return vandq_u32( lower, upper );
-  - target_extension: "neon"
-    ctype: ["double"]
-    lscpu_flags: [ 'neon' ]
-    implementation: |
-      const auto lower = vcgeq_f64( vec_data, vec_min );
-      const auto upper = vcleq_f64( vec_data, vec_max );
-      return vandq_u64( lower, upper );
+      return vandq_u{{ intrin_tp[ctype][1] }}( lower, upper );
 #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
