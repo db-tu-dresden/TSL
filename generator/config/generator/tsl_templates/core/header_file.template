@@ -2,8 +2,9 @@
 
 {% include 'core/doxygen_file.template' %}
 
-#ifndef {{ tsl_include_guard }}
-#define {{ tsl_include_guard }}
+#pragma once
+//#ifndef {{ tsl_include_guard }}
+//#define {{ tsl_include_guard }}
 {% if preliminary_defines is defined %}
 {% for preliminary_define in preliminary_defines %}
 {{preliminary_define}}
@@ -37,4 +38,4 @@ namespace {{ nested_namespace }} {
 {% endif %}
 } // end of namespace {{ tsl_namespace }}
 {% endif %}
-#endif //{{ tsl_include_guard }}
+//#endif //{{ tsl_include_guard }}
