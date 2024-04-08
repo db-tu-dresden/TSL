@@ -47,6 +47,4 @@ if [ -d "${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/supplementary" ]; th
   cp -r ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/supplementary ${{ POSTINSTALL_BASE }}
 fi
 
-echo '\
-#pragma once\n\
-#include "include/tslintrin.hpp"\n\' > ${{ POSTINSTALL_BASE }}/tsl.hpp
+cp ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/tsl.hpp ${{ POSTINSTALL_BASE }}

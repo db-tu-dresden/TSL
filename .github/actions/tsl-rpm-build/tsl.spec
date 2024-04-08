@@ -63,9 +63,8 @@ cp -r ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/include %{tsl_dir}
 if [ -d "${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/supplementary" ]; then
   cp -r ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/supplementary %{tsl_dir}
 fi
-echo '\
-#pragma once\n\
-#include "include/tslintrin.hpp"\n\' > %{tsl_dir}/tsl.hpp
+cp ${TMP}/${{ TSL_TARBALL_PREFIX }}${CHOSEN_TSL_PATH}/tsl.hpp %{tsl_dir}
+
 
 %postun
 rm -rf %{tsl_dir}
