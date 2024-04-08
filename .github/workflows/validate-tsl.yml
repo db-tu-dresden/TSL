@@ -53,6 +53,7 @@ jobs:
         run: |
           echo "Generation (with ${{ matrix.python_version }} failed"
           echo "${{ steps.validate.outputs.msg }}"
+          cat ${{ github.workspace }}/${{ steps.validate.outputs.out }}/${{ steps.validate.outputs.failout}}
           touch ${{ github.workspace }}/python_generation_failed
       - name: Upload on Error
         if: ${{ steps.validate.outputs.success == 'false' }}

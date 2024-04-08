@@ -19,6 +19,8 @@ outputs:
     description: 'Verbose message from the action.'
   success:
     description: 'Whether the action was successful (1, 0 otherwise).'
+  failout:
+    description: 'Path to the failed output.'
 environment: TSL_DOCKER
 runs:
   using: 'docker'
