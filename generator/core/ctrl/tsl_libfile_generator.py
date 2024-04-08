@@ -12,7 +12,7 @@ from typing import List, Dict
 from generator.core.model.tsl_extension import TSLExtensionSet, TSLExtension
 from generator.core.model.tsl_file import TSLHeaderFile
 from generator.core.model.tsl_primitive import TSLPrimitiveClassSet
-from generator.utils.file_utils import strip_common_path_prefix
+from generator.utils.file_utils import get_relative_path, strip_common_path_prefix
 from generator.utils.log_utils import LogInit
 from generator.utils.yaml_utils import yaml_load, YamlDataType
 from generator.core.ctrl.tsl_dependencies import TSLDependencyGraph
@@ -189,6 +189,6 @@ class TSLFileGenerator:
             generated_files_root.add_file_include(primitive_declaration)
         for primitive_definition in sorted(self.primitive_definition_files, key=include_sort_fun):
             generated_files_root.add_file_include(primitive_definition)
-        for runtime_header in lib.relevant_runtime_headers:
-            generated_files_root.add_predefined_tsl_file_include(f'"{runtime_header.name}"')
+        for runtime_header in lib.relevant_runtime_headers_abs_path():
+            generated_files_root.add_predefined_tsl_file_include(f'"{get_relative_path(generated_files_root.file_name, runtime_header)}"')
         self.__static_files.append(generated_files_root)
