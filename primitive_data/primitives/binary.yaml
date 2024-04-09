@@ -1022,7 +1022,7 @@ definitions:
             result[i] = data_arr[i] >> shift_arr[i];
           } else {
             result[i] = static_cast<Vec::base_type>(
-              static_cast<{{ simdT_mask_base_type_mapping[ctype] }}>(data_arr[i] >> shift_arr[i])
+              static_cast<{{ simdT_mask_base_type_mapping[ctype] }}>(data_arr[i]) >> shift_arr[i]
             );
           }
         }
