@@ -563,9 +563,13 @@ definitions:
     implementation: "return _mm_sllv_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   #ARM - NEON
   - target_extension: "neon"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: [ 'neon' ]
     implementation: "return vshlq_{{ intrin_tp_full[ctype] }}(data, shift);"
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    lscpu_flags: [ 'neon' ]
+    implementation: "return vshlq_{{ intrin_tp_full[ctype] }}(data, vreinterpretq_s{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(shift));"
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -740,21 +744,22 @@ definitions:
   #   implementation: "return _mm_castsi128_pd(_mm_srli_epi64(_mm_castpd_si128(data), shift));"
   #ARM - NEON
   - target_extension: "neon"
-    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["neon"]
     implementation: |
-      if constexpr (std::is_signed_v<typename Vec::base_type>) {
         if constexpr (PreserveSign) {
           return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);
         } else {
-          return vshrq_n_u{{ intrin_tp[ctype][1] }}(
+          const auto ret_val = vshrq_n_u{{ intrin_tp[ctype][1] }}(
             vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data),
             shift
           );
+          return vreinterpretq_s{{ intrin_tp[ctype][1] }}_u{{ intrin_tp[ctype][1] }}( ret_val );
         }
-      } else {
-        return vshrq_n_u{{ intrin_tp[ctype][1] }}(data, shift);
-      }
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ["neon"]
+    implementation: "return vshrq_n_u{{ intrin_tp[ctype][1] }}(data, shift);"
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -984,24 +989,49 @@ definitions:
         return _mm_srlv_epi{{ intrin_tp[ctype][1] }}(data, shift);
       }
   #ARM - NEON
+  # DEPRECATION NOTE: This implementation violates the C standard by employing a negative shift, which is undefined behavior.
+  # - target_extension: "neon"
+  #   ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+  #   lscpu_flags: ['neon']
+  #   implementation: |
+  #     // use negative shift, bcs shift left intrinsic shifts right for negative values.
+  #     auto neg_shift = vsubq_{{intrin_tp_full[ctype]}}(vmovq_n_{{intrin_tp_full[ctype]}}(0), shift);
+  #     if constexpr (std::is_signed_v<typename Vec::base_type>) {
+  #       if constexpr (PreserveSign) {
+  #         return vshlq_{{ intrin_tp_full[ctype] }}(data, neg_shift);
+  #       } else {
+  #         return vshlq_u{{ intrin_tp[ctype][1] }}(
+  #           vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data),
+  #           neg_shift
+  #         );
+  #       }
+  #     } else {
+  #       return vshlq_u{{ intrin_tp[ctype][1] }}(data, neg_shift);
+  #     }
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ['neon']
     implementation: |
-      // use negative shift, bcs shift left intrinsic shifts right for negative values.
-      auto neg_shift = vsubq_{{intrin_tp_full[ctype]}}(vmovq_n_{{intrin_tp_full[ctype]}}(0), shift);
+      auto data_arr = tsl::to_array<Vec>( data );
+      auto shift_arr = tsl::to_array<Vec>( shift );
+      auto result = std::array< Vec::base_type, Vec::vector_element_count() >();
+      
       if constexpr (std::is_signed_v<typename Vec::base_type>) {
-        if constexpr (PreserveSign) {
-          return vshlq_{{ intrin_tp_full[ctype] }}(data, neg_shift);
-        } else {
-          return vshlq_u{{ intrin_tp[ctype][1] }}(
-            vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data),
-            neg_shift
-          );
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+          if constexpr (PreserveSign) {
+            result[i] = data_arr[i] >> shift_arr[i];
+          } else {
+            result[i] = static_cast<Vec::base_type>(
+              static_cast<{{ simdT_mask_base_type_mapping[ctype] }}>(data_arr[i] >> shift_arr[i])
+            );
+          }
         }
       } else {
-        return vshlq_u{{ intrin_tp[ctype][1] }}(data, neg_shift);
+        for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+            result[i] = data_arr[i] >> shift_arr[i];
+        }
       }
+      return tsl::loadu<Vec>(result.data());
   #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"]

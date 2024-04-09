@@ -604,8 +604,9 @@ definitions:
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
       auto const src_array = tsl::to_array<Vec>(source);
       auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
-      auto const idx_array = tsl::to_array<IndicesType>(index);
-      using VecMaskT = typename Vec::transform_extension<{{ additional_simd_template_base_type }}>;
+      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
+      auto const idx_array = tsl::to_array<offsetExt>(index);
+      using VecMaskT = typename Vec::transform_extension<{{ simdT_mask_base_type_mapping[ctype] }}>;
       auto const mask_array = tsl::to_array<VecMaskT>(mask);
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (mask_array[i] == 0) ? src_array[i] : mem[idx_array[i]];
