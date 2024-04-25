@@ -8,9 +8,7 @@ mkdir -p ${UNPACK_DIR}
 WORK_DIR=$(pwd)
 
 
-curl -L "https://github.com/JPietrzykTUD/tsl_ci/releases/latest/download/tsl.tar.gz" -o ${TMP_DIR}/tsl.tar.gz
-#we don't need to use the GitHub Rest API
-#curl -L "https://github.com/jpietrzyktud/tsl_ci/releases/download/$(curl -s "https://api.github.com/repos/jpietrzyktud/tsl_ci/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')/tsl.tar.gz" -o ${TMP_DIR}/tsl.tar.gz
+curl -L "https://github.com/db-tu-dresden/TSL/releases/latest/download/tsl.tar.gz" -o ${TMP_DIR}/tsl.tar.gz
 LSCPU_FLAGS_STRING=$(LANG=en;lscpu | grep 'Flags:' | sed -E 's/Flags:\s*//g' | sed -E 's/\s/:/g')
 #create array from flags string
 AVAIL_FLAGS=(${LSCPU_FLAGS_STRING//:/ })
@@ -33,17 +31,24 @@ while read -r line1 && read -r line2; do
     UNKNOWN_PATH=$TSL_PATH
   fi
   COUNTER=0
+  FOUND_ALL_FLAGS=1
   for i in "${!TSL_FLAGS_ARR[@]}"
   do
+    FOUND_FLAG=0
     for j in "${!AVAIL_FLAGS[@]}"
     do
       if [ "${TSL_FLAGS_ARR[i]}" == "${AVAIL_FLAGS[j]}" ]; then
+        FOUND_FLAG=1
         COUNTER=$((COUNTER+1))
       fi
     done
+    if [ $FOUND_FLAG -eq 0 ]; then
+      FOUND_ALL_FLAGS=0
+      break
+    fi
   done
   #if COUNTER is greater than MAX_AVAIL_FLAGS, then update MAX_AVAIL_FLAGS and CHOSEN_TSL_PATH
-  if [ $COUNTER -gt $MAX_AVAIL_FLAGS ]; then
+  if [ $COUNTER -gt $MAX_AVAIL_FLAGS ] && [ $FOUND_ALL_FLAGS -eq 1 ]; then
     MAX_AVAIL_FLAGS=$COUNTER
     CHOSEN_TSL_PATH=${TSL_PATH}
   fi
@@ -63,6 +68,4 @@ if [ -d "${UNPACK_DIR}/${TAR_PREFIX_TSL_DIR}/${TAR_PREFIX_GENERATION}${CHOSEN_TS
   cp -r ${UNPACK_DIR}/${TAR_PREFIX_TSL_DIR}/${TAR_PREFIX_GENERATION}${CHOSEN_TSL_PATH}/supplementary ${WORK_DIR}
 fi
 
-echo '\
-#pragma once\n\
-#include "include/tslintrin.hpp"\n\' > ${WORK_DIR}/tsl.hpp
+cp ${UNPACK_DIR}/${TAR_PREFIX_TSL_DIR}/${TAR_PREFIX_GENERATION}${CHOSEN_TSL_PATH}/tsl.hpp ${INSTALL_DIR}
