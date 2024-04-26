@@ -1,6 +1,6 @@
 Name:           libtsl-dev
 Version:        ${{ VERSION_TAG }}
-Release:        1
+Release:        ${{ RELEASE_TAG }}
 Summary:        Template SIMD Library (TSL) is an open-source C++ library for SIMD programming. It provides a comprehensive collection of SIMD intrinsics and high-level interfaces to exploit the full power of SIMD hardware.
 BuildArch:      noarch
 
