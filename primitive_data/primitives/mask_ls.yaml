@@ -404,28 +404,44 @@ testing:
       using reg_t = typename Vec::register_type;
 
       typename Vec::imask_type imask;
-      testing::rnd_init(&imask, 1);
-      const auto mask = tsl::to_mask<Vec>(imask);
+      
 
-      std::size_t element_count = 1024;
-      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      std::size_t repetition_count = 10000;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), Vec::vector_element_count(), false};
       bool allOk = true;
       auto reference_result_ptr = test_helper.result_ref();
       auto test_result_ptr = test_helper.result_target();
-
-      for(std::size_t i = 0; i < element_count; i += Vec::vector_element_count()){
-        for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
-          if ( (imask >> (j-i)) & 0b1 == 1 ) {
-            reference_result_ptr[j-i] = i;
+      auto test_data_ptr = test_helper.data_target();
+      std::cout << "STARTING: " << tsl::type_name<Vec>() << "\n";
+      for (auto rep = 0; rep < repetition_count; ++rep) {
+        testing::rnd_init(&imask, 1);
+        
+        for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          if ( (imask >> i) & 0b1 == 1 ) {
+            reference_result_ptr[i] = i+1;
           } else {
-            reference_result_ptr[j-i] = 0;
+            reference_result_ptr[i] = Vec::vector_element_count()*2;
           }
+          test_result_ptr[i] = Vec::vector_element_count()*2;
+          test_data_ptr[i] = i+1;
         }
-        memset(test_result_ptr, 0, sizeof(typename Vec::base_type) + Vec::vector_element_count());
-        auto vec = set1<Vec>(i);
+        auto vec = loadu<Vec>(test_data_ptr);
+        const auto mask = tsl::to_mask<Vec>(imask);
         storeu<Vec>(mask, test_result_ptr, vec);
         test_helper.synchronize();
-        allOk &= test_helper.validate();
+        if (!test_helper.validate()) {
+          std::cout << "~~ERROR~~\n";
+          std::cout << "VEC  : ";
+          tsl::to_ostream<Vec>(std::cout, vec) << "\n";
+          std::cout << "MASK : ";
+          tsl::to_ostream<Vec>(std::cout, mask) << "\n";
+          std::cout << "IMASK: " << std::bitset<64>{(unsigned long long int) imask} << "\n";
+          std::cout << "REF  : ";
+          tsl::to_ostream<Vec>(std::cout, tsl::loadu<Vec>(&reference_result_ptr[0])) << "\n";
+          std::cout << "RES  : ";
+          tsl::to_ostream<Vec>(std::cout, tsl::loadu<Vec>(&test_result_ptr[0])) << "\n";
+          return false;
+        }
       }
       return allOk;
 definitions:
