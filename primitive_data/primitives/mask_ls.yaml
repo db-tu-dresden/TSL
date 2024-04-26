@@ -425,19 +425,7 @@ testing:
         const auto mask = tsl::to_mask<Vec>(imask);
         storeu<Vec>(mask, test_result_ptr, vec);
         test_helper.synchronize();
-        if (!test_helper.validate()) {
-          std::cout << "~~ERROR~~\n";
-          std::cout << "VEC  : ";
-          tsl::to_ostream<Vec>(std::cout, vec) << "\n";
-          std::cout << "MASK : ";
-          tsl::to_ostream<Vec>(std::cout, mask) << "\n";
-          std::cout << "IMASK: " << std::bitset<64>{(unsigned long long int) imask} << "\n";
-          std::cout << "REF  : ";
-          tsl::to_ostream<Vec>(std::cout, tsl::loadu<Vec>(&reference_result_ptr[0])) << "\n";
-          std::cout << "RES  : ";
-          tsl::to_ostream<Vec>(std::cout, tsl::loadu<Vec>(&test_result_ptr[0])) << "\n";
-          return false;
-        }
+        allOk &= test_helper.validate();
       }
       return allOk;
 definitions:
