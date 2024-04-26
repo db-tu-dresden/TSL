@@ -1,4 +1,4 @@
-FROM amd64/ubuntu:latest
+FROM amd64/ubuntu:23.04
 
 RUN apt update 
 RUN apt-get -y install software-properties-common
