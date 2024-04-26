@@ -58,7 +58,7 @@ jobs:
           - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2,avx512f"
           - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2,avx512f,avx512cd,avx512er,avx512pf" #avx3.1
           - "sse,sse2,ssse3,sse4_1,sse4_2,avx,avx2,avx512f,avx512cd,avx512bw,avx512dq,avx512vl" #avx3.2
-          - "neon,asimd"
+          - "neon|asimd"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
