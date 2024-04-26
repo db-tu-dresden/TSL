@@ -26,6 +26,10 @@ targets_all = direct_targets + [x for x in flatten_alternatives(alternatives_tar
 targets_name = "-".join(targets_all)
 
 alternatives = [x for x in get_variants([alt.split("|") for alt in alternatives_targets])]
-for alternative in alternatives:
-	print(f"flags: {':'.join(direct_targets + alternative)}")
-	print(f"path: {targets_name}")
+
+if len(sys.argv) == 3:
+	print(targets_name)
+else:
+	for alternative in alternatives:
+		print(f"flags: {':'.join(direct_targets + alternative)}")
+		print(f"path: {targets_name}")
