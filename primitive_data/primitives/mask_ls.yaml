@@ -455,6 +455,18 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f", "avx512vl"]
     implementation: "return _mm256_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), tsl::to_integral<Vec>(mask), data);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      auto mem_vec = tsl::loadu<Vec>(memory);
+      tsl::storeu<Vec>(memory, _mm256_or_si256(_mm256_andnot_si256(mask, mem_vec), _mm256_and_si256(mask, data)));
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      auto mem_vec = tsl::loadu<Vec>(memory);
+      tsl::storeu<Vec>(memory, _mm256_or_{{ intrin_tp_full[ctype] }}(_mm256_andnot_{{ intrin_tp_full[ctype] }}(mask, mem_vec), _mm256_and_{{ intrin_tp_full[ctype] }}(mask, data)));
 #INTEL - SSE
   - target_extension: "sse"
     ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
@@ -468,6 +480,18 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f", "avx512vl"]
     implementation: "return _mm_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), tsl::to_integral<Vec>(mask), data);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto mem_vec = tsl::loadu<Vec>(memory);
+      tsl::storeu<Vec>(memory, _mm_or_si128(_mm_andnot_si128(mask, mem_vec), _mm_and_si128(mask, data)));
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto mem_vec = tsl::loadu<Vec>(memory);
+      tsl::storeu<Vec>(memory, _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(mask, mem_vec), _mm_and_{{ intrin_tp_full[ctype] }}(mask, data)));
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
