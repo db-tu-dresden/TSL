@@ -10,7 +10,7 @@ RUN pwd
 
 COPY requirements.txt /requirements.txt
 
-RUN pip install -r /requirements.txt
+RUN pip install --ignore-installed -r /requirements.txt
 
 LABEL org.opencontainers.image.source=https://github.com/db-tu-dresden/TSL
 LABEL org.opencontainers.image.description="TSLerator Generation Image"
