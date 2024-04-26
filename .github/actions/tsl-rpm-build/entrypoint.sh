@@ -10,17 +10,32 @@ RPM_BASE=/root/rpmbuild
 SPEC_FILE=${RPM_BASE}/SPECS/tsl.spec
 
 
-# sed ${{ VERSION_TAG }} in tsl.spec with $VERSION
-sed -i "s/\${{ VERSION_TAG }}/${VERSION}/g" ${SPEC_FILE}
-sed -i "s/\${{ TSL_TARBALL }}/${TSL_TAR_GZ_NAME}/g" ${SPEC_FILE}
-sed -i "s|\${{ TSL_TARBALL_PREFIX }}|${TSL_TAR_PREFIX}|g" ${SPEC_FILE}
-
 REPO_ROOT=/github/workspace
 TSL_ROOT=${REPO_ROOT}/${TSL_TAR_GZ_NAME}
 OUT_BASE=packages/rpm
 OUT=${REPO_ROOT}/${OUT_BASE}
 mkdir -p ${OUT}
 echo "out=${OUT_BASE}" >> $GITHUB_OUTPUT
+
+RPM_FILE="${OUT}/noarch/libtsl-dev-${VERSION}-1.noarch.rpm"
+
+# sed ${{ VERSION_TAG }} in tsl.spec with $VERSION
+if [[ "$VERSION" == *"-"* ]]; then
+  #release candidate
+  VER=${VERSION%%-*}
+  RC=${VERSION##*-}
+  sed -i "s/\${{ VERSION_TAG }}/${VER}/g" ${SPEC_FILE}
+  sed -i "s/\${{ RELEASE_TAG }}/${RC}/g" ${SPEC_FILE}
+  RMP_FILE="${OUT}/noarch/libtsl-dev-${VER}-${RC}.noarch.rpm"
+else
+  sed -i "s/\${{ VERSION_TAG }}/${VERSION}/g" ${SPEC_FILE}
+  sed -i "s/\${{ RELEASE_TAG }}/1/g" ${SPEC_FILE}
+fi
+
+sed -i "s/\${{ TSL_TARBALL }}/${TSL_TAR_GZ_NAME}/g" ${SPEC_FILE}
+sed -i "s|\${{ TSL_TARBALL_PREFIX }}|${TSL_TAR_PREFIX}|g" ${SPEC_FILE}
+
+
 
 cp ${SPEC_FILE} ${OUT}
 
@@ -34,7 +49,7 @@ if [ $? -ne 0 ]; then
   exit
 fi
 
-mv ${OUT}/noarch/libtsl-dev-${VERSION}-1.noarch.rpm ${OUT}/libtsl-dev.rpm
+mv ${RPM_FILE} ${OUT}/libtsl-dev.rpm
 # try to install and remove
 dnf install ${OUT}/libtsl-dev.rpm -y
 dnf remove libtsl-dev -y
