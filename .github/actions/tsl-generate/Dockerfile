@@ -17,6 +17,7 @@ LABEL org.opencontainers.image.description="TSLerator Generation Image"
 LABEL org.opencontainers.image.licenses=Apache-2.0
 
 COPY entrypoint.sh /entrypoint.sh
+COPY target_flags_translate.py /target_flags_translate.py
 
 
 ENTRYPOINT ["/entrypoint.sh"]
