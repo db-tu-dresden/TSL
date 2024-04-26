@@ -51,7 +51,7 @@ jobs:
           LATEST_TAG=$(git tag -l --sort=-v:refname "v*" | head -n 1)
           if [ -z "${LATEST_TAG}" ]; then
             echo "No tag: $LATEST_TAG"
-            LATEST_TAG=v0.0.0
+            LATEST_TAG=v0.0.0-rc1
           else
             echo "Latest tag: $LATEST_TAG"
           fi
@@ -63,10 +63,21 @@ jobs:
           echo "temp=${TEMP}"
           MINOR=${TEMP%%.*}
           echo "minor=${MINOR}"
-          PATCH=${TEMP#*.}
+          PATCHTEMP=${TEMP#*.}
+          echo "patchtemp=$PATCHTEMP"
+          PATCH=${PATCHTEMP%%-*}
           echo "patch=${PATCH}"
-          PATCH=$((PATCH+1))
-          VERSION="v$MAJOR.$MINOR.$PATCH"
+          RC_TMP=${PATCHTEMP#*-}
+          RC=${RC_TMP:2}
+          if [ -z "${RC}" ]; then
+            PATCH=$((PATCH+1))
+            RC=1
+          else
+            RC=$((RC+1))
+          fi
+          echo "rc=${RC}"
+          VERSION="v${MAJOR}.${MINOR}.${PATCH}-rc${RC}"
+          echo "New Version: ${VERSION}"
           echo "tag=${VERSION}"
           echo "tag=${VERSION}" >> $GITHUB_OUTPUT
           git config --global user.email "johannes.pietrzyk@tu-dresden.de"

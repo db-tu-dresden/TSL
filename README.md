@@ -59,18 +59,18 @@ The latest release is available under [Releases](https://github.com/db-tu-dresde
 
 To download the TSL to the current working directory, just run
 ~~~console
-user@host:~ curl -L -s "https://github.com/db-tu-dresden/TSL/releases/latest/download/install_tsl.sh" | /bin/bash
+curl -L -s "https://github.com/db-tu-dresden/TSL/releases/latest/download/install_tsl.sh" | /bin/bash
 ~~~
 
 If you want to "install" the TSL (the header files will be placed at /usr/include/tsl), we prepared an `rpm` and a `deb` package.
 To install the `rpm` package, run
 ~~~console
-user@host:~ sudo dnf install -y https://github.com/db-tu-dresden/TSL/releases/latest/download/libtsl-dev.rpm
+sudo dnf install -y https://github.com/db-tu-dresden/TSL/releases/latest/download/libtsl-dev.rpm
 ~~~
 
 To install the `deb` package, run
 ~~~console
-user@host:~ TSL_DEB_FNAME=$(mktemp -ud --tmpdir libtsl-dev-XXXXX.deb); curl -L -s "https://github.com/db-tu-dresden/TSL/releases/latest/download/libtsl-dev.deb" -o ${TSL_DEB_FNAME} && sudo apt install ${TSL_DEB_FNAME}
+TSL_DEB_FNAME=$(mktemp -ud --tmpdir libtsl-dev-XXXXX.deb); curl -L -s "https://github.com/db-tu-dresden/TSL/releases/latest/download/libtsl-dev.deb" -o ${TSL_DEB_FNAME} && sudo apt install ${TSL_DEB_FNAME}
 ~~~
 
 ### Get the Generator
@@ -79,8 +79,8 @@ user@host:~ TSL_DEB_FNAME=$(mktemp -ud --tmpdir libtsl-dev-XXXXX.deb); curl -L -
 Clone the git repository of the [TSL Generator](https://github.com/db-tu-dresden/TSL) and navigate into your freshly cloned TSLGen directory.
 
 ~~~console
-user@host:~ git clone https://github.com/db-tu-dresden/TSL tslroot
-user@host:~ cd tslroot
+git clone https://github.com/db-tu-dresden/TSL tslroot
+cd tslroot
 ~~~
 
 #### **2. Initialize required environment**

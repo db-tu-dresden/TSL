@@ -3,7 +3,7 @@
 PARAM_TARGETS=$1
 
 TARGETS=$(echo $PARAM_TARGETS | sed 's/\[//g' | sed 's/\]//g' | sed 's/ //g' | sed 's/,/ /g')
-TARGETS_NAME=$(echo $TARGETS | sed 's/ /-/g' | sed 's/;/-/g' | sed 's/,/-/g')
+TARGETS_NAME=$(python3 /target_flags_translate.py "${PARAM_TARGETS}" --name-only)
 TARGETS_ARRAY_NOTATION=$(echo $PARAM_TARGETS | sed 's/\[//g' | sed 's/\]//g' | sed 's/ //g' | sed 's/,/:/g')
 echo "name=${TARGETS_NAME}" >> $GITHUB_OUTPUT
 
@@ -15,8 +15,8 @@ echo "out=${GENERATION_BASE}" >> $GITHUB_OUTPUT
 
 mkdir -p ${GENERATION_PATH}
 mkdir -p ${LOG_PATH}
-echo "flags: ${TARGETS_ARRAY_NOTATION}" >> ${GENERATION_PATH}/tsl.conf
-echo "path: ${TARGETS_NAME}" >> ${GENERATION_PATH}/tsl.conf
+
+python3 /target_flags_translate.py "${PARAM_TARGETS}" >> ${GENERATION_PATH}/tsl.conf
 
 cd ${REPO_ROOT}
 ls -halt >> ${GENERATION_PATH}/generation.log 2>&1
