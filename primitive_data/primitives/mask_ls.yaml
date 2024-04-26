@@ -412,7 +412,6 @@ testing:
       std::cout << "STARTING: " << tsl::type_name<Vec>() << "\n";
       for (auto rep = 0; rep < repetition_count; ++rep) {
         testing::rnd_init(&imask, 1);
-        
         for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
           if ( (imask >> i) & 0b1 == 1 ) {
             reference_result_ptr[i] = i+1;
