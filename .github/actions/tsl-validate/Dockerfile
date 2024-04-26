@@ -25,28 +25,28 @@ RUN apt-get -y install \
 COPY requirements.txt /requirements.txt
 
 RUN . /py/venvs/py38/bin/activate && \
-  pip install -r /requirements.txt && \
-  pip install ruff && pip install yamllint && \
+  pip install --ignore-installed -r /requirements.txt && \
+  pip install --ignore-installed ruff && pip install --ignore-installed yamllint && \
   deactivate
 
 RUN . /py/venvs/py39/bin/activate && \
-  pip install -r /requirements.txt && \
-  pip install ruff && pip install yamllint && \
+  pip install --ignore-installed -r /requirements.txt && \
+  pip install --ignore-installed ruff && pip install --ignore-installed yamllint && \
   deactivate
 
 RUN . /py/venvs/py310/bin/activate && \
-  pip install -r /requirements.txt && \
-  pip install ruff && pip install yamllint && \
+  pip install --ignore-installed -r /requirements.txt && \
+  pip install --ignore-installed ruff && pip install --ignore-installed yamllint && \
   deactivate
 
 RUN . /py/venvs/py311/bin/activate && \
-  pip install -r /requirements.txt && \
-  pip install ruff && pip install yamllint && \
+  pip install --ignore-installed -r /requirements.txt && \
+  pip install --ignore-installed ruff && pip install --ignore-installed yamllint && \
   deactivate
 
 RUN . /py/venvs/py312/bin/activate && \
-  pip install -r /requirements.txt && \
-  pip install ruff && pip install yamllint && \
+  pip install --ignore-installed -r /requirements.txt && \
+  pip install --ignore-installed ruff && pip install --ignore-installed yamllint && \
   deactivate
 
 LABEL org.opencontainers.image.source=https://github.com/db-tu-dresden/TSL
