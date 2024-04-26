@@ -22,8 +22,8 @@ RUN tar -xvf /root.tar.gz -C /tslgen
 RUN rm /root.tar.gz
 # COPY requirements.txt /requirements.txt
 
-RUN pip install -r /tslgen/requirements.txt
-RUN pip install ruff yamllint
+RUN pip install --ignore-installed -r /tslgen/requirements.txt
+RUN pip install --ignore-installed ruff yamllint
 
 
 
