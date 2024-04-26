@@ -12,9 +12,9 @@ def get_variants(arr):
         yield [x] + y
 
 def flatten_alternatives(arr):
-	for entry in arr:
-		for x in entry.split("|"):
-			yield x
+  for entry in arr:
+    for x in entry.split("|"):
+      yield x
 
 targets_str = sys.argv[1]
 targets_arr = [x.strip() for x in targets_str.split(",")]
@@ -25,11 +25,18 @@ alternatives_targets = list(filter(lambda x: "|" in x, targets_arr))
 targets_all = direct_targets + [x for x in flatten_alternatives(alternatives_targets)]
 targets_name = "-".join(targets_all)
 
-alternatives = [x for x in get_variants([alt.split("|") for alt in alternatives_targets])]
-
-if len(sys.argv) == 3:
-	print(targets_name)
+if len(alternatives_targets) > 0:
+  alternatives = [x for x in get_variants([alt.split("|") for alt in alternatives_targets])]
 else:
-	for alternative in alternatives:
-		print(f"flags: {':'.join(direct_targets + alternative)}")
-		print(f"path: {targets_name}")
+  alternatives = []
+	
+if len(sys.argv) == 3:
+  print(targets_name)
+else:
+  if len(alternatives) > 0:
+    for alternative in alternatives:
+      print(f"flags: {':'.join(direct_targets + alternative)}")
+      print(f"path: {targets_name}")
+  else:
+    print(f"flags: {':'.join(direct_targets)}")
+    print(f"path: {targets_name}")
