@@ -1,4 +1,4 @@
-FROM arm64v8/ubuntu:23.04
+FROM arm64v8/ubuntu:22.04
 
 RUN apt update
 RUN apt-get -y install \
