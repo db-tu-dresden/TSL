@@ -4,7 +4,7 @@ RUN apt-get -y install software-properties-common \
   build-essential checkinstall \
   g++ \
   make cmake lsb-release software-properties-common \
-  python3 python3-pip python3-venv \
+  python3-full python3-pip python3-venv \
   git wget bash
 
 RUN wget https://apt.llvm.org/llvm.sh && \
@@ -22,8 +22,8 @@ RUN tar -xvf /root.tar.gz -C /tslgen
 RUN rm /root.tar.gz
 # COPY requirements.txt /requirements.txt
 
-RUN pip install --ignore-installed -r /tslgen/requirements.txt
-RUN pip install --ignore-installed ruff yamllint
+RUN pip install --ignore-installed -r /tslgen/requirements.txt --break-system-packages
+RUN pip install --ignore-installed ruff yamllint --break-system-packages
 
 
 
