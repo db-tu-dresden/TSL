@@ -402,10 +402,7 @@ testing:
     implementation: |
       using T = typename Vec::base_type;
       using reg_t = typename Vec::register_type;
-
       typename Vec::imask_type imask;
-      
-
       std::size_t repetition_count = 10000;
       testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), Vec::vector_element_count(), false};
       bool allOk = true;
