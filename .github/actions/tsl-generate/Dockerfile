@@ -11,7 +11,7 @@ RUN apt-get -y install software-properties-common \
 
 COPY requirements.txt /requirements.txt
 
-RUN pip3 install --ignore-installed -r /requirements.txt  --break-system-packages
+RUN pip3 install --ignore-installed --break-system-packages -r /requirements.txt
 
 COPY entrypoint.sh /entrypoint.sh
 COPY target_flags_translate.py /target_flags_translate.py

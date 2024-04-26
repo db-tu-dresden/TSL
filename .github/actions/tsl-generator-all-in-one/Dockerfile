@@ -29,9 +29,8 @@ RUN tar -xvf /root.tar.gz -C /tslgen
 RUN rm /root.tar.gz
 # COPY requirements.txt /requirements.txt
 
-RUN pip install --ignore-installed -r /tslgen/requirements.txt --break-system-packages
-RUN pip install --ignore-installed ruff yamllint --break-system-packages
-
+RUN pip install --ignore-installed --break-system-packages -r /tslgen/requirements.txt
+RUN pip install --ignore-installed --break-system-packages ruff yamllint 
 
 
 LABEL org.opencontainers.image.source=https://github.com/db-tu-dresden/TSL
