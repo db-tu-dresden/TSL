@@ -7,7 +7,7 @@ RUN apt-get update
 RUN apt-get -y install software-properties-common \
   build-essential checkinstall \
   make cmake lsb-release \
-  python3-full python3-pip python3-venv \
+  python3-full python3-pip python3-venv python3-distutils \
   git wget bash
 
 # Install gcc 13
@@ -29,9 +29,10 @@ RUN tar -xvf /root.tar.gz -C /tslgen
 RUN rm /root.tar.gz
 # COPY requirements.txt /requirements.txt
 
-RUN pip install --ignore-installed --break-system-packages -r /tslgen/requirements.txt
-RUN pip install --ignore-installed --break-system-packages ruff yamllint 
-
+#RUN pip3 install --ignore-installed --break-system-packages -r /tslgen/requirements.txt
+#RUN pip3 install --ignore-installed --break-system-packages ruff yamllint 
+RUN pip3 install --ignore-installed -r /tslgen/requirements.txt
+RUN pip3 install --ignore-installed ruff yamllint 
 
 LABEL org.opencontainers.image.source=https://github.com/db-tu-dresden/TSL
 LABEL org.opencontainers.image.description="TSLGenerator Image"

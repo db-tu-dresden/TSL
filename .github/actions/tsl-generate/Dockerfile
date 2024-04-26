@@ -5,13 +5,13 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt-get update 
 RUN apt-get -y install software-properties-common \
-    python3-full python3-pip python3-venv \
+    python3-full python3-pip python3-venv python3-distutils \
     git wget
 
 
 COPY requirements.txt /requirements.txt
 
-RUN pip3 install --ignore-installed --break-system-packages -r /requirements.txt
+RUN pip3 install --ignore-installed -r /requirements.txt
 
 COPY entrypoint.sh /entrypoint.sh
 COPY target_flags_translate.py /target_flags_translate.py
