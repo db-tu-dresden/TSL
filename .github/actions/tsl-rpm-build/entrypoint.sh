@@ -26,7 +26,7 @@ if [[ "$VERSION" == *"-"* ]]; then
   RC=${VERSION##*-}
   sed -i "s/\${{ VERSION_TAG }}/${VER}/g" ${SPEC_FILE}
   sed -i "s/\${{ RELEASE_TAG }}/${RC}/g" ${SPEC_FILE}
-  RMP_FILE="${OUT}/noarch/libtsl-dev-${VER}-${RC}.noarch.rpm"
+  RPM_FILE="${OUT}/noarch/libtsl-dev-${VER}-${RC}.noarch.rpm"
 else
   sed -i "s/\${{ VERSION_TAG }}/${VERSION}/g" ${SPEC_FILE}
   sed -i "s/\${{ RELEASE_TAG }}/1/g" ${SPEC_FILE}
