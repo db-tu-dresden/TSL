@@ -189,6 +189,6 @@ class TSLFileGenerator:
             generated_files_root.add_file_include(primitive_declaration)
         for primitive_definition in sorted(self.primitive_definition_files, key=include_sort_fun):
             generated_files_root.add_file_include(primitive_definition)
-        for runtime_header in lib.relevant_runtime_headers:
-            generated_files_root.add_predefined_tsl_file_include(f'"{runtime_header.name}"')
+        #for runtime_header in lib.relevant_runtime_headers:
+        #    generated_files_root.add_predefined_tsl_file_include(f'"{runtime_header.name}"')
         self.__static_files.append(generated_files_root)
