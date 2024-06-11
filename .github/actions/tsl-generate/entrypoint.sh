@@ -6,6 +6,7 @@ TARGETS=$(echo $PARAM_TARGETS | sed 's/\[//g' | sed 's/\]//g' | sed 's/ //g' | s
 TARGETS_NAME=$(python3 /target_flags_translate.py "${PARAM_TARGETS}" --name-only)
 TARGETS_ARRAY_NOTATION=$(echo $PARAM_TARGETS | sed 's/\[//g' | sed 's/\]//g' | sed 's/ //g' | sed 's/,/:/g')
 echo "name=${TARGETS_NAME}" >> $GITHUB_OUTPUT
+TARGETS_NO_ALT=$(echo $TARGETS | sed 's/|/ /g')
 
 REPO_ROOT=/github/workspace
 
@@ -20,7 +21,7 @@ python3 /target_flags_translate.py "${PARAM_TARGETS}" >> ${GENERATION_PATH}/tsl.
 
 cd ${REPO_ROOT}
 ls -halt >> ${GENERATION_PATH}/generation.log 2>&1
-python3 ${REPO_ROOT}/main.py --targets ${TARGETS} --out ${GENERATION_PATH} >>${GENERATION_PATH}/generation.log 2>&1
+python3 ${REPO_ROOT}/main.py --targets $(echo $TARGETS_NO_ALT) --out ${GENERATION_PATH} >>${GENERATION_PATH}/generation.log 2>&1
 if [ $? -ne 0 ]; then
   echo "msg=Could not generate TSL (with $TARGETS)" >> $GITHUB_OUTPUT
   echo "success=false" >> $GITHUB_OUTPUT
