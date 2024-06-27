@@ -448,19 +448,51 @@ definitions:
     lscpu_flags: ["avx512f"]
     implementation: "return _mm512_slli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
   - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: |
+      return _mm512_and_si512(
+        _mm512_slli_epi32(data, shift),
+        _mm512_set1_epi{{ intrin_tp[ctype][1] }}((-1ul)<<shift)
+      );
+  - target_extension: "avx512"
     ctype: ["uint16_t", "int16_t"]
-    lscpu_flags: ["avx512bw"]
+    lscpu_flags: ["avx512f", "avx512bw"]
     implementation: "return _mm512_slli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t"]
+    lscpu_flags: ["avx512f", "avx512bw"]
+    implementation: |
+      return _mm512_and_si512(
+        _mm512_slli_epi16(data, shift),
+        _mm512_set1_epi8((-1ul)<<shift)
+      );
   #Intel - AVX2
   - target_extension: "avx2"
     ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["avx2"]
     implementation: "return _mm256_slli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      return _mm256_and_si256(
+        _mm256_slli_epi16(data, shift),
+        _mm256_set1_epi8((-1ul)<<shift)
+      );
   #Intel - SSE
   - target_extension: "sse"
     ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_slli_epi{{ intrin_tp[ctype][1] }}(data, shift);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      return _mm_and_si128(
+        _mm_slli_epi8(data, shift),
+        _mm_set1_epi8((-1ul)<<shift)
+      );
   #ARM - NEON
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
