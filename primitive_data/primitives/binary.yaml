@@ -881,6 +881,16 @@ definitions:
     includes: ["<type_traits>"]
     implementation: |
       if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
+        __m512i const result1_16 = _mm512_and_si512(_mm512_srai_epi32(data, shift), _mm512_set1_epi32(0xFFFF0000));
+        __m512i const result0_16 = _mm512_srli_epi32(_mm512_srai_epi32(_mm512_slli_epi32(data, 16), shift), 16);
+        return _mm512_or_si512(result0_16, result1_16);
+      } else {
+        __m512i const result0_16 = _mm512_srli_epi32(_mm512_and_si512(data, _mm512_set1_epi32(0xFFFF)), shift);
+        __m512i const result1_16 = _mm512_and_si512(_mm512_srli_epi32(data, shift), _mm512_set1_epi32(0xFFFF0000));
+        return _mm512_or_si512(result0_16, result1_16);
+      }
+    alternative: |
+      if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
         // extract the lower and upper 256 bit
         __m256i const lower256_16 = _mm512_extracti32x8_epi32(data, 0);
         __m256i const upper256_16 = _mm512_extracti32x8_epi32(data, 1);
