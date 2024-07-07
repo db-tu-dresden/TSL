@@ -1453,7 +1453,7 @@ definitions:
       if constexpr (PreserveSign) {
         return _mm256_srav_epi64(data, shift);
       } else {
-        return _mm256_srlv_epi(data, shift);
+        return _mm256_srlv_epi64(data, shift);
       }
   - target_extension: "avx2"
     ctype: ["uint16_t", "int16_t"]
