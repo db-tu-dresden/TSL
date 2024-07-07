@@ -556,9 +556,9 @@ primitive_name: "shift_left"
 functor_name: "shift_left_vector"
 brief_description: "Shifts data to left by n bits (shifting in 0)."
 detailed_description: |
-  This function shifts data to the left by n bits. The bits that are shifted out are lost and the bits that are shifted in are 0. 
-  The shift amount is specified by the shift parameter. The shift amount must be in the range [0, sizeof(typename Vec::base_type) * CHAR_BIT). 
-  If the shift amount is greater than or equal to sizeof(typename Vec::base_type) * CHAR_BIT, the result is 0. 
+  This function shifts data to the left by n bits. The bits that are shifted out are lost and the bits that are shifted in are 0.
+  The shift amount is specified by the shift parameter. The shift amount must be in the range [0, sizeof(typename Vec::base_type) * CHAR_BIT).
+  If the shift amount is greater than or equal to sizeof(typename Vec::base_type) * CHAR_BIT, the result is 0.
   Every lane within the vector is shifted by the amount specified in the corresponding lane of the shift register.
   If all lanes should be shifted by the same amount, consider using another function that takes a scalar shift parameter (as this function will add some overhead).
 parameters:
@@ -586,17 +586,17 @@ definitions:
       auto const r0 =
         _mm512_and_si512(
           _mm512_sllv_epi32(
-            data, 
+            data,
             _mm512_and_si512(shift, mask)
-          ), 
+          ),
           mask
         );
       auto const r1 =
         _mm512_and_si512(
           _mm512_sllv_epi32(
-            _mm512_and_si512(data, mask1), 
+            _mm512_and_si512(data, mask1),
             _mm512_srli_epi32(_mm512_and_si512(shift, mask1), 16)
-          ), 
+          ),
           mask1
         );
       return _mm512_or_si512(r0, r1);
@@ -613,31 +613,31 @@ definitions:
           _mm512_sllv_epi32(
             data,
             _mm512_and_si512(shift, mask)
-          ), 
+          ),
           mask
         );
       auto const r1 =
         _mm512_and_si512(
           _mm512_sllv_epi32(
-            _mm512_and_si512(data, mask1), 
+            _mm512_and_si512(data, mask1),
             _mm512_srli_epi32(_mm512_and_si512(shift, mask1), 8)
-          ), 
+          ),
           mask1
         );
       auto const r2 =
         _mm512_and_si512(
           _mm512_sllv_epi32(
-            _mm512_and_si512(data, mask2), 
+            _mm512_and_si512(data, mask2),
             _mm512_srli_epi32(_mm512_and_si512(shift, mask2), 16)
-          ), 
+          ),
           mask2
         );
       auto const r3 =
         _mm512_and_si512(
           _mm512_sllv_epi32(
-            _mm512_and_si512(data, mask3), 
+            _mm512_and_si512(data, mask3),
             _mm512_srli_epi32(_mm512_and_si512(shift, mask3), 24)
-          ), 
+          ),
           mask3
         );
       return _mm512_or_si512(_mm512_or_si512(r0, r1), _mm512_or_si512(r2, r3));
@@ -656,15 +656,15 @@ definitions:
           _mm512_sllv_epi16(
             data,
             _mm512_and_si512(shift, mask)
-          ), 
+          ),
           mask
         );
       auto const r1 =
         _mm512_and_si512(
           _mm512_sllv_epi16(
-            _mm512_and_si512(data, mask1), 
+            _mm512_and_si512(data, mask1),
             _mm512_srli_epi16(_mm512_and_si512(shift, mask1), 8)
-          ), 
+          ),
           mask1
         );
       return _mm512_or_si512(r0, r1);
@@ -690,7 +690,7 @@ definitions:
           _mm256_sllv_epi32(
             data,
             _mm256_and_si256(shift, mask)
-          ), 
+          ),
           mask
         );
       auto const r1 =
@@ -698,7 +698,7 @@ definitions:
           _mm256_sllv_epi32(
             _mm256_and_si256(data, mask1),
             _mm256_srli_epi32(_mm256_and_si256(shift, mask1), 16)
-          ), 
+          ),
           mask1
         );
       return _mm256_or_si256(r0, r1);
@@ -715,31 +715,31 @@ definitions:
           _mm256_sllv_epi32(
             data,
             _mm256_and_si256(shift, mask)
-          ), 
+          ),
           mask
         );
       auto const r1 =
         _mm256_and_si256(
           _mm256_sllv_epi32(
-            _mm256_and_si256(data, mask1), 
+            _mm256_and_si256(data, mask1),
             _mm256_srli_epi32(_mm256_and_si256(shift, mask1), 8)
-          ), 
+          ),
           mask1
         );
       auto const r2 =
         _mm256_and_si256(
           _mm256_sllv_epi32(
-            _mm256_and_si256(data, mask2), 
+            _mm256_and_si256(data, mask2),
             _mm256_srli_epi32(_mm256_and_si256(shift, mask2), 16)
-          ), 
+          ),
           mask2
         );
       auto const r3 =
         _mm256_and_si256(
           _mm256_sllv_epi32(
-            _mm256_and_si256(data, mask3), 
+            _mm256_and_si256(data, mask3),
             _mm256_srli_epi32(_mm256_and_si256(shift, mask3), 24)
-          ), 
+          ),
           mask3
         );
       return _mm256_or_si256(_mm256_or_si256(r0, r1), _mm256_or_si256(r2, r3));
@@ -752,7 +752,7 @@ definitions:
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["sse2"]
     specialization_comment: |
-      SSE does not provide a native support for lane-independent shift. 
+      SSE does not provide a native support for lane-independent shift.
       To work around this limitation, we could mask out the lanes and use PSLLW.
       However, this seems like a bad idea, as the actual processing would be done scalarly.
       Consequently, we transfer the data to the stack, process it scalarly and move the result back to the register.
@@ -767,7 +767,7 @@ definitions:
       auto const mask0 = _mm_insert_epi64(zero, 0, 0xFFFFFFFFFFFFFFFF);
       auto const mask1 = _mm_slli_si128(mask0, 8);
       auto const shift1 = _mm_srli_si128(shift, 8);
-      auto const r0 = 
+      auto const r0 =
         _mm_and_si128(
           _mm_sll_epi64(data, shift),
           mask0
@@ -881,7 +881,7 @@ definitions:
     includes: ["<type_traits>"]
     implementation: |
       if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
-        // extract the lower and upper 256 bit 
+        // extract the lower and upper 256 bit
         __m256i const lower256_16 = _mm512_extracti32x8_epi32(data, 0);
         __m256i const upper256_16 = _mm512_extracti32x8_epi32(data, 1);
         // Sign extend packed 16-bit integers in a to packed 32-bit integers
@@ -908,7 +908,7 @@ definitions:
     includes: ["<type_traits>"]
     implementation: |
       if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
-        // extract the lower and upper 128 bit 
+        // extract the lower and upper 128 bit
         __m128i const data0_128_8 = _mm512_extracti32x4_epi32(data, 0);
         __m128i const data1_128_8 = _mm512_extracti32x4_epi32(data, 1);
         __m128i const data2_128_8 = _mm512_extracti32x4_epi32(data, 2);
@@ -925,13 +925,13 @@ definitions:
         __m512i const data1_128_32_shifted = _mm512_srai_epi32(data1_128_32, shift);
         __m512i const data2_128_32_shifted = _mm512_srai_epi32(data2_128_32, shift);
         __m512i const data3_128_32_shifted = _mm512_srai_epi32(data3_128_32, shift);
-        
+
         // Convert packed 32-bit integers in a to packed 16-bit integers with truncation
         __m128i const data0_128_8_shifted = _mm512_cvtepi32_epi8(data0_128_32_shifted);
         __m128i const data1_128_8_shifted = _mm512_cvtepi32_epi8(data1_128_32_shifted);
         __m128i const data2_128_8_shifted = _mm512_cvtepi32_epi8(data2_128_32_shifted);
         __m128i const data3_128_8_shifted = _mm512_cvtepi32_epi8(data3_128_32_shifted);
-        
+
         // Merge partial results
         __m512i result = _mm512_zextsi128_si512(data0_128_8_shifted);
         result = _mm512_inserti32x4(result, data1_128_8_shifted, 1);
@@ -1149,7 +1149,7 @@ testing:
           if (!allOk) {
             std::cerr << "Error with " << tsl::type_name<Vec>() << "(" << sizeof(typename Vec::base_type) << " * " << Vec::vector_element_count() << ")" << std::endl;
             for (auto x = 0; x < Vec::vector_element_count(); ++x) {
-              std::cerr << "data[" << x << "] = " << ref_data[i+x] << " >> " << shift << std::endl; 
+              std::cerr << "data[" << x << "] = " << ref_data[i+x] << " >> " << shift << std::endl;
               std::cerr << "expected_result[" << x << "] = " << expected_result[x] << std::endl;
               std::cerr << "test_result[" << x << "] = " << test_helper.result_target()[x] << std::endl;
             }
@@ -1232,7 +1232,7 @@ definitions:
       }
     alternative: |
       if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
-        // extract the lower and upper 256 bit 
+        // extract the lower and upper 256 bit
         __m256i const lower256_16 = _mm512_extracti32x8_epi32(data, 0);
         __m256i const shift_lower_256_16 = _mm512_extracti32x8_epi32(shift, 0);
         __m256i const upper256_16 = _mm512_extracti32x8_epi32(data, 1);
@@ -1259,7 +1259,7 @@ definitions:
         // Perform logical right shift on each 32-bit element
         __m512i result_low = _mm512_srlv_epi32(data_low, shift_values_low);
         __m512i result_high = _mm512_srlv_epi32(data_high, shift_values_high);
-        
+
         // Merge results and return
         return = _mm512_or_si512(result_low, _mm512_slli_epi32(result_high, 16));
       }
@@ -1274,7 +1274,7 @@ definitions:
         __m512i const shift2_8  = _mm512_and_si512(_mm512_srli_epi32(shift, 16), valid_bits);
         __m512i const shift3_8  = _mm512_and_si512(_mm512_srli_epi32(shift, 24), valid_bits);
         __m512i const result3_8 = _mm512_and_si512(_mm512_srav_epi32(data, shift3_8), _mm512_slli_epi32(valid_bits, 24));
-        __m512i const result2_8 = 
+        __m512i const result2_8 =
           _mm512_and_si512(
             _mm512_srli_epi32(
               _mm512_srav_epi32(
@@ -1285,7 +1285,7 @@ definitions:
             ),
             _mm512_slli_epi32(valid_bits, 16)
           );
-        __m512i const result1_8 = 
+        __m512i const result1_8 =
           _mm512_and_si512(
             _mm512_srli_epi32(
               _mm512_srav_epi32(
@@ -1296,7 +1296,7 @@ definitions:
             ),
             _mm512_slli_epi32(valid_bits, 8)
           );
-        __m512i const result0_8 = 
+        __m512i const result0_8 =
           _mm512_and_si512(
             _mm512_srli_epi32(
               _mm512_srav_epi32(
@@ -1306,7 +1306,7 @@ definitions:
               24
             ),
             valid_bits
-          );          
+          );
         return _mm512_or_si512(_mm512_or_si512(result0_8, result1_8), _mm512_or_si512(result2_8, result3_8));
       } else {
         __m512i const valid_bits = _mm512_set1_epi32(0xFF);
@@ -1314,52 +1314,52 @@ definitions:
         __m512i const shift1_8  = _mm512_and_si512(_mm512_srli_epi32(shift, 8), valid_bits);
         __m512i const shift2_8  = _mm512_and_si512(_mm512_srli_epi32(shift, 16), valid_bits);
         __m512i const shift3_8  = _mm512_and_si512(_mm512_srli_epi32(shift, 24), valid_bits);
-        __m512i const result0_8 = 
+        __m512i const result0_8 =
           _mm512_and_si512(
             _mm512_srlv_epi32(
-              _mm512_and_si512(data, valid_bits), 
+              _mm512_and_si512(data, valid_bits),
               shift0_8
-            ), 
+            ),
             valid_bits
           );
-        __m512i const result1_8 = 
+        __m512i const result1_8 =
           _mm512_and_si512(
             _mm512_srlv_epi32(
               _mm512_and_si512(
-                data, 
+                data,
                 _mm512_slli_epi32(valid_bits, 8)
-              ), 
+              ),
               shift1_8
-            ), 
+            ),
             _mm512_slli_epi32(valid_bits, 8)
           );
-        __m512i const result2_8 = 
+        __m512i const result2_8 =
           _mm512_and_si512(
             _mm512_srlv_epi32(
               _mm512_and_si512(
-                data, 
+                data,
                 _mm512_slli_epi32(valid_bits, 16)
-              ), 
+              ),
               shift2_8
-            ), 
+            ),
             _mm512_slli_epi32(valid_bits, 16)
           );
-        __m512i const result3_8 = 
+        __m512i const result3_8 =
           _mm512_and_si512(
             _mm512_srlv_epi32(
               _mm512_and_si512(
-                data, 
+                data,
                 _mm512_slli_epi32(valid_bits, 24)
-              ), 
+              ),
               shift3_8
-            ), 
+            ),
             _mm512_slli_epi32(valid_bits, 24)
           );
         return _mm512_or_si512(_mm512_or_si512(result0_8, result1_8), _mm512_or_si512(result2_8, result3_8));
       }
     alternative: |
       if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
-        // extract the lower and upper 256 bit 
+        // extract the lower and upper 256 bit
         __m128i const data0_128_8 = _mm512_extracti32x4_epi32(data, 0);
         __m128i const shift0_128_8 = _mm512_extracti32x4_epi32(shift, 0);
         __m128i const data1_128_8 = _mm512_extracti32x4_epi32(data, 1);
@@ -1498,7 +1498,7 @@ definitions:
         __m256i const shift2_8  = _mm256_and_si256(_mm256_srli_epi32(shift, 16), valid_bits);
         __m256i const shift3_8  = _mm256_and_si256(_mm256_srli_epi32(shift, 24), valid_bits);
         __m256i const result3_8 = _mm256_and_si256(_mm256_srav_epi32(data, shift3_8), _mm256_slli_epi32(valid_bits, 24));
-        __m256i const result2_8 = 
+        __m256i const result2_8 =
           _mm256_and_si256(
             _mm256_srli_epi32(
               _mm256_srav_epi32(
@@ -1509,7 +1509,7 @@ definitions:
             ),
             _mm256_slli_epi32(valid_bits, 16)
           );
-        __m256i const result1_8 = 
+        __m256i const result1_8 =
           _mm256_and_si256(
             _mm256_srli_epi32(
               _mm256_srav_epi32(
@@ -1520,7 +1520,7 @@ definitions:
             ),
             _mm256_slli_epi32(valid_bits, 8)
           );
-        __m256i const result0_8 = 
+        __m256i const result0_8 =
           _mm256_and_si256(
             _mm256_srli_epi32(
               _mm256_srav_epi32(
@@ -1530,7 +1530,7 @@ definitions:
               24
             ),
             valid_bits
-          );          
+          );
         return _mm256_or_si256(_mm256_or_si256(result0_8, result1_8), _mm256_or_si256(result2_8, result3_8));
       } else {
         __m256i const valid_bits = _mm256_set1_epi32(0xFF);
@@ -1538,45 +1538,45 @@ definitions:
         __m256i const shift1_8   = _mm256_and_si256(_mm256_srli_epi32(shift, 8), valid_bits);
         __m256i const shift2_8   = _mm256_and_si256(_mm256_srli_epi32(shift, 16), valid_bits);
         __m256i const shift3_8   = _mm256_and_si256(_mm256_srli_epi32(shift, 24), valid_bits);
-        __m256i const result0_8  = 
+        __m256i const result0_8  =
           _mm256_and_si256(
             _mm256_srlv_epi32(
-              _mm256_and_si256(data, valid_bits), 
+              _mm256_and_si256(data, valid_bits),
               shift0_8
-            ), 
+            ),
             valid_bits
           );
-        __m256i const result1_8 = 
+        __m256i const result1_8 =
           _mm256_and_si256(
             _mm256_srlv_epi32(
               _mm256_and_si256(
-                data, 
+                data,
                 _mm256_slli_epi32(valid_bits, 8)
-              ), 
+              ),
               shift1_8
-            ), 
+            ),
             _mm256_slli_epi32(valid_bits, 8)
           );
-        __m256i const result2_8 = 
+        __m256i const result2_8 =
           _mm256_and_si256(
             _mm256_srlv_epi32(
               _mm256_and_si256(
-                data, 
+                data,
                 _mm256_slli_epi32(valid_bits, 16)
-              ), 
+              ),
               shift2_8
-            ), 
+            ),
             _mm256_slli_epi32(valid_bits, 16)
           );
-        __m256i const result3_8 = 
+        __m256i const result3_8 =
           _mm256_and_si256(
             _mm256_srlv_epi32(
               _mm256_and_si256(
-                data, 
+                data,
                 _mm256_slli_epi32(valid_bits, 24)
-              ), 
+              ),
               shift3_8
-            ), 
+            ),
             _mm256_slli_epi32(valid_bits, 24)
           );
         return _mm256_or_si256(_mm256_or_si256(result0_8, result1_8), _mm256_or_si256(result2_8, result3_8));
