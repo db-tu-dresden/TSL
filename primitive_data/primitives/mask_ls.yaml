@@ -413,7 +413,7 @@ testing:
       for (auto rep = 0; rep < repetition_count; ++rep) {
         testing::rnd_init(&imask, 1);
         for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
-          if ( (imask >> i) & 0b1 == 1 ) {
+          if (((imask >> i) & 0b1) == 1 ) {
             reference_result_ptr[i] = i+1;
           } else {
             reference_result_ptr[i] = Vec::vector_element_count()*2;
@@ -504,7 +504,7 @@ definitions:
     implementation: |
       const auto imask = tsl::to_integral<Vec>(mask);
       for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-        if ((imask >> i) & 0b1 == true) {
+        if (((imask >> i) & 0b1) == true) {
           memory[i] = data[i];
         }
       }
