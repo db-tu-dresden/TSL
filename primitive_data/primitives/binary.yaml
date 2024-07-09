@@ -918,6 +918,20 @@ definitions:
     includes: ["<type_traits>"]
     implementation: |
       if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
+        __m512i const valid_bits = _mm512_set1_epi32(0xFF);
+        __m512i const result0_8 = _mm512_srli_epi32(_mm512_srai_epi32(_mm512_slli_epi32(data, 24), shift), 24);
+        __m512i const result1_8 = _mm512_and_si512(_mm512_srli_epi32(_mm512_srai_epi32(_mm512_slli_epi32(data, 16), shift), 16), _mm512_slli_epi32(valid_bits, 8));
+        __m512i const result2_8 = _mm512_and_si512(_mm512_srli_epi32(_mm512_srai_epi32(_mm512_slli_epi32(data, 8), shift), 8), _mm512_slli_epi32(valid_bits, 16));
+        __m512i const result3_8 = _mm512_and_si512(_mm512_srai_epi32(data, shift), _mm512_slli_epi32(valid_bits, 24));
+        return _mm512_or_si512(_mm512_or_si512(result0_8, result1_8), _mm512_or_si512(result2_8, result3_8));
+      } else {
+        return _mm512_and_si512(
+          _mm512_srli_epi32(data, shift),
+          _mm512_set1_epi8((static_cast<uint8_t>(-1))>>shift)
+        );
+      }
+    alternative: |
+      if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
         // extract the lower and upper 128 bit
         __m128i const data0_128_8 = _mm512_extracti32x4_epi32(data, 0);
         __m128i const data1_128_8 = _mm512_extracti32x4_epi32(data, 1);
@@ -964,15 +978,6 @@ definitions:
       }
   #Intel - AVX2
   - target_extension: "avx2"
-    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t"]
-    lscpu_flags: ["avx2"]
-    implementation: |
-      if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
-        return _mm256_srai_epi{{ intrin_tp[ctype][1] }}(data, shift);
-      } else {
-        return _mm256_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);
-      }
-  - target_extension: "avx2"
     ctype: ["int64_t"]
     lscpu_flags: ["avx2"]
     implementation: |
@@ -1006,20 +1011,37 @@ definitions:
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]
     implementation: |
       if constexpr(PreserveSign) {
+        return _mm256_srai_epi64(data, shift);
+      } else {
+        return _mm256_srli_epi64(data, shift);
+      }
+  - target_extension: "avx2"
+    ctype: ["uint16_t", "uint32_t", "uint64_t", "int16_t", "int32_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
         return _mm256_srai_epi{{ intrin_tp[ctype][1] }}(data, shift);
       } else {
         return _mm256_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);
       }
- #Intel - SSE
-  - target_extension: "sse"
-    ctype: ["uint16_t", "uint32_t", "int16_t", "int32_t", "uint64_t"]
-    lscpu_flags: ["sse2"]
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t"]
+    lscpu_flags: ["avx2"]
     implementation: |
       if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
-        return _mm_srai_epi{{ intrin_tp[ctype][1] }}(data, shift);
+        __m256i const valid_bits = _mm256_set1_epi32(0xFF);
+        __m256i const result0_8  = _mm256_srli_epi32(_mm256_srai_epi32(_mm256_slli_epi32(data, 24), shift), 24);
+        __m256i const result1_8  = _mm256_and_si256( _mm256_srli_epi32(_mm256_srai_epi32(_mm256_slli_epi32(data, 16), shift), 16), _mm256_slli_epi32(valid_bits, 8));
+        __m256i const result2_8  = _mm256_and_si256( _mm256_srli_epi32(_mm256_srai_epi32(_mm256_slli_epi32(data, 8), shift), 8), _mm256_slli_epi32(valid_bits, 16));
+        __m256i const result3_8  = _mm256_and_si256( _mm256_srai_epi32(data, shift), _mm256_slli_epi32(valid_bits, 24));
+        return _mm256_or_si256(_mm256_or_si256(result0_8, result1_8), _mm256_or_si256(result2_8, result3_8));
       } else {
-        return _mm_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);
+        return _mm256_and_si256(
+          _mm256_srli_epi32(data, shift),
+          _mm256_set1_epi8((static_cast<uint8_t>(-1))>>shift)
+        );
       }
+ #Intel - SSE
   - target_extension: "sse"
     ctype: ["int64_t"]
     lscpu_flags: ["sse2", "avx512f", "avx512vl"]
@@ -1056,6 +1078,32 @@ definitions:
         return _mm_or_si128(shifted, result_msb);
       } else {
         return _mm_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);
+      }
+  - target_extension: "sse"
+    ctype: ["uint16_t", "uint32_t", "int16_t", "int32_t", "uint64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
+        return _mm_srai_epi{{ intrin_tp[ctype][1] }}(data, shift);
+      } else {
+        return _mm_srli_epi{{ intrin_tp[ctype][1] }}(data, shift);
+      }
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
+        __m128i const valid_bits = _mm_set1_epi32(0xFF);
+        __m128i const result0_8  = _mm_srli_epi32(_mm_srai_epi32(_mm_slli_epi32(data, 24), shift), 24);
+        __m128i const result1_8  = _mm_and_si128( _mm_srli_epi32(_mm_srai_epi32(_mm_slli_epi32(data, 16), shift), 16), _mm_slli_epi32(valid_bits, 8));
+        __m128i const result2_8  = _mm_and_si128( _mm_srli_epi32(_mm_srai_epi32(_mm_slli_epi32(data, 8), shift), 8), _mm_slli_epi32(valid_bits, 16));
+        __m128i const result3_8  = _mm_and_si128( _mm_srai_epi32(data, shift), _mm_slli_epi32(valid_bits, 24));
+        return _mm_or_si128(_mm_or_si128(result0_8, result1_8), _mm_or_si128(result2_8, result3_8));
+      } else {
+        return _mm_and_si128(
+          _mm_srli_epi32(data, shift),
+          _mm_set1_epi8((static_cast<uint8_t>(-1))>>shift)
+        );
       }
   # - target_extension: "sse"
   #   ctype: ["float"]
@@ -1159,9 +1207,13 @@ testing:
           if (!allOk) {
             std::cerr << "Error with " << tsl::type_name<Vec>() << "(" << sizeof(typename Vec::base_type) << " * " << Vec::vector_element_count() << ")" << std::endl;
             for (auto x = 0; x < Vec::vector_element_count(); ++x) {
-              std::cerr << "data[" << x << "] = " << ref_data[i+x] << " >> " << shift << std::endl;
-              std::cerr << "expected_result[" << x << "] = " << expected_result[x] << std::endl;
-              std::cerr << "test_result[" << x << "] = " << test_helper.result_target()[x] << std::endl;
+              if (test_helper.result_target()[x] != expected_result[x]) {
+                std::cerr << "==================================== START ====================================" << std::endl;
+                std::cerr << "data[" << x << "] = " << +(ref_data[i+x]) << " >> " << +shift << std::endl;
+                std::cerr << "expected_result[" << x << "] = " << +(expected_result[x]) << std::endl;
+                std::cerr << "test_result[" << x << "] = " << +(test_helper.result_target()[x]) << std::endl;
+                std::cerr << "==================================== END  ====================================" << std::endl;
+              }
             }
           }
         }
@@ -1636,6 +1688,16 @@ definitions:
     includes: ["<climits>"]
     implementation: |
       if constexpr (PreserveSign) {
+        __m128i result = _mm_srlv_epi64(data, shift);
+        __m128i sign_mask = _mm_cmpgt_epi64(_mm_setzero_si128(), data);
+        sign_mask = _mm_sllv_epi64(sign_mask, _mm_sub_epi64(_mm_set1_epi64x(64), shift));
+        result = _mm_or_si128(result, sign_mask);
+        return result;
+      } else {
+        return _mm_srlv_epi64(data, shift);
+      }
+    alternative: |
+      if constexpr (PreserveSign) {
         auto const shifted = _mm_srlv_epi64(data, shift);
         auto const msb_as_lsb = _mm_srli_epi64(data, sizeof(int64_t)*CHAR_BIT-1);
         auto const lsb_shifted = _mm_sllv_epi64(msb_as_lsb, shift);
@@ -1655,6 +1717,117 @@ definitions:
         return _mm_srav_epi{{ intrin_tp[ctype][1] }}(data, shift);
       } else {
         return _mm_srlv_epi{{ intrin_tp[ctype][1] }}(data, shift);
+      }
+  - target_extension: "sse"
+    ctype: ["uint16_t", "int16_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
+        __m128i const shift0_16 = _mm_and_si128(shift, _mm_set1_epi32(0xFFFF));
+        __m128i const shift1_16 = _mm_srli_epi32(shift, 16);
+        __m128i const result1_16 = _mm_and_si128(_mm_srav_epi32(data, shift1_16), _mm_set1_epi32(0xFFFF0000));
+        __m128i const result0_16 = _mm_srli_epi32(_mm_srav_epi32(_mm_slli_epi32(data, 16), shift0_16), 16);
+        return _mm_or_si128(result0_16, result1_16);
+      } else {
+        __m128i const shift0_16 = _mm_and_si128(shift, _mm_set1_epi32(0xFFFF));
+        __m128i const shift1_16 = _mm_srli_epi32(shift, 16);
+        __m128i const result0_16 = _mm_srlv_epi32(_mm_and_si128(data, _mm_set1_epi32(0xFFFF)), shift0_16);
+        __m128i const result1_16 = _mm_and_si128(_mm_srlv_epi32(data, shift1_16), _mm_set1_epi32(0xFFFF0000));
+        return _mm_or_si128(result0_16, result1_16);
+      }
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
+        __m128i const valid_bits = _mm_set1_epi32(0xFF);
+        __m128i const shift0_8  = _mm_and_si128(shift, valid_bits);
+        __m128i const shift1_8  = _mm_and_si128(_mm_srli_epi32(shift, 8), valid_bits);
+        __m128i const shift2_8  = _mm_and_si128(_mm_srli_epi32(shift, 16), valid_bits);
+        __m128i const shift3_8  = _mm_and_si128(_mm_srli_epi32(shift, 24), valid_bits);
+        __m128i const result3_8 = _mm_and_si128(_mm_srav_epi32(data, shift3_8), _mm_slli_epi32(valid_bits, 24));
+        __m128i const result2_8 =
+          _mm_and_si128(
+            _mm_srli_epi32(
+              _mm_srav_epi32(
+                _mm_slli_epi32(data, 8),
+                shift2_8
+              ),
+              8
+            ),
+            _mm_slli_epi32(valid_bits, 16)
+          );
+        __m128i const result1_8 =
+          _mm_and_si128(
+            _mm_srli_epi32(
+              _mm_srav_epi32(
+                _mm_slli_epi32(data, 16),
+                shift1_8
+              ),
+              16
+            ),
+            _mm_slli_epi32(valid_bits, 8)
+          );
+        __m128i const result0_8 =
+          _mm_and_si128(
+            _mm_srli_epi32(
+              _mm_srav_epi32(
+                _mm_slli_epi32(data, 24),
+                shift0_8
+              ),
+              24
+            ),
+            valid_bits
+          );
+        return _mm_or_si128(_mm_or_si128(result0_8, result1_8), _mm_or_si128(result2_8, result3_8));
+      } else {
+        __m128i const valid_bits = _mm_set1_epi32(0xFF);
+        __m128i const shift0_8   = _mm_and_si128(shift, valid_bits);
+        __m128i const shift1_8   = _mm_and_si128(_mm_srli_epi32(shift, 8), valid_bits);
+        __m128i const shift2_8   = _mm_and_si128(_mm_srli_epi32(shift, 16), valid_bits);
+        __m128i const shift3_8   = _mm_and_si128(_mm_srli_epi32(shift, 24), valid_bits);
+        __m128i const result0_8  =
+          _mm_and_si128(
+            _mm_srlv_epi32(
+              _mm_and_si128(data, valid_bits),
+              shift0_8
+            ),
+            valid_bits
+          );
+        __m128i const result1_8 =
+          _mm_and_si128(
+            _mm_srlv_epi32(
+              _mm_and_si128(
+                data,
+                _mm_slli_epi32(valid_bits, 8)
+              ),
+              shift1_8
+            ),
+            _mm_slli_epi32(valid_bits, 8)
+          );
+        __m128i const result2_8 =
+          _mm_and_si128(
+            _mm_srlv_epi32(
+              _mm_and_si128(
+                data,
+                _mm_slli_epi32(valid_bits, 16)
+              ),
+              shift2_8
+            ),
+            _mm_slli_epi32(valid_bits, 16)
+          );
+        __m128i const result3_8 =
+          _mm_and_si128(
+            _mm_srlv_epi32(
+              _mm_and_si128(
+                data,
+                _mm_slli_epi32(valid_bits, 24)
+              ),
+              shift3_8
+            ),
+            _mm_slli_epi32(valid_bits, 24)
+          );
+        return _mm_or_si128(_mm_or_si128(result0_8, result1_8), _mm_or_si128(result2_8, result3_8));
       }
   #ARM - NEON
   - target_extension: "neon"
