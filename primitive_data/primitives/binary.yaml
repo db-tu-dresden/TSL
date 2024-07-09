@@ -1720,7 +1720,7 @@ definitions:
       }
   - target_extension: "sse"
     ctype: ["uint16_t", "int16_t"]
-    lscpu_flags: ["sse2"]
+    lscpu_flags: ["sse2", "avx2"]
     implementation: |
       if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
         __m128i const shift0_16 = _mm_and_si128(shift, _mm_set1_epi32(0xFFFF));
@@ -1737,7 +1737,7 @@ definitions:
       }
   - target_extension: "sse"
     ctype: ["uint8_t", "int8_t"]
-    lscpu_flags: ["sse2"]
+    lscpu_flags: ["sse2", "avx2"]
     implementation: |
       if constexpr ((std::is_signed_v<typename Vec::base_type>) && (PreserveSign)) {
         __m128i const valid_bits = _mm_set1_epi32(0xFF);
