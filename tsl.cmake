@@ -171,6 +171,7 @@ function(create_tsl)
       ANY
   )
   set(TSL_INCLUDE_DIRECTORY "${TSL_GENERATOR_DESTINATION}/include" CACHE STRING "include path of TSL")
+  set(TSL_INCLUDE_DIRECTORY_ROOT "${TSL_GENERATOR_DESTINATION}/" CACHE STRING "root path of TSL")
   add_subdirectory("${TSL_GENERATOR_DESTINATION}" "${TSL_GENERATOR_DESTINATION}/build")
 
 endfunction()
