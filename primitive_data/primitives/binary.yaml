@@ -465,12 +465,12 @@ definitions:
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
     lscpu_flags: [ 'neon' ]
-    implementation: "return vshlq_n_{{ intrin_tp_full[ctype] }}(data, shift);"
+    implementation: "return vshlq_{{ intrin_tp_full[ctype] }}(data, vdupq_n_s{{ intrin_tp[ctype][1] }}(shift));"
   - target_extension: "neon"
     ctype: ["float", "double"]
     lscpu_flags: ['neon']
     note: "is it a good idea to support bitmanipulation for floats and doubles?"
-    implementation: return vcvtq_{{intrin_tp_full[ctype]}}_u{{intrin_tp[ctype][1]}}(vshlq_n_u{{intrin_tp[ctype][1]}}(vcvtq_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(data), shift));
+    implementation: return vcvtq_{{intrin_tp_full[ctype]}}_u{{intrin_tp[ctype][1]}}(vshlq_u{{intrin_tp[ctype][1]}}(vcvtq_u{{intrin_tp[ctype][1]}}_{{intrin_tp_full[ctype]}}(data), vdupq_n_s{{ intrin_tp[ctype][1] }}(shift)));
   #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
@@ -745,15 +745,15 @@ definitions:
     implementation: |
       if constexpr (std::is_signed_v<typename Vec::base_type>) {
         if constexpr (PreserveSign) {
-          return vshrq_n_{{ intrin_tp_full[ctype] }}(data, shift);
+          return vshlq_s{{ intrin_tp[ctype][1] }}(data, vdupq_n_s{{ intrin_tp[ctype][1] }}(-shift));
         } else {
-          return vshrq_n_u{{ intrin_tp[ctype][1] }}(
+          return vshlq_u{{ intrin_tp[ctype][1] }}(
             vreinterpretq_u{{ intrin_tp[ctype][1] }}_s{{ intrin_tp[ctype][1] }}(data),
-            shift
+            vdupq_n_s{{ intrin_tp[ctype][1] }}(-shift)
           );
         }
       } else {
-        return vshrq_n_u{{ intrin_tp[ctype][1] }}(data, shift);
+        return vshlq_u{{ intrin_tp[ctype][1] }}(data, vdupq_n_s{{ intrin_tp[ctype][1] }}(-shift));
       }
   #SCALAR
   - target_extension: "scalar"
