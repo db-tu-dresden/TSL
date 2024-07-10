@@ -3,8 +3,8 @@ description: "Definition of the SIMD TargetExtension avx512."
 vendor: "intel"
 extension_name: "avx512"
 #todo: these are not all lscpu flags but a sample
-lscpu_flags: 
-  - "avx512f" 
+lscpu_flags:
+  - "avx512f"
   - "avx512bw"
   - "avx512cd"
   - "avx512dq"
@@ -14,7 +14,7 @@ lscpu_flags:
   - "avx512_vbmi2"
   - "avx512_fp16"
   - "avx512_vpopcntdq"
-arch_flags: 
+arch_flags:
   "avx512_fp16": "avx512fp16"
   "avx512_vpopcntdq": "avx512vpopcntdq"
   "avx512_vbmi2": "avx512vbmi2"
