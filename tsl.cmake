@@ -19,18 +19,15 @@ function(create_tsl)
   if (CREATE_TSL_ARGS_TARGETS_FLAGS STREQUAL "" OR NOT DEFINED CREATE_TSL_ARGS_TARGETS_FLAGS)
     set(TARGETS_FLAGS "") # STRING "space separated lscpu flags for --targets, will attempt to call lscpu if empty"
     execute_process(
-        COMMAND "${Python3_EXECUTABLE}" -c "import cpuinfo; print(*cpuinfo.get_cpu_info()['flags'])"
-        OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE TARGETS_FLAGS
+      COMMAND "${Python3_EXECUTABLE}" "${TSLGENERATOR_DIRECTORY}/detect_flags.py" 
+      OUTPUT_VARIABLE TARGETS_FLAGS
+      RESULT_VARIABLE TSLHardwareReturnValue
     )
-    if(TARGETS_FLAGS STREQUAL "")
-      execute_process(
-        COMMAND bash -c "LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' '"
-        OUTPUT_VARIABLE TARGETS_FLAGS
-        RESULT_VARIABLE TSLHardwareReturnValue
-      )
-      if(NOT TSLHardwareReturnValue EQUAL 0)
-        message(FATAL_ERROR "Could not determine hardware flags. Please specify them manually.")
-      endif()
+    # Remove trailing newline from the Python output
+    string(REGEX REPLACE "\n$" "" TARGETS_FLAGS "${TARGETS_FLAGS}")
+
+    if(NOT TSLHardwareReturnValue EQUAL 0)
+      message(FATAL_ERROR "Could not determine hardware flags. Please specify them manually.")
     endif()
     message(STATUS "lscpu flags: ${TARGETS_FLAGS}")
   else()
@@ -168,9 +165,9 @@ function(create_tsl)
       COMMAND "${Python3_EXECUTABLE}" "${TSLGENERATOR_DIRECTORY}/main.py" 
       ${TSL_GENERATOR_OPTIONS} -o "${TSL_GENERATOR_DESTINATION}"
       ${TSL_TARGETS_SWITCH} ${TSL_PRIMITIVE_SWITCH} ${TSL_TYPES_SWITCH}
-      ANY
   )
-  set(TSL_INCLUDE_DIRECTORY "${TSL_GENERATOR_DESTINATION}" CACHE STRING "include path of TSL")
+  set(TSL_INCLUDE_DIRECTORY "${TSL_GENERATOR_DESTINATION}/include" CACHE STRING "include path of TSL")
+  set(TSL_INCLUDE_DIRECTORY_ROOT "${TSL_GENERATOR_DESTINATION}/" CACHE STRING "root path of TSL")
   add_subdirectory("${TSL_GENERATOR_DESTINATION}" "${TSL_GENERATOR_DESTINATION}/build")
 
 endfunction()
