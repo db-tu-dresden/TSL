@@ -207,7 +207,7 @@ definitions:
     lscpu_flags: ["neon"]
     is_native: False
     implementation: |
-      auto mask_values_array = tsl::to_array<typename Vec::transform_extension<typename Vec::offset_base_type>>(vec_mask);
+      auto mask_values_array = tsl::to_array<typename Vec:: template transform_extension<typename Vec::offset_base_type>>(vec_mask);
       typename Vec::imask_type mask_integral = 0;
       for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
         mask_integral |= (mask_values_array[i] & 0b1) << i;
@@ -514,7 +514,7 @@ primitive_name: "gather"
 functor_name: "mask_gather"
 additional_simd_template_parameter:
   name: "IndicesType"
-  default_value: "typename Vec::offset_register_type"
+  default_value:  "typename Vec::template transform_extension<typename Vec::offset_base_type>"
 brief_description: "If mask[i] is 1, load memory[index[i] * scale], otherwise use source[i]"
 additional_non_specialized_template_parameters:
   - ctype: "int"
@@ -585,7 +585,7 @@ definitions:
     is_native: False
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
-      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
+      using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       auto const src_array = tsl::to_array<Vec>(source);
       auto const mask_array = tsl::to_array<Vec>(mask);
@@ -629,7 +629,7 @@ definitions:
       auto const src_array = tsl::to_array<Vec>(source);
       auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
       auto const idx_array = tsl::to_array<IndicesType>(index);
-      using VecMaskT = typename Vec::transform_extension<{{ additional_simd_template_base_type }}>;
+      using VecMaskT = typename Vec:: template transform_extension<{{ additional_simd_template_base_type }}>;
       auto const mask_array = tsl::to_array<VecMaskT>(mask);
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (mask_array[i] == 0) ? src_array[i] : mem[idx_array[i]];
@@ -700,7 +700,7 @@ definitions:
     includes: ["<array>"]
     implementation: |
       auto const val_array = tsl::to_array<Vec>(data);
-      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
+      using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       auto const mask_array = tsl::to_array<Vec>(mask);
       TSL_UNROLL(Vec::vector_element_count())
@@ -726,7 +726,7 @@ definitions:
     is_native: False
     implementation: |
       auto const val_array = tsl::to_array<Vec>(data);
-      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
+      using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       auto const mask_array = tsl::to_array<Vec>(mask);
       TSL_UNROLL(Vec::vector_element_count())
@@ -755,8 +755,8 @@ definitions:
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> val_array{};
       alignas(Vec::vector_size_B()) std::array<typename Vec::offset_base_type, Vec::vector_element_count()> mask_array{};
       tsl::store<Vec>(val_array.data(), data);
-      tsl::store<typename Vec::transform_extension<Vec::offset_base_type>>(idx_array.data(), index);
-      tsl::store<typename Vec::transform_extension<Vec::offset_base_type>>(mask_array.data(), mask);
+      tsl::store<typename Vec:: template transform_extension<Vec::offset_base_type>>(idx_array.data(), index);
+      tsl::store<typename Vec:: template transform_extension<Vec::offset_base_type>>(mask_array.data(), mask);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {

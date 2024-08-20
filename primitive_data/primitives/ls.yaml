@@ -877,7 +877,7 @@ primitive_name: "gather"
 brief_description: "Transfers data from arbitrary locations into a vector register."
 additional_simd_template_parameter:
   name: "IndicesType"
-  default_value:  "typename Vec::offset_register_type"
+  default_value:  "typename Vec:: template transform_extension<typename Vec::offset_base_type>"
 additional_non_specialized_template_parameters:
   - ctype: "int"
     name: "N"
@@ -1103,7 +1103,7 @@ definitions:
     includes: ["<array>"]
     implementation: |
       auto const val_array = tsl::to_array<Vec>(data);
-      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
+      using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
@@ -1126,7 +1126,7 @@ definitions:
     is_native: False
     implementation: |
       auto const val_array = tsl::to_array<Vec>(data);
-      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
+      using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
@@ -1149,7 +1149,7 @@ definitions:
     is_native: False
     implementation: |
       auto const val_array = tsl::to_array<Vec>(data);
-      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
+      using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
@@ -1292,7 +1292,7 @@ definitions:
       auto const orig_mem = memory;
       auto const data_array = tsl::to_array<Vec>(data);
       typename Vec::base_type safe[Vec::vector_element_count()];
-      std::memcpy(reinterpret_cast<void*>(safe), reinterpret_cast<void const *>(memory), Vec::vector_size_B());
+      std::memcpy(static_cast<void*>(safe), static_cast<void const *>(memory), Vec::vector_size_B());
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         *memory = data_array[i];
@@ -1333,7 +1333,15 @@ definitions:
     lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
     implementation: "_mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
   #INTEL - SSE
-  - target_extension: ["sse"]
+  - target_extension: "sse"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2", "avx512f", "avx512vl"]
+    implementation: "_mm_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["sse2", "avx512f", "avx512vl"]
+    implementation: "_mm_mask_compressstoreu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     is_native: False
     lscpu_flags: ["sse2"]
