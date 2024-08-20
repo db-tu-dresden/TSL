@@ -877,7 +877,7 @@ primitive_name: "gather"
 brief_description: "Transfers data from arbitrary locations into a vector register."
 additional_simd_template_parameter:
   name: "IndicesType"
-  default_value:  "typename Vec::transform_extension<typename Vec::offset_base_type>"
+  default_value:  "typename Vec:: template transform_extension<typename Vec::offset_base_type>"
 additional_non_specialized_template_parameters:
   - ctype: "int"
     name: "N"
@@ -1103,7 +1103,7 @@ definitions:
     includes: ["<array>"]
     implementation: |
       auto const val_array = tsl::to_array<Vec>(data);
-      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
+      using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
@@ -1126,7 +1126,7 @@ definitions:
     is_native: False
     implementation: |
       auto const val_array = tsl::to_array<Vec>(data);
-      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
+      using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
@@ -1149,7 +1149,7 @@ definitions:
     is_native: False
     implementation: |
       auto const val_array = tsl::to_array<Vec>(data);
-      using offsetExt = typename Vec::transform_extension<Vec::offset_base_type>;
+      using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
       auto const idx_array = tsl::to_array<offsetExt>(index);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
