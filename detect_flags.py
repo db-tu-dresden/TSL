@@ -1,6 +1,10 @@
+import platform
+import os
+import subprocess
+import re
+
 # https://stackoverflow.com/a/377028
 def which(program):
-    import os
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -16,7 +20,6 @@ def which(program):
     return None
 
 def get_compile_info_from_compiler(compiler: str, arch_string: str):
-    import subprocess, re, platform
     info = ""
     if "clang" in compiler:
         ps = subprocess.Popen(("clang", "-E", "-", arch_string, "-###"), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -28,7 +31,7 @@ def get_compile_info_from_compiler(compiler: str, arch_string: str):
         return(re.findall(r' -m((?!no-)[^\s]+)', info))
 
 def get_compile_info_from_lscpu():
-    import subprocess, re, os
+
     if which("lscpu"):
         my_env = os.environ.copy()
         my_env["LANG"] = "en"
@@ -50,13 +53,11 @@ def get_compile_info_from_lscpu():
         return set()
 
 def get_platform():
-    import platform
     if "Darwin" in platform.system():
         return "Apple"
     else:
         return platform.system()
 
-import platform
 arch = platform.uname()[4]
 # if "x86" in arch:
 #     print(f"x86 CPU on {get_platform()}")
