@@ -514,7 +514,7 @@ primitive_name: "gather"
 functor_name: "mask_gather"
 additional_simd_template_parameter:
   name: "IndicesType"
-  default_value:  "typename Vec::transform_extension<typename Vec::offset_base_type>"
+  default_value:  "typename Vec::template transform_extension<typename Vec::offset_base_type>"
 brief_description: "If mask[i] is 1, load memory[index[i] * scale], otherwise use source[i]"
 additional_non_specialized_template_parameters:
   - ctype: "int"
