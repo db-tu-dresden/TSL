@@ -727,3 +727,174 @@ definitions:
      lscpu_flags: []
      implementation: "return (mask & 1) ? data : src;"
 ...
+---
+primitive_name: "compress"
+brief_description: "Compress valid elements in a register (if the corresponding bit in mask is set to 1)."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Mask"
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Data"
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Compressed data"
+testing:
+  - test_name: "full_mask"
+    requires: ["loadu"]
+    implementation: |
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      typename Vec::imask_type mask = -1;
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        auto vec_a = loadu<Vec>(&reference_data_ptr[i]);
+        storeu<Vec>(reference_result_ptr, vec_a);
+
+        auto vec_b = loadu<Vec>(&test_data_ptr[i]);
+        auto result = compress<Vec>(mask, vec_b);
+        storeu<Vec>(test_result_ptr, result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "no_mask"
+    requires: ["storeu", "set1"]
+    implementation: |
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+      typename Vec::imask_type mask = 0;
+      auto zero_vec = set1<Vec>(0);
+      for(std::size_t i = 0; i < element_count - Vec::vector_element_count(); i += Vec::vector_element_count()){
+        storeu<Vec>(reference_result_ptr, zero_vec);
+        storeu<Vec>(test_result_ptr, zero_vec);
+
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto result = compress<Vec>(mask, vec);
+        storeu<Vec>(test_result_ptr, result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: [ "uint32_t", "int32_t", "uint64_t", "int64_t" ]
+    lscpu_flags: [ "avx512f"]
+    implementation: "_mm512_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: [ "avx512f" ]
+    implementation: "_mm512_maskz_compress_{{ intrin_tp_full[ctype] }}(mask, data);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512f", "avx512vbmi2"]
+    implementation: "_mm512_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+  - target_extension: "avx512"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
+    lscpu_flags: ["avx512f"]
+    includes: ["<cstring>"]
+    is_native: False
+    implementation: |
+      auto data_array = tsl::to_array<Vec>(data);
+      auto pos = 0;
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        data_array[pos] = data_array[i];
+        pos += (mask>>i)&0b1;
+      }
+      for (; pos < Vec::vector_element_count(); ++pos) {
+        data_array[pos] = 0;
+      }
+      return tsl::load<Vec>(data_array.data());      
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx2"]
+    includes: ["<cstring>"]
+    is_native: False
+    implementation: |
+      auto data_array = tsl::to_array<Vec>(data);
+      auto pos = 0;
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        data_array[pos] = data_array[i];
+        pos += (mask>>i)&0b1;
+      }
+      for (; pos < Vec::vector_element_count(); ++pos) {
+        data_array[pos] = 0;
+      }
+      return tsl::load<Vec>(data_array.data());   
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "_mm256_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vl"]
+    implementation: "_mm256_maskz_compress_{{ intrin_tp_full[ctype] }}(mask, data);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
+    implementation: "_mm256_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+  #INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2", "avx512f", "avx512vl"]
+    implementation: "_mm_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["sse2", "avx512f", "avx512vl"]
+    implementation: "_mm_maskz_compress{{ intrin_tp_full[ctype] }}(mask, data);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["sse2", "avx512f", "avx512vbmi2", "avx512vl"]
+    implementation: "_mm_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    is_native: False
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto data_array = tsl::to_array<Vec>(data);
+      auto pos = 0;
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        data_array[pos] = data_array[i];
+        pos += (mask>>i)&0b1;
+      }
+      for (; pos < Vec::vector_element_count(); ++pos) {
+        data_array[pos] = 0;
+      }
+      return tsl::load<Vec>(data_array.data());
+  #SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: |
+      if(mask){
+        return data;
+      }
+      return 0;
+  #ARM - Neon
+  - target_extension: ["neon"]
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    is_native: False
+    lscpu_flags: ["neon"]
+    implementation: |
+      auto data_array = tsl::to_array<Vec>(data);
+      auto pos = 0;
+      for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        data_array[pos] = data_array[i];
+        pos += (mask>>i)&0b1;
+      }
+      for (; pos < Vec::vector_element_count(); ++pos) {
+        data_array[pos] = 0;
+      }
+      return tsl::load<Vec>(data_array.data());
+...
