@@ -30,7 +30,6 @@ function parse_flags {
     fi
 }
 
-arch=$(uname -i)
 gcc_exe="/usr/bin/g++"
 clang_exe="/usr/bin/clang"
 
@@ -54,10 +53,12 @@ if [[ -f $gcc_exe && -x $gcc_exe ]]; then
 fi
 
 if [[ -f $clang_exe && -x $clang_exe ]]; then
-    if [[ "$OSTYPE" == "linux-gnu"* ]] && [[ $arch != aarch*  ]]; then
+    if [[ "$OSTYPE" == "linux-gnu"* ]] && [[ $(uname -i) != aarch*  ]]; then
         arch_string="-march=native"
-    elif [[ "$OSTYPE" == "darwin"* ]] || [[ $arch == aarch* ]]; then
+    elif [[ "$OSTYPE" == "linux-gnu"* ]] && [[ $(uname -i) == aarch*  ]]; then
         arch_string="-mcpu=native"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        arch_string="-march=native"
     elif [[ "$OSTYPE" == "cygwin" ]]; then
         # POSIX compatibility layer and Linux environment emulation for Windows
         continue

@@ -31,7 +31,6 @@ def get_compile_info_from_compiler(compiler: str, arch_string: str):
         return(re.findall(r' -m((?!no-)[^\s]+)', info))
 
 def get_compile_info_from_lscpu():
-
     if which("lscpu"):
         my_env = os.environ.copy()
         my_env["LANG"] = "en"
@@ -70,16 +69,16 @@ flags = set()
 if which("lscpu"):
     flags = get_compile_info_from_lscpu()
 else:
-    
     arch_string = ""
     if "Apple" in get_platform() or "aarch" in arch:
         arch_string = "-mcpu=native"
     else:
         arch_string = "-march=native"
-    
+
     print("Debug:", arch, get_platform())
     gcc_flags = get_compile_info_from_compiler("g++", "-march=native") if which("g++") else set()
     clang_flags = get_compile_info_from_compiler("clang", arch_string) if which("clang") else set()
-    flags = gcc_flags + clang_flags
-    
+    flags.update(gcc_flags)
+    flags.update(clang_flags)
+        
 print(' '.join(sorted(flags)))
