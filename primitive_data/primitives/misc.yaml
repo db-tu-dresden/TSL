@@ -797,7 +797,7 @@ definitions:
     implementation: "return _mm512_maskz_compress_{{ intrin_tp_full[ctype] }}(mask, data);"
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
-    lscpu_flags: ["avx512f", "avx512vbmi2"]
+    lscpu_flags: ["avx512f", "avx512_vbmi2"]
     implementation: "return _mm512_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
   - target_extension: "avx512"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
@@ -842,7 +842,7 @@ definitions:
     implementation: "return _mm256_maskz_compress_{{ intrin_tp_full[ctype] }}(mask, data);"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
-    lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
+    lscpu_flags: ["avx2", "avx512f", "avx512_vbmi2", "avx512vl"]
     implementation: "return _mm256_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
   #INTEL - SSE
   - target_extension: "sse"
@@ -855,7 +855,7 @@ definitions:
     implementation: "return _mm_maskz_compress_{{ intrin_tp_full[ctype] }}(mask, data);"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
-    lscpu_flags: ["sse2", "avx512f", "avx512vbmi2", "avx512vl"]
+    lscpu_flags: ["sse2", "avx512f", "avx512_vbmi2", "avx512vl"]
     implementation: "return _mm_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
