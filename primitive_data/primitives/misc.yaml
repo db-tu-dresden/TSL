@@ -790,15 +790,15 @@ definitions:
   - target_extension: "avx512"
     ctype: [ "uint32_t", "int32_t", "uint64_t", "int64_t" ]
     lscpu_flags: [ "avx512f"]
-    implementation: "_mm512_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+    implementation: "return _mm512_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
   - target_extension: "avx512"
     ctype: ["float", "double"]
     lscpu_flags: [ "avx512f" ]
-    implementation: "_mm512_maskz_compress_{{ intrin_tp_full[ctype] }}(mask, data);"
+    implementation: "return _mm512_maskz_compress_{{ intrin_tp_full[ctype] }}(mask, data);"
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx512f", "avx512vbmi2"]
-    implementation: "_mm512_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+    implementation: "return _mm512_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
   - target_extension: "avx512"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
     lscpu_flags: ["avx512f"]
@@ -835,28 +835,28 @@ definitions:
   - target_extension: "avx2"
     ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]
-    implementation: "_mm256_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+    implementation: "return _mm256_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
   - target_extension: "avx2"
     ctype: ["float", "double"]
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]
-    implementation: "_mm256_maskz_compress_{{ intrin_tp_full[ctype] }}(mask, data);"
+    implementation: "return _mm256_maskz_compress_{{ intrin_tp_full[ctype] }}(mask, data);"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
-    implementation: "_mm256_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+    implementation: "return _mm256_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
   #INTEL - SSE
   - target_extension: "sse"
     ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["sse2", "avx512f", "avx512vl"]
-    implementation: "_mm_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+    implementation: "return _mm_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
   - target_extension: "sse"
     ctype: ["float", "double"]
     lscpu_flags: ["sse2", "avx512f", "avx512vl"]
-    implementation: "_mm_maskz_compress{{ intrin_tp_full[ctype] }}(mask, data);"
+    implementation: "return _mm_maskz_compress_{{ intrin_tp_full[ctype] }}(mask, data);"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["sse2", "avx512f", "avx512vbmi2", "avx512vl"]
-    implementation: "_mm_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
+    implementation: "return _mm_maskz_compress_epi{{ intrin_tp[ctype][1] }}(mask, data);"
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     is_native: False
