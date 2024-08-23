@@ -53,12 +53,18 @@ if [[ -f $gcc_exe && -x $gcc_exe ]]; then
 fi
 
 if [[ -f $clang_exe && -x $clang_exe ]]; then
-    if [[ "$OSTYPE" == "linux-gnu"* ]] && [[ $(uname -i) != aarch*  ]]; then
-        arch_string="-march=native"
-    elif [[ "$OSTYPE" == "linux-gnu"* ]] && [[ $(uname -i) == aarch*  ]]; then
-        arch_string="-mcpu=native"
+    if [[ "$OSTYPE" == "linux-gnu"* ]];  then
+        if [[ $(uname -i) != aarch* || $(uname -i) != arm*  ]]; then
+            arch_string="-march=native"
+        else
+            arch_string="-mcpu=native"
+        fi
     elif [[ "$OSTYPE" == "darwin"* ]]; then
-        arch_string="-march=native"
+        if [[ $(uname -m) != aarch* || $(uname -m) != arm*  ]]; then
+            arch_string="-march=native"
+        else
+            arch_string="-mcpu=native"
+        fi
     elif [[ "$OSTYPE" == "cygwin" ]]; then
         # POSIX compatibility layer and Linux environment emulation for Windows
         continue
