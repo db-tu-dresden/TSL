@@ -30,13 +30,13 @@ function parse_flags {
     fi
 }
 
-gcc_exe="/usr/bin/g++"
-clang_exe="/usr/bin/clang"
-
 flag_set=()
 
+gcc_exe=$(which g++)
+clang_exe=$(which clang)
+
 if [[ -f $gcc_exe && -x $gcc_exe ]]; then
-    gcc_output=$(/usr/bin/g++ -E - -march=native -### 2>&1)
+    gcc_output=$(eval $gcc_exe -E - -march=native -### 2>&1)
     parsed_flags=$(parse_flags "gcc" "$gcc_output")
 
     # Parse whitespace-separated string into an array
@@ -76,7 +76,7 @@ if [[ -f $clang_exe && -x $clang_exe ]]; then
         exit 1
     fi
 
-    clang_output=$(/usr/bin/clang -E - $arch_string -### 2>&1)
+    clang_output=$(eval $clang_exe -E - $arch_string -### 2>&1)
     parsed_flags=$(parse_flags "clang" "$clang_output")
 
     # Parse whitespace-separated string into an array
