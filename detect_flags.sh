@@ -54,13 +54,13 @@ fi
 
 if [[ -f $clang_exe && -x $clang_exe ]]; then
     if [[ "$OSTYPE" == "linux-gnu"* ]];  then
-        if [[ $(uname -i) != aarch* || $(uname -i) != arm*  ]]; then
+        if [[ $(uname -i) != aarch* && $(uname -i) != arm*  ]]; then
             arch_string="-march=native"
         else
             arch_string="-mcpu=native"
         fi
     elif [[ "$OSTYPE" == "darwin"* ]]; then
-        if [[ $(uname -m) != aarch* || $(uname -m) != arm*  ]]; then
+        if [[ $(uname -m) != aarch* && $(uname -m) != arm*  ]]; then
             arch_string="-march=native"
         else
             arch_string="-mcpu=native"
@@ -75,7 +75,7 @@ if [[ -f $clang_exe && -x $clang_exe ]]; then
         echo "Could not detect the current operating system. Aborting."
         exit 1
     fi
-    
+
     clang_output=$(/usr/bin/clang -E - $arch_string -### 2>&1)
     parsed_flags=$(parse_flags "clang" "$clang_output")
 
