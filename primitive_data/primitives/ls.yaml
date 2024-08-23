@@ -1281,7 +1281,7 @@ definitions:
     implementation: "_mm512_mask_compressstoreu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
-    lscpu_flags: ["avx512f", "avx512vbmi2"]
+    lscpu_flags: ["avx512f", "avx512_vbmi2"]
     implementation: "_mm512_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "avx512"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
@@ -1330,7 +1330,7 @@ definitions:
     implementation: "_mm256_mask_compressstoreu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
-    lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
+    lscpu_flags: ["avx2", "avx512f", "avx512_vbmi2", "avx512vl"]
     implementation: "_mm256_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
   #INTEL - SSE
   - target_extension: "sse"
@@ -1343,7 +1343,7 @@ definitions:
     implementation: "_mm_mask_compressstoreu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "sse"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
-    lscpu_flags: ["sse2", "avx512f", "avx512vbmi2", "avx512vl"]
+    lscpu_flags: ["sse2", "avx512f", "avx512_vbmi2", "avx512vl"]
     implementation: "_mm_mask_compressstoreu_epi{{ intrin_tp[ctype][1] }}(reinterpret_cast<void*>(memory), mask, data);"
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
@@ -1489,7 +1489,7 @@ definitions:
     implementation: "return _mm512_mask_expandloadu_{{ intrin_tp_full[ctype] }}(src, mask, reinterpret_cast<void*>(memory));"
   - target_extension: "avx512"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
-    lscpu_flags: ["avx512f", "avx512vbmi2"]
+    lscpu_flags: ["avx512f", "avx512_vbmi2"]
     implementation: "return _mm512_mask_expandloadu_epi{{ intrin_tp[ctype][1] }}(src, mask, reinterpret_cast<void*>(memory));"
   - target_extension: "avx512"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
@@ -1541,7 +1541,7 @@ definitions:
     implementation: "return _mm256_mask_expandloadu_{{ intrin_tp_full[ctype] }}(src, mask, reinterpret_cast<void const *>(memory));"
   - target_extension: "avx2"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
-    lscpu_flags: ["avx2", "avx512f", "avx512vbmi2", "avx512vl"]
+    lscpu_flags: ["avx2", "avx512f", "avx512_vbmi2", "avx512vl"]
     implementation: "return _mm256_mask_expandloadu_epi{{ intrin_tp[ctype][1] }}(src, mask, reinterpret_cast<void const*>(memory));"
 ...
 ---
