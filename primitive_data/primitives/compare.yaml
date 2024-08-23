@@ -362,7 +362,7 @@ primitive_name: "equal_as_imask"
 functor_name: "mask_equal_as_imask"
 brief_description: "Compares two registers for equality and returns an integral mask."
 parameters:
-  - ctype: "const typename Vec::mask_type"
+  - ctype: "const typename Vec::imask_type"
     name: "mask"
     description: "Mask, indicating which lanes should be checked for equality."
   - ctype: "const typename Vec::register_type"
@@ -385,11 +385,11 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['avx2']
     requires: ["to_integral"]
-    implementation: "return functors::to_integral<Vec, Idof>::apply(_mm256_and_si256(mask, functors::equal<Vec, Idof>::apply(vec_a, vec_b)));"
+    implementation: "return mask & functors::to_integral<Vec, Idof>::apply(functors::nequal<Vec, Idof>::apply(vec_a, vec_b));"
   - target_extension: "avx2"
     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]
-    implementation: "return mask &_mm256_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
+    implementation: "return mask & _mm256_cmpeq_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b);"
   - target_extension: "avx2"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vl", "avx512bw"]
@@ -403,7 +403,7 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['sse2']
     requires: ["to_integral"]
-    implementation: "return functors::to_integral<Vec, Idof>::apply(_mm_and_si128(mask, functors::equal<Vec, Idof>::apply(vec_a, vec_b)));"
+    implementation: "return mask & functors::to_integral<Vec, Idof>::apply(functors::nequal<Vec, Idof>::apply(vec_a, vec_b));"
   - target_extension: "sse"
     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ["sse", "avx512f", "avx512vl"]
@@ -812,7 +812,7 @@ primitive_name: "nequal_as_imask"
 functor_name: "mask_nequal_as_imask"
 brief_description: "Compares two registers for not-equality and returns an integral mask."
 parameters:
-  - ctype: "const typename Vec::mask_type"
+  - ctype: "const typename Vec::imask_type"
     name: "mask"
     description: "Mask, indicating which lanes should be checked for not-equality."
   - ctype: "const typename Vec::register_type"
@@ -835,7 +835,7 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['avx2']
     requires: ["to_integral"]
-    implementation: "return functors::to_integral<Vec, Idof>::apply(_mm256_and_si256(mask, functors::nequal<Vec, Idof>::apply(vec_a, vec_b)));"
+    implementation: "return mask & functors::to_integral<Vec, Idof>::apply(functors::nequal<Vec, Idof>::apply(vec_a, vec_b));"
   - target_extension: "avx2"
     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]
@@ -853,7 +853,7 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['sse2']
     requires: ["to_integral"]
-    implementation: "return functors::to_integral<Vec, Idof>::apply(_mm_and_si128(functors::nequal<Vec, Idof>::apply(vec_a, vec_b)));"
+    implementation: "return mask & functors::to_integral<Vec, Idof>::apply(functors::nequal<Vec, Idof>::apply(vec_a, vec_b));"
   - target_extension: "sse"
     ctype: ["int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ["sse", "avx512f", "avx512vl"]
