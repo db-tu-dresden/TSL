@@ -131,12 +131,38 @@ definitions:
     additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_castpd_si128(data);"
-  #SCALAR
+#SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return data;"
+#ARM - NEON
+  - target_extension: "neon"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: ["neon"]
+    implementation: "return data;"
+  - target_extension: "neon"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["float"]
+    lscpu_flags: ["neon"]
+    implementation: "return vreinterpretq_{{ intrin_tp_full[additional_simd_template_base_type] }}_{{ intrin_tp_full[ctype] }}(data);"
+  - target_extension: "neon"
+    ctype: ["float"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["neon"]
+    implementation: "return vreinterpretq_{{ intrin_tp_full[additional_simd_template_base_type] }}_{{ intrin_tp_full[ctype] }}(data);"
+  - target_extension: "neon"
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    additional_simd_template_base_type: ["double"]
+    lscpu_flags: ["neon"]
+    implementation: "return vreinterpretq_{{ intrin_tp_full[additional_simd_template_base_type] }}_{{ intrin_tp_full[ctype] }}(data);"
+  - target_extension: "neon"
+    ctype: ["double"]
+    additional_simd_template_base_type: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    lscpu_flags: ["neon"]
+    implementation: "return vreinterpretq_{{ intrin_tp_full[additional_simd_template_base_type] }}_{{ intrin_tp_full[ctype] }}(data);"
 #INTEL - FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["float", "double"]
