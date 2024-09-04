@@ -9,9 +9,15 @@ WORK_DIR=$(pwd)
 
 
 curl -L "https://github.com/db-tu-dresden/TSL/releases/latest/download/tsl.tar.gz" -o ${TMP_DIR}/tsl.tar.gz
-LSCPU_FLAGS_STRING=$(LANG=en;lscpu | grep 'Flags:' | sed -E 's/Flags:\s*//g' | sed -E 's/\s/:/g')
+curl -L "https://github.com/db-tu-dresden/TSL/releases/latest/download/detect_flags.sh" -o ${TMP_DIR}/detect_flags.sh
+chmod +x ${TMP_DIR}/detect_flags.sh
+
 #create array from flags string
-AVAIL_FLAGS=(${LSCPU_FLAGS_STRING//:/ })
+# AVAIL_FLAGS=($(${TMP_DIR}/detect_flags.sh))
+IFS=' ' read -r -a AVAIL_FLAGS <<< "$(${TMP_DIR}/detect_flags.sh)"
+unset IFS
+
+
 #unpack tsl.conf
 tar -xf ${TMP_DIR}/tsl.tar.gz -C ${TMP_DIR} ${TAR_PREFIX_TSL_DIR}/tsl.conf
 

@@ -158,6 +158,7 @@ jobs:
           files: |
             ${{ github.workspace }}/tsl.tar.gz
             ${{ github.workspace }}/.github/workflows/install_tsl.sh
+            ${{ github.workspace }}/detect_flags.sh
             ${{ github.workspace }}/${{ steps.rpm.outputs.out }}/${{ steps.rpm.outputs.name}}
             ${{ github.workspace }}/${{ steps.deb.outputs.out }}/${{ steps.deb.outputs.name}}
           tag_name: ${{ inputs.tag-name }}
