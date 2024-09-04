@@ -56,7 +56,7 @@ jobs:
       - name: Tar and copy root
         if: ${{ inputs.tar-and-copy-root }}
         run: |
-          tar --exclude='./github' -zcf ${{ inputs.context }}/root.tar.gz .
+          tar --exclude='./.github' -zcf ${{ inputs.context }}/root.tar.gz .
           ls -l ${{ inputs.context }}
       - name: Copy python requirements to actions
         if: ${{ inputs.copy-requirements }}
