@@ -13,7 +13,6 @@ function parse_flags {
             parse_flags "$compiler" "${compilerinfo/${BASH_REMATCH[0]}/}"
         fi
     elif [ $compiler = "gcc" ]; then
-        # regex=' -m((?!no-)[^\s]+)'
         regex=' -m([^ ]+)'
         if [[ $compilerinfo =~ $regex ]] ; then
             flag="${BASH_REMATCH[1]}"
