@@ -29,7 +29,7 @@ function parse_flags {
     fi
 }
 
-lscpu_exe=$(which lscpu)
+lscpu_exe=$(which lscpu 2>/dev/null)
 if [[ ! -z ${lscpu_exe} && -f $lscpu_exe && -x $lscpu_exe ]]; then 
     flags=$(eval LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -v -E '^Flags:|^$' | sort -d | tr '\n' ' ')
     echo "$flags"
