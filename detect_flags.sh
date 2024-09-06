@@ -41,7 +41,7 @@ else
 
     if [[ -f $gcc_exe && -x $gcc_exe ]]; then
         gcc_output=$(eval $gcc_exe -E - -march=native -### 2>&1)
-        parsed_flags=$(parse_flags "gcc" "$gcc_output")
+	parsed_flags=$(parse_flags "gcc" "$gcc_output" | sed "s/\./_/g")
 
         # Parse whitespace-separated string into an array
         IFS=' ' read -r -a parsed_array <<< "$parsed_flags"
@@ -77,11 +77,11 @@ else
             continue
         else
             echo "Could not detect the current operating system. Aborting."
-            exit 1
+            # exit 1
         fi
 
         clang_output=$(eval $clang_exe -E - $arch_string -### 2>&1)
-        parsed_flags=$(parse_flags "clang" "$clang_output")
+        parsed_flags=$(parse_flags "clang" "$clang_output" | sed "s/\./_/g")
 
         # Parse whitespace-separated string into an array
         IFS=' ' read -r -a parsed_array <<< "$parsed_flags"
@@ -95,7 +95,12 @@ else
             fi
         done
     fi
-
+    
+    if [ -z "{flag_set}" ]; then
+	echo "Could not determine any flags"
+	exit 1
+    fi
+    
     IFS=$'\n' sorted=($(sort <<<"${flag_set[*]}"))
     unset IFS
     printf "%s " "${sorted[@]}"
