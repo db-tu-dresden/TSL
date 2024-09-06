@@ -13,8 +13,12 @@ curl -L "https://github.com/db-tu-dresden/TSL/releases/latest/download/detect_fl
 chmod +x ${TMP_DIR}/detect_flags.sh
 
 #create array from flags string
-# AVAIL_FLAGS=($(${TMP_DIR}/detect_flags.sh))
-IFS=' ' read -r -a AVAIL_FLAGS <<< "$(${TMP_DIR}/detect_flags.sh)"
+DETECTED_FLAGS$=$(${TMP_DIR}/detect_flags.sh)
+if [ $? != 0 ]; then
+  echo "Could not detect any flags."
+  exit 1
+fi
+IFS=' ' read -r -a AVAIL_FLAGS <<< "${DETECTED_FLAGS}"
 unset IFS
 
 
