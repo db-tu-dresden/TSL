@@ -2069,7 +2069,7 @@ definitions:
       }
       return tsl::load<Vec>(result);
 #NEON
-  - target_extension: ["scalar"]
+  - target_extension: ["neon"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["neon"]
     is_native: False
