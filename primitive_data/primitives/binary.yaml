@@ -1986,6 +1986,111 @@ definitions:
       }
 ...
 ---
+primitive_name: "popcnt"
+brief_description: "Population counter."
+parameters:
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "data vector."
+returns:
+  ctype: "typename Vec::offset_base_register_type"
+  description: "Vector containing number of bits set to 1."
+definitions:
+#AVX512
+  - target_extension: ["avx512"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vpopcntdq"]
+    implementation: |
+      return _mm512_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["avx512"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vpopcntdq", "avx512bitalg"]
+    implementation: |
+      return _mm512_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["avx512"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_alignment()) typename Vec::base_type data_arr[Vec::vector_element_count()];
+      tsl::store<Vec>(data_arr, data);
+      alignas(Vec::vector_alignment()) typename Vec::base_type result[Vec::vector_element_count()];
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = details::popcount<typename Vec::base_type, typename Vec::offset_base_type>(data_arr[i]);
+      }
+      return tsl::load<Vec>(result);
+#AVX2
+  - target_extension: ["avx2"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vpopcntdq", "avx512vl"]
+    implementation: |
+      return _mm256_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["avx2"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx2", "avx512f", "avx512vpopcntdq", "avx512bitalg", "avx512vl"]
+    implementation: |
+      return _mm256_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["avx2"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_alignment()) typename Vec::base_type data_arr[Vec::vector_element_count()];
+      tsl::store<Vec>(data_arr, data);
+      alignas(Vec::vector_alignment()) typename Vec::base_type result[Vec::vector_element_count()];
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = details::popcount<typename Vec::base_type, typename Vec::offset_base_type>(data_arr[i]);
+      }
+      return tsl::load<Vec>(result);
+#SSE
+  - target_extension: ["sse"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2", "avx512f", "avx512vpopcntdq", "avx512vl"]
+    implementation: |
+      return _mm_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["sse"]
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2", "avx512f", "avx512vpopcntdq", "avx512bitalg", "avx512vl"]
+    implementation: |
+      return _mm_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
+  - target_extension: ["sse"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_alignment()) typename Vec::base_type data_arr[Vec::vector_element_count()];
+      tsl::store<Vec>(data_arr, data);
+      alignas(Vec::vector_alignment()) typename Vec::base_type result[Vec::vector_element_count()];
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = details::popcount<typename Vec::base_type, typename Vec::offset_base_type>(data_arr[i]);
+      }
+      return tsl::load<Vec>(result);
+#NEON
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["neon"]
+    is_native: False
+    implementation: |
+      alignas(Vec::vector_alignment()) typename Vec::base_type data_arr[Vec::vector_element_count()];
+      tsl::store<Vec>(data_arr, data);
+      alignas(Vec::vector_alignment()) typename Vec::base_type result[Vec::vector_element_count()];
+      TSL_UNROLL(Vec::vector_element_count())
+      for(size_t i = 0; i < Vec::vector_element_count(); ++i) {
+        result[i] = details::popcount<typename Vec::base_type, typename Vec::offset_base_type>(data_arr[i]);
+      }
+      return tsl::load<Vec>(result);
+#SCALAR
+  - target_extension: ["scalar"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: []
+    is_native: False
+    implementation: |
+      return details::popcount<typename Vec::base_type, typename Vec::offset_base_type>(data);
+...
+---
 primitive_name: "lzc"
 parameters:
   - ctype: "const typename Vec::base_type"
