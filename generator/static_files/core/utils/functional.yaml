@@ -29,7 +29,7 @@ implementations:
       
       template<typename T, typename RetT>
         constexpr RetT popcount(T data) {
-          return std::popcount(data);
+          return std::popcount<std::make_unsigned_t<T>>(data);
         }
     }
     #else
