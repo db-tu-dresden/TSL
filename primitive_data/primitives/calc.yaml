@@ -544,7 +544,7 @@ definitions:
     implementation: "return _mm_add_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_and_si128(vec_b, tsl::to_mask<Vec>(mask)));"
   - target_extension: "sse"
     ctype: ["float"]
-    lscpu_flags: ["sse"]
+    lscpu_flags: ["sse2"]
     implementation: "return _mm_add_ps(vec_a, _mm_and_ps(vec_b, tsl::to_mask<Vec>(mask)));"
   - target_extension: "sse"
     ctype: ["double"]

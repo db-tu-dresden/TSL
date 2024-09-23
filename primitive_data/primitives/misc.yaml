@@ -814,7 +814,7 @@ definitions:
       for (; pos < Vec::vector_element_count(); ++pos) {
         data_array[pos] = 0;
       }
-      return tsl::load<Vec>(data_array.data());      
+      return tsl::load<Vec>(data_array.data());
   #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -831,7 +831,7 @@ definitions:
       for (; pos < Vec::vector_element_count(); ++pos) {
         data_array[pos] = 0;
       }
-      return tsl::load<Vec>(data_array.data());   
+      return tsl::load<Vec>(data_array.data());
   - target_extension: "avx2"
     ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512vl"]
