@@ -91,11 +91,15 @@ template<
   tsl_functor_defined<{{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>>::value,
   {{ returns['ctype'] }}
 {% else %}
-#ifdef {{ tsl_namespace|upper ~ '_' ~ tsl_implementation_namespace|upper ~ '_' ~ primitive_name|upper ~ '_STRUCT_DEFINED'}}
-  !tsl_primitive_ambiguous<{{ tsl_implementation_namespace }}::{{ primitive_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>, {{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>>(),
+(
+{% for overload in previous_overloads %}
+#ifdef {{ tsl_namespace|upper ~ '_' ~ tsl_implementation_namespace|upper ~ '_' ~ overload|upper ~ '_STRUCT_DEFINED'}}
+  !tsl_primitive_ambiguous<{{ tsl_implementation_namespace }}::{{ overload }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>, {{ tsl_implementation_namespace }}::{{ functor_name }}<{{ vector_name }}, {{ ns.additional_template_name }}{{ idof_name }}>>() {{ '&&' if not loop.last else ""}}
 #else
-  true,
+  true {{ '&&' if not loop.last else ""}}
 #endif
+{% endfor %}
+),
   {{ returns['ctype'] }}
 {% endif %}
 >{

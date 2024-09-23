@@ -2545,7 +2545,6 @@ definitions:
 ...
 ---
 primitive_name: "tzc"
-functor_name: "tzc_imask"
 parameters:
   - ctype: "const typename Vec::imask_type"
     name: "data"

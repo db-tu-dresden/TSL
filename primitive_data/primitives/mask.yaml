@@ -210,6 +210,27 @@ definitions:
 ...
 ---
 primitive_name: "mask_binary_not"
+brief_description: "Binary NOT of a vector mask type."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Mask."
+returns:
+  ctype: "typename Vec::mask_type"
+definitions:
+  #INTEL - AVX512
+  - target_extension: "avx512"
+    lscpu_flags: ["avx512f"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    implementation: "return (~mask);"
+  #INTEL - AVX2
+  - target_extension: "avx2"
+    lscpu_flags: ["avx2"]
+    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
+    implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), mask);"
+...
+---
+primitive_name: "mask_binary_not"
 functor_name: "imask_binary_not"
 brief_description: "Binary NOT of a vector integral mask type."
 parameters:
@@ -251,28 +272,6 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (~mask);"
-...
----
-primitive_name: "mask_binary_not"
-functor_name: "mask_binary_not"
-brief_description: "Binary NOT of a vector mask type."
-parameters:
-  - ctype: "const typename Vec::mask_type"
-    name: "mask"
-    description: "Mask."
-returns:
-  ctype: "typename Vec::mask_type"
-definitions:
-  #INTEL - AVX512
-  - target_extension: "avx512"
-    lscpu_flags: ["avx512f"]
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
-    implementation: "return (~mask);"
-  #INTEL - AVX2
-  - target_extension: "avx2"
-    lscpu_flags: ["avx2"]
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
-    implementation: "return _mm256_xor_si256(_mm256_set1_epi8(-1), mask);"
 ...
 ---
 primitive_name: "mask_binary_and"
@@ -574,7 +573,6 @@ definitions:
 ...
 ---
 primitive_name: "mask_population_count"
-functor_name: "imask_population_count"
 parameters:
   - ctype: "const typename Vec::imask_type"
     name: "mask"
@@ -868,7 +866,6 @@ definitions:
 ...
 ---
 primitive_name: "test_mask"
-functor_name: "test_imask"
 brief_description: "Tests whether a specific bit is set to 1."
 parameters:
   - ctype: "typename Vec::imask_type"
@@ -904,7 +901,6 @@ definitions:
 ...
 ---
 primitive_name: "insert_mask"
-functor_name: "insert_imask"
 brief_description: "Merges two masks. result[0:i-1] = mask_a[0:i-1]; result[i:N-1] = mask_b[0:N-1] where N is the number of effective bits in mask."
 parameters:
   - ctype: "typename Vec::imask_type"
@@ -943,7 +939,6 @@ definitions:
 ...
 ---
 primitive_name: "extract_mask"
-functor_name: "extract_imask"
 brief_description: "Extracts one mask from another."
 parameters:
   - ctype: "typename Vec::imask_type"

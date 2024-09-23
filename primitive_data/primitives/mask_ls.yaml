@@ -510,6 +510,182 @@ definitions:
       }
 ...
 ---
+primitive_name: "storeu"
+functor_name: "imask_storeu"
+brief_description: "Stores data from a vector register to (un)aligned memory."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Vector mask register indicating which elements that should be saved."
+  - ctype: "typename Vec::base_type*"
+    name: "memory"
+    description: "(Un)aligned memory where the data should be stored into."
+  - ctype: "const typename Vec::register_type"
+    name: "data"
+    description: "Vector containing the data."
+testing:
+  - test_name: "all_zero_mask"
+    requires: ["to_mask", "integral_all_false", "set1"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+
+      typename Vec::mask_type mask = to_mask<Vec>(integral_all_false<Vec>());
+
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+
+      for(std::size_t i = 0; i < (element_count - Vec::vector_element_count()); i += Vec::vector_element_count()){
+        for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+          reference_result_ptr[j-i] = j;
+          test_result_ptr[j-i] = j;
+        }
+        auto vec = set1<Vec>(0);
+        storeu<Vec>(mask, test_result_ptr, vec);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "all_one_mask"
+    requires: ["to_mask", "integral_all_true", "set1"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+
+      typename Vec::mask_type mask = to_mask<Vec>(integral_all_true<Vec>());
+
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+
+      for(std::size_t i = 0; i < (element_count - Vec::vector_element_count()); i += Vec::vector_element_count()){
+        for(size_t j = i; j < i + Vec::vector_element_count(); ++j) {
+          reference_result_ptr[j-i] = i;
+        }
+        auto vec = set1<Vec>(i);
+        storeu<Vec>(mask, test_result_ptr, vec);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "random_mask"
+    requires: ["to_mask", "integral_all_true", "set1"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+      typename Vec::imask_type imask;
+      std::size_t repetition_count = 10000;
+      testing::test_memory_helper_t<Vec> test_helper{Vec::vector_element_count(), Vec::vector_element_count(), false};
+      bool allOk = true;
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_result_ptr = test_helper.result_target();
+      auto test_data_ptr = test_helper.data_target();
+      std::cout << "STARTING: " << tsl::type_name<Vec>() << "\n";
+      for (auto rep = 0; rep < repetition_count; ++rep) {
+        testing::rnd_init(&imask, 1);
+        for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
+          if (((imask >> i) & 0b1) == 1 ) {
+            reference_result_ptr[i] = i+1;
+          } else {
+            reference_result_ptr[i] = Vec::vector_element_count()*2;
+          }
+          test_result_ptr[i] = Vec::vector_element_count()*2;
+          test_data_ptr[i] = i+1;
+        }
+        auto vec = loadu<Vec>(test_data_ptr);
+        const auto mask = tsl::to_mask<Vec>(imask);
+        storeu<Vec>(mask, test_result_ptr, vec);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      auto mem_vec = tsl::loadu<Vec>(memory);
+      tsl::storeu<Vec>(memory, _mm256_or_si256(_mm256_andnot_si256(tsl::to_mask<Vec>(mask), mem_vec), _mm256_and_si256(tsl::to_mask<Vec>(mask), data)));
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx2"]
+    implementation: |
+      auto mem_vec = tsl::loadu<Vec>(memory);
+      tsl::storeu<Vec>(memory, _mm256_or_{{ intrin_tp_full[ctype] }}(_mm256_andnot_{{ intrin_tp_full[ctype] }}(tsl::to_mask<Vec>(mask), mem_vec), _mm256_and_{{ intrin_tp_full[ctype] }}(tsl::to_mask<Vec>(mask), data)));
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint32_t", "uint64_t", "int32_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "int8_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_mask_storeu_epi{{ intrin_tp[ctype][1]  }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_storeu_{{ intrin_tp_full[ctype] }}(reinterpret_cast<void*>(memory), mask, data);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto mem_vec = tsl::loadu<Vec>(memory);
+      tsl::storeu<Vec>(memory, _mm_or_si128(_mm_andnot_si128(tsl::to_mask<Vec>(mask), mem_vec), _mm_and_si128(tsl::to_mask<Vec>(mask), data)));
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["sse2"]
+    implementation: |
+      auto mem_vec = tsl::loadu<Vec>(memory);
+      tsl::storeu<Vec>(memory, _mm_or_{{ intrin_tp_full[ctype] }}(_mm_andnot_{{ intrin_tp_full[ctype] }}(tsl::to_mask<Vec>(mask), mem_vec), _mm_and_{{ intrin_tp_full[ctype] }}(tsl::to_mask<Vec>(mask), data)));
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "if(mask){*memory = data;}"
+#ARM - NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["neon"]
+    implementation: |
+      const auto imask = tsl::to_integral<Vec>(mask);
+      for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
+        if (((imask >> i) & 0b1) == true) {
+          memory[i] = data[i];
+        }
+      }
+...
+---
 primitive_name: "gather"
 functor_name: "mask_gather"
 additional_simd_template_parameter:
