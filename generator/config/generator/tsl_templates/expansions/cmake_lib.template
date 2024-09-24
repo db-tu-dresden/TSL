@@ -18,7 +18,7 @@ target_sources({{ tsl_lib_name }}
 {% endfor %}
 )
 target_include_directories({{ tsl_lib_name }} INTERFACE {{ library_root_path }})
-target_compile_options({{ tsl_lib_name }} INTERFACE {{ tsl_target_compile_options }})
+target_compile_options({{ tsl_lib_name }} INTERFACE {{ tsl_target_compile_options }})# -Wfatal-errors)
 {% if use_concepts %}
 target_compile_definitions({{ tsl_lib_name }} INTERFACE TSL_USE_CONCEPTS)
 {% endif %}

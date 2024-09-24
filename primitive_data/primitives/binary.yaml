@@ -2522,7 +2522,7 @@ definitions:
       return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
   - target_extension: ["sse"]
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t"]
-    lscpu_flags: ["sse"]
+    lscpu_flags: ["sse2"]
     implementation: |
       return details::clz<typename Vec::imask_type, typename Vec::imask_type>(data);
   - target_extension: ["neon"]

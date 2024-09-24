@@ -93,18 +93,17 @@ class TSLFileGenerator:
             for primitive in primitive_class:
                 if primitive.declaration.name not in primitive_with_overloads_dict:
                     primitive_with_overloads_dict[primitive.declaration.name] = [primitive.declaration.name]
-                primitive_with_overloads_dict[primitive.declaration.name].append(primitive.declaration.functor_name)
+                if primitive.declaration.name != primitive.declaration.functor_name:
+                    primitive_with_overloads_dict[primitive.declaration.name].append(primitive.declaration.functor_name)
             
             previous_declarations_dict = {}
             for _,v in primitive_with_overloads_dict.items():
                 if len(v) > 1:
                     for i in range(1, len(v)):
                         previous_declarations_dict[v[i]] = v[:i]                    
-
-
-            for k, v in previous_declarations_dict.items():
-                print(f"Previous overload for {k}: {v}")
-
+            # for k, v in previous_declarations_dict.items():
+            #     print(f"Previous overload for {k}: {v}")
+            
             for primitive in primitive_class:
                 declaration_data = copy.deepcopy(primitive.declaration.data)
                 if primitive.declaration.functor_name in previous_declarations_dict:
