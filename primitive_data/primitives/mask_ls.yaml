@@ -678,9 +678,8 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["neon"]
     implementation: |
-      const auto imask = tsl::to_integral<Vec>(mask);
       for ( size_t i = 0; i < Vec::vector_element_count(); ++i ) {
-        if (((imask >> i) & 0b1) == true) {
+        if (((mask >> i) & 0b1) == true) {
           memory[i] = data[i];
         }
       }
