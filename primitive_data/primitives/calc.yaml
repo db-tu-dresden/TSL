@@ -1486,8 +1486,8 @@ definitions:
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ['neon']
     implementation: |
-      auto arr_a = tsl::to_array<Vec>(vec_a);
-      auto arr_b = tsl::to_array<Vec>(vec_b);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_a = tsl::to_array<Vec>(vec_a);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_b = tsl::to_array<Vec>(vec_b);
       for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         arr_a[i] /= arr_b[i];
       }
@@ -2062,7 +2062,7 @@ definitions:
       auto threshold = _mm512_set1_epi32(threshold_value);
       auto cmp_result = _mm512_cmpgt_epi32_mask(vec, threshold);
       if(cmp_result){
-        auto arr = tsl::to_array<Vec>(vec);
+        auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(vec);
         typename Vec::base_type result[Vec::vector_element_count()];
         for(int i = 0; i < Vec::vector_element_count(); i++){
           result[i] = arr[i] % val;
@@ -2119,7 +2119,7 @@ definitions:
       auto cmp_result = _mm256_cmpgt_epi32(vec, threshold);
       int mask = _mm256_movemask_epi8(cmp_result);
       if(mask){
-        auto arr = tsl::to_array<Vec>(vec);
+        auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(vec);
         typename Vec::base_type result[Vec::vector_element_count()];
         for(int i = 0; i < Vec::vector_element_count(); i++){
           result[i] = arr[i] % val;
@@ -2175,7 +2175,7 @@ definitions:
       auto cmp_result = _mm_cmpgt_epi32(vec, threshold);
       int mask = _mm_movemask_epi8(cmp_result);
       if(mask){
-        auto arr = tsl::to_array<Vec>(vec);
+        auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(vec);
         typename Vec::base_type result[Vec::vector_element_count()];
         for(int i = 0; i < Vec::vector_element_count(); i++){
           result[i] = arr[i] % val;
@@ -2265,7 +2265,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::max_element(arr.begin(), arr.end());
   #INTEL - AVX2
   - target_extension: ["avx2"]
@@ -2327,7 +2327,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::max_element(arr.begin(), arr.end());
   #INTEL - SSE
   - target_extension: ["sse"]
@@ -2373,7 +2373,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::max_element(arr.begin(), arr.end());
   #SCALAR
   - target_extension: ["scalar"]
@@ -2433,7 +2433,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::min_element(arr.begin(), arr.end());
   #INTEL - AVX2
   - target_extension: ["avx2"]
@@ -2495,7 +2495,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::min_element(arr.begin(), arr.end());
   #INTEL - SSE
   - target_extension: ["sse"]
@@ -2541,7 +2541,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::min_element(arr.begin(), arr.end());
   #SCALAR
   - target_extension: ["scalar"]
@@ -2634,8 +2634,8 @@ definitions:
     lscpu_flags: ["avx2", "avx"]
     is_native: False
     implementation: |
-      auto arr_a = tsl::to_array<Vec>(vec_a);
-      auto arr_b = tsl::to_array<Vec>(vec_b);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_a = tsl::to_array<Vec>(vec_a);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_b = tsl::to_array<Vec>(vec_b);
       typename Vec::base_type result[Vec::vector_element_count()];
       for(size_t i = 0; i < Vec::vector_element_count(); i++){
         (arr_a[i] < arr_b [i]) ? result[i] = arr_b[i] : result[i] = arr_a[i];
@@ -2674,8 +2674,8 @@ definitions:
     lscpu_flags: ["sse", "sse2"]
     is_native: False
     implementation: |
-      auto arr_a = tsl::to_array<Vec>(vec_a);
-      auto arr_b = tsl::to_array<Vec>(vec_b);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_a = tsl::to_array<Vec>(vec_a);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_b = tsl::to_array<Vec>(vec_b);
       typename Vec::base_type result[Vec::vector_element_count()];
       for(size_t i = 0; i < Vec::vector_element_count(); i++){
         (arr_a[i] < arr_b [i]) ? result[i] = arr_b[i] : result[i] = arr_a[i];

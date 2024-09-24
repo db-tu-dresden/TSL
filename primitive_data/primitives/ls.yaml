@@ -949,7 +949,7 @@ definitions:
     }
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
-      auto const idx_array = tsl::to_array<IndicesType>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<IndicesType>(index);
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
       }
@@ -983,7 +983,7 @@ definitions:
     }
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
-      auto const idx_array = tsl::to_array<IndicesType>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<IndicesType>(index);
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
       }
@@ -1008,7 +1008,7 @@ definitions:
     is_native: False
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
-      auto const idx_array = tsl::to_array<IndicesType>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<IndicesType>(index);
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
       }
@@ -1034,7 +1034,7 @@ definitions:
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
       auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
-      auto const idx_array = tsl::to_array<IndicesType>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<IndicesType>(index);
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = *reinterpret_cast<typename Vec::base_type const *>(reinterpret_cast<char const*>(memory) + idx_array[i] * N);
       }
@@ -1102,9 +1102,9 @@ definitions:
     is_native: False
     includes: ["<array>"]
     implementation: |
-      auto const val_array = tsl::to_array<Vec>(data);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tsl::to_array<offsetExt>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<offsetExt>(index);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if constexpr(N==sizeof(typename Vec::base_type)) {
@@ -1125,9 +1125,9 @@ definitions:
     includes: ["<array>"]
     is_native: False
     implementation: |
-      auto const val_array = tsl::to_array<Vec>(data);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tsl::to_array<offsetExt>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<offsetExt>(index);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if constexpr(N==sizeof(typename Vec::base_type)) {
@@ -1148,9 +1148,9 @@ definitions:
     includes: ["<array>"]
     is_native: False
     implementation: |
-      auto const val_array = tsl::to_array<Vec>(data);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tsl::to_array<offsetExt>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<offsetExt>(index);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if constexpr(N==sizeof(typename Vec::base_type)) {
@@ -1290,7 +1290,7 @@ definitions:
     is_native: False
     implementation: |
       auto const orig_mem = memory;
-      auto const data_array = tsl::to_array<Vec>(data);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) data_array = tsl::to_array<Vec>(data);
       typename Vec::base_type safe[Vec::vector_element_count()];
       std::memcpy(static_cast<void*>(safe), static_cast<void const *>(memory), Vec::vector_size_B());
       TSL_UNROLL(Vec::vector_element_count())
@@ -1309,7 +1309,7 @@ definitions:
     is_native: False
     implementation: |
       auto const orig_mem = memory;
-      auto const data_array = tsl::to_array<Vec>(data);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) data_array = tsl::to_array<Vec>(data);
       typename Vec::base_type safe[Vec::vector_element_count()];
       std::memcpy(reinterpret_cast<void*>(safe), reinterpret_cast<void const *>(memory), Vec::vector_size_B());
       TSL_UNROLL(Vec::vector_element_count())
@@ -1350,7 +1350,7 @@ definitions:
     is_native: False
     lscpu_flags: ["sse2"]
     implementation: |
-      auto const data_array = tsl::to_array<Vec>(data);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) data_array = tsl::to_array<Vec>(data);
 
       for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
         if((mask >> i) & 1){
@@ -1372,7 +1372,7 @@ definitions:
     is_native: False
     lscpu_flags: ["neon"]
     implementation: |
-      auto const data_array = tsl::to_array<Vec>(data);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) data_array = tsl::to_array<Vec>(data);
 
       for(std::size_t i = 0; i < Vec::vector_element_count(); i++){
         if((mask >> i) & 1){
@@ -1499,7 +1499,7 @@ definitions:
     implementation: |
       //@todo: optimizable
       alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> data_array;
-      auto src_array = tsl::to_array<Vec>(src);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) src_array = tsl::to_array<Vec>(src);
       auto mem = memory;
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(((mask>>i)&0b1)==0) {
@@ -1519,7 +1519,7 @@ definitions:
     implementation: |
       //@todo: optimizable
       alignas(Vec::vector_alignment()) std::array<typename Vec::base_type, Vec::vector_element_count()> data_array;
-      auto src_array = tsl::to_array<Vec>(src);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) src_array = tsl::to_array<Vec>(src);
       auto mem = memory;
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(((mask>>i)&0b1)==0) {

@@ -757,8 +757,8 @@ definitions:
       However, this seems like a bad idea, as the actual processing would be done scalarly.
       Consequently, we transfer the data to the stack, process it scalarly and move the result back to the register.
     implementation: |
-      auto data_arr = tsl::to_array<Vec>(data);
-      auto shift_arr = tsl::to_array<Vec>(shift);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) data_arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) shift_arr = tsl::to_array<Vec>(shift);
       for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
         data_arr[i] <<= shift_arr[i];
       }

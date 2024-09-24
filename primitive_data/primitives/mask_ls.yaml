@@ -207,7 +207,7 @@ definitions:
     lscpu_flags: ["neon"]
     is_native: False
     implementation: |
-      auto mask_values_array = tsl::to_array<typename Vec:: template transform_extension<typename Vec::offset_base_type>>(vec_mask);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) mask_values_array = tsl::to_array<typename Vec:: template transform_extension<typename Vec::offset_base_type>>(vec_mask);
       typename Vec::imask_type mask_integral = 0;
       for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
         mask_integral |= (mask_values_array[i] & 0b1) << i;
@@ -762,9 +762,9 @@ definitions:
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
       using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tsl::to_array<offsetExt>(index);
-      auto const src_array = tsl::to_array<Vec>(source);
-      auto const mask_array = tsl::to_array<Vec>(mask);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<offsetExt>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) src_array = tsl::to_array<Vec>(source);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) mask_array = tsl::to_array<Vec>(mask);
       if constexpr(N == 1) {
         auto mem = reinterpret_cast<char const*>(memory);
         for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
@@ -802,11 +802,11 @@ definitions:
     is_native: False
     implementation: |
       alignas(Vec::vector_size_B()) std::array<typename Vec::base_type, Vec::vector_element_count()> result{};
-      auto const src_array = tsl::to_array<Vec>(source);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) src_array = tsl::to_array<Vec>(source);
       auto mem = reinterpret_cast<typename Vec::base_type const *>(memory);
-      auto const idx_array = tsl::to_array<IndicesType>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<IndicesType>(index);
       using VecMaskT = typename Vec:: template transform_extension<{{ additional_simd_template_base_type }}>;
-      auto const mask_array = tsl::to_array<VecMaskT>(mask);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) mask_array = tsl::to_array<VecMaskT>(mask);
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         result[i] = (mask_array[i] == 0) ? src_array[i] : mem[idx_array[i]];
       }
@@ -875,10 +875,10 @@ definitions:
     is_native: False
     includes: ["<array>"]
     implementation: |
-      auto const val_array = tsl::to_array<Vec>(data);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tsl::to_array<offsetExt>(index);
-      auto const mask_array = tsl::to_array<Vec>(mask);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<offsetExt>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) mask_array = tsl::to_array<Vec>(mask);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
@@ -901,10 +901,10 @@ definitions:
     includes: ["<array>"]
     is_native: False
     implementation: |
-      auto const val_array = tsl::to_array<Vec>(data);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) val_array = tsl::to_array<Vec>(data);
       using offsetExt = typename Vec:: template transform_extension<Vec::offset_base_type>;
-      auto const idx_array = tsl::to_array<offsetExt>(index);
-      auto const mask_array = tsl::to_array<Vec>(mask);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) idx_array = tsl::to_array<offsetExt>(index);
+      auto const __attribute__((__aligned__(Vec::vector_alignment()))) mask_array = tsl::to_array<Vec>(mask);
       TSL_UNROLL(Vec::vector_element_count())
       for(std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         if(mask_array[i] != 0) {
