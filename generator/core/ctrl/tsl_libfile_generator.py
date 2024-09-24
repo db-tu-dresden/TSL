@@ -5,6 +5,7 @@ import copy
 import logging
 from pathlib import Path
 from typing import Generator
+from itertools import combinations
 
 from jinja2 import Template
 
@@ -86,8 +87,27 @@ class TSLFileGenerator:
                                                                              primitive_class.data)
 
             definition_files_per_extension_dict: Dict[str, TSLHeaderFile] = dict()
+
+            #get all declarations and there overloads
+            primitive_with_overloads_dict = {}
+            for primitive in primitive_class:
+                if primitive.declaration.name not in primitive_with_overloads_dict:
+                    primitive_with_overloads_dict[primitive.declaration.name] = [primitive.declaration.name]
+                if primitive.declaration.name != primitive.declaration.functor_name:
+                    primitive_with_overloads_dict[primitive.declaration.name].append(primitive.declaration.functor_name)
+            
+            previous_declarations_dict = {}
+            for _,v in primitive_with_overloads_dict.items():
+                if len(v) > 1:
+                    for i in range(1, len(v)):
+                        previous_declarations_dict[v[i]] = v[:i]                    
+            # for k, v in previous_declarations_dict.items():
+            #     print(f"Previous overload for {k}: {v}")
+            
             for primitive in primitive_class:
                 declaration_data = copy.deepcopy(primitive.declaration.data)
+                if primitive.declaration.functor_name in previous_declarations_dict:
+                    declaration_data["previous_overloads"] = previous_declarations_dict[primitive.declaration.functor_name]
                 declaration_data["tsl_function_doxygen"] = config.get_template("core::doxygen_function").render(
                     declaration_data)
                 declaration_file.add_code(

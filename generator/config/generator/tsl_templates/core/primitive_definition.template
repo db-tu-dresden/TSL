@@ -99,6 +99,7 @@ namespace {{ tsl_implementation_namespace }} {
 {# If the vector_length_bits is specified in the yaml file, a specialization is generated. #}
     struct {{ functor_name }}<{{ ns.full_extension_name }}, {{ ns.return_template_type }}{{ ns.additional_template_params }}{{ idof_name }}> {
         using {{ vector_name }} = {{ ns.full_extension_name }};
+        {{ 'using gets_parameter_pack = std::true_type;' if ns.contains_parameter_pack else '' }}
         {{ ns.using_return_type }}
         using return_type = {{ returns['ctype'] }};
         {% if ns.has_parameters_tuple %}

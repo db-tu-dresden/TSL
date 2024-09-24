@@ -18,6 +18,7 @@ arch_flags:
   "avx512_fp16": "avx512fp16"
   "avx512_vpopcntdq": "avx512vpopcntdq"
   "avx512_vbmi2": "avx512vbmi2"
+  "avx512_bitalg": "avx512bitalg"
 
 includes: ['"immintrin.h"']
 simdT_name: "avx512"

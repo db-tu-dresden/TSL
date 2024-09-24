@@ -51,52 +51,90 @@ implementations:
       #   define TSL_UNROLL(...)
       #endif
     - |
-      template <typename T, class = void> struct class_declared : std::false_type {};
-      template <typename T> struct class_declared<T,decltype(void(sizeof(T)))> : std::true_type {};
-    - |
-      template <class HelperStruct>
-      struct tsl_functor_template_defined {
-        // Define a helper function that checks if apply can be instantiated with specific arguments.
-        template <typename... Args>
-        static auto has_valid_apply(Args&&...) -> decltype(std::declval<HelperStruct>().apply(std::declval<Args>()...), std::true_type{});
-        // If the helper function is well-formed, it means apply can be instantiated with these arguments.
-        template <typename... Args>
-        static std::true_type test(int, Args&&...);
-        // If the helper function is not well-formed, it means apply cannot be instantiated with these arguments.
-        static std::false_type test(...);
-        // Combine the results of the tests.
-        template <typename... Args>
-        using type = decltype(test(0, std::declval<Args>()...));
-        static constexpr bool value = type<>::value;
-      };
-    - |
-      template <class HelperStruct>
-      struct tsl_functor_plain_defined {
-        template <class CurrentHelperStruct>
-        static auto test(int) -> decltype(std::declval<CurrentHelperStruct>().apply, std::true_type{});
+      template <typename T, class = void> 
+      struct tsl_functor_declared : std::false_type {};
+      template <typename T> 
+      struct tsl_functor_declared<T,decltype(void(sizeof(T)))> : std::true_type {};
+      template <typename T>
+      struct has_param_tuple_t {
+        template <typename C>
+        static std::true_type test(typename C::param_tuple_t*);
         template <typename>
-        static auto test(...) -> std::false_type;
-        using type = decltype(test<HelperStruct>(0));
-        static constexpr bool value = type::value;
+        static std::false_type test(...);
+        static constexpr bool value = decltype(test<T>(nullptr))::value;
       };
-    - |
-      template <class HelperStruct>
+      template <typename T>
+      struct has_parameter_pack_type_t {
+        template <typename C>
+        static std::true_type test(typename C::gets_parameter_pack*);
+        template <typename>
+        static std::false_type test(...);
+        static constexpr bool value = decltype(test<T>(nullptr))::value;
+      };
+      template <typename T, class = void>
+      struct gets_parameter_pack_t : public std::false_type {};
+      template <typename T>
+      struct gets_parameter_pack_t<T, std::enable_if_t<(has_parameter_pack_type_t<T>::value)>> : public T::gets_parameter_pack {};
+      template <typename T>
+      struct has_apply {
+        template <typename C>
+        static std::true_type test(decltype(&C::apply));
+        template <typename>
+        static std::false_type test(...);
+        static constexpr bool value = decltype(test<T>(nullptr))::value;
+      };
+      template <typename T>
+      struct has_pack_apply {
+        template <typename C, typename... Args>
+        static auto test(int) -> decltype(C::template apply<Args...>, std::true_type{});
+        template <typename>
+        static std::false_type test(...);
+        static constexpr bool value = decltype(test<T>(0))::value;
+      };
+      template <typename T>
       struct tsl_functor_defined {
-        static constexpr bool value =
-          tsl_functor_template_defined<HelperStruct>::value ||
-          tsl_functor_plain_defined<HelperStruct>::value;
+        static constexpr bool value = ((has_param_tuple_t<T>::value) || (gets_parameter_pack_t<T>::value)) && ((has_apply<T>::value) || (has_pack_apply<T>::value));
       };
     - |
-      template<class A, class B>
-      constexpr bool tsl_primitive_ambiguous() {
-        if constexpr ((class_declared<A>::value)) {
-          if constexpr ((tsl_functor_defined<A>::value) && (tsl_functor_defined<B>::value)) {
-            return std::is_same_v<typename A::param_tuple_t, typename B::param_tuple_t>;
-          } else {
-            return false;
-          }
-        } else {
-          return false;
-        }
-      }
+      template <typename T, class = void>
+      struct tsl_functor_available : std::false_type {};
+      template <typename T>
+      struct tsl_functor_available<
+        T,
+        std::enable_if_t<((tsl_functor_declared<T>::value) && (tsl_functor_defined<T>::value))>
+      > : std::true_type {};
+      template <typename A, typename B, class = void>
+      struct tsl_functor_pair_available : std::false_type {};
+      template <typename A, typename B>
+      struct tsl_functor_pair_available<
+        A, B,
+        std::enable_if_t<((tsl_functor_available<A>::value) && (tsl_functor_available<B>::value))>
+      > : public std::true_type {};
+    - |
+      template <typename First, typename Second, class = void>
+      struct tsl_primitive_redeclaration {
+        static constexpr bool value = false;
+      };
+      template <typename First, typename Second>
+      struct tsl_primitive_redeclaration<
+        First, Second,
+        std::enable_if_t<tsl_functor_pair_available<First, Second>::value>
+      > {
+        static constexpr bool value = std::is_same_v<typename First::param_tuple_t, typename Second::param_tuple_t>;
+      };
+      template <class... Functors>
+      struct tsl_primitives_redeclared;
+      template <class Functor>
+      struct tsl_primitives_redeclared<Functor> {
+        using is_ambiguous = std::false_type;
+      };
+      template <class FunctorA, class FunctorB, class... Functors>
+      struct tsl_primitives_redeclared<FunctorA, FunctorB, Functors...> {
+        using is_ambiguous = std::conditional_t<tsl_primitive_redeclaration<FunctorA, FunctorB>::value,
+          std::true_type,
+          typename tsl_primitives_redeclared<FunctorA, Functors...>::is_ambiguous>;
+      };
+      template <class... Functors>
+      inline constexpr bool tsl_primitives_redeclared_v = tsl_primitives_redeclared<Functors...>::is_ambiguous::value;
+
 ...
