@@ -2003,7 +2003,7 @@ definitions:
     implementation: |
       return _mm512_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
   - target_extension: ["avx512"]
-    ctype: ["uint8_t", "int8_t", "uint16_t", "in16_t"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx512f", "avx512bitalg"]
     implementation: |
       return _mm512_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
@@ -2027,7 +2027,7 @@ definitions:
     implementation: |
       return _mm256_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
   - target_extension: ["avx2"]
-    ctype: ["uint8_t", "int8_t", "uint16_t", "in16_t"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["avx2", "avx512f", "avx512bitalg", "avx512vl"]
     implementation: |
       return _mm256_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
@@ -2051,7 +2051,7 @@ definitions:
     implementation: |
       return _mm_popcnt_epi{{ intrin_tp[ctype][1] }}(data);
   - target_extension: ["sse"]
-    ctype: ["uint8_t", "int8_t", "uint16_t", "in16_t"]
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ["sse2", "avx512f", "avx512bitalg", "avx512vl"]
     implementation: |
       return _mm_popcnt_epi{{ intrin_tp[ctype][1] }}(data);

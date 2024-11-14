@@ -35,7 +35,8 @@ jobs:
       requirement-file: "requirements.txt"
       docker-tag: "${{ vars.BUILD_TEST_ARM_TAG }}"
       context: ".github/actions/tsl-test-arm"
-      platforms: linux/amd64,linux/arm64
+      platforms: linux/arm64
+#linux/amd64,
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
