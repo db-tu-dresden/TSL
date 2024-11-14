@@ -35,8 +35,7 @@ jobs:
       requirement-file: "requirements.txt"
       docker-tag: "${{ vars.BUILD_TEST_ARM_TAG }}"
       context: ".github/actions/tsl-test-arm"
-      platforms: linux/arm64
-#linux/amd64,
+      platforms: linux/amd64,linux/arm64
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -223,6 +222,16 @@ jobs:
         with:
           name: generate_tsl_arm_${{ matrix.tsl_folders }}
           path: ${{ github.workspace }}/generate/${{ matrix.tsl_folders }}
+      - name: Set up Docker
+        uses: crazy-max/ghaction-setup-docker@v3
+        with:
+          daemon-config: |
+            {
+              "debug": true,
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }  
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
