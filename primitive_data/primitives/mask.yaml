@@ -291,7 +291,7 @@ definitions:
   - target_extension: "avx512"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]
     lscpu_flags: ['avx512f', 'avx512dq', 'avx512bw']
-    implementation: "return _kand_mask{{ intrin_tp[ctype][1] }}(first, second);"
+    implementation: "return _kand_mask{{ (512//intrin_tp[ctype][1]) }}(first, second);"
   - target_extension: "avx512"
     ctype: ["float"]
     lscpu_flags: ['avx512f']
