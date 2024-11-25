@@ -357,7 +357,10 @@ returns:
   ctype: "typename Vec::imask_type"
   description: "Vector mask register containing the result."
 definitions:
-  #INTEL - AVX512 already defined in mask_binary_and for Vec::mask_type
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return first & second;"
   #INTEL AVX2
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
