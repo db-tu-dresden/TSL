@@ -561,6 +561,172 @@ definitions:
     implementation: "return (mask)? vec_a + vec_b : vec_a;"
 ...
 ---
+primitive_name: "sub"
+functor_name: "mask_sub"
+brief_description: "Subtracts two vector registers, depending on a mask: result[*] = (m[*])? vec_a[*]-vec_b[*] : vec_a[*]."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Vector mask register indicating which elements should be subtracted."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the subtraction."
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_and_si256(vec_b, mask));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_sub_{{ intrin_tp_full[ctype] }}(vec_a, _mm256_and_{{ intrin_tp_full[ctype] }}(vec_b, mask));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_and_si128(vec_b, mask));"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse"]
+    implementation: "return _mm_sub_ps(vec_a, _mm_and_ps(vec_b, mask));"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sub_pd(vec_a, _mm_and_pd(vec_b, mask));"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (mask)? vec_a - vec_b : vec_a;"
+...
+---
+primitive_name: "sub"
+functor_name: "imask_sub"
+brief_description: "Subtracts two vector registers, depending on a mask: result[*] = (m[*])? vec_a[*]-vec_b[*] : vec_a[*]."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Vector mask register indicating which elements should be subtracted."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the subtraction."
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_and_si256(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_sub_{{ intrin_tp_full[ctype] }}(vec_a, _mm256_and_{{ intrin_tp_full[ctype] }}(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_and_si128(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sub_ps(vec_a, _mm_and_ps(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sub_pd(vec_a, _mm_and_pd(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (mask)? vec_a - vec_b : vec_a;"
+...
+---
 primitive_name: "mul"
 brief_description: "Multiplies two vector registers."
 parameters:
