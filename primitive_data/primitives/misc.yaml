@@ -401,6 +401,32 @@ definitions:
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (static_cast<bool>(control))? right : left;"
+  - target_extension: "neon"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ['neon']
+    implementation: |
+      return vorrq_{{ intrin_tp_full[ctype] }}(
+        vandq_{{ intrin_tp_full[ctype] }}( 
+          vmvnq_{{ intrin_tp_full[ctype] }}(control), 
+          left 
+        ),
+        vandq_{{ intrin_tp_full[ctype] }}(control, right)
+      );
+  - target_extension: "neon"
+    ctype: ["float", "double"]
+    lscpu_flags: ['neon']
+    implementation: |
+      auto const control_ui = vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(control);
+      auto const left_ui = vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(left);
+      auto const right_ui = vreinterpretq_u{{ intrin_tp[ctype][1] }}_{{ intrin_tp_full[ctype] }}(right);
+      auto const result_ui = vorrq_{{ intrin_tp_full[ctype] }}(
+        vandq_{{ intrin_tp_full[ctype] }}( 
+          vmvnq_{{ intrin_tp_full[ctype] }}(control_ui), 
+          left_ui 
+        ),
+        vandq_{{ intrin_tp_full[ctype] }}(control, right_ui)
+      );
+      return vreinterpretq_{{ intrin_tp_full[ctype] }}_u{{ intrin_tp[ctype][1] }}(result_ui);
 ...
 ---
 primitive_name: "blend_add"
