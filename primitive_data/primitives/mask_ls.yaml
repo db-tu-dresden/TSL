@@ -202,17 +202,66 @@ definitions:
     lscpu_flags: [ 'neon' ]
     is_native: False
     implementation: "return ( ( vec_mask[ 1 ] >> 62 ) & 0b10 ) | ( vec_mask[ 0 ] >> 63 );"
+  # - target_extension: "neon"
+  #   ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "float"]
+  #   lscpu_flags: ["neon"]
+  #   is_native: False
+  #   implementation: |
+  #     auto __attribute__((__aligned__(Vec::vector_alignment()))) mask_values_array = tsl::to_array<typename Vec:: template transform_extension<typename Vec::offset_base_type>>(vec_mask);
+  #     typename Vec::imask_type mask_integral = 0;
+  #     for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
+  #       mask_integral |= (mask_values_array[i] & 0b1) << i;
+  #     }
+  #     return mask_integral;
+  # - target_extension: "neon"
+  #   lscpu_flags: ['neon']
+  #   ctype: ["int64_t", "uint64_t", "double"]
+  #   implementation: |
+  #     return vaddvq_u64(
+  #       vandq_u64(
+  #         vcombine_u64(vcreate_u64(0b1), vcreate_u64(0b10)),
+  #         vec_mask
+  #       )
+  #     );
   - target_extension: "neon"
-    ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "float"]
-    lscpu_flags: ["neon"]
-    is_native: False
+    lscpu_flags: ['neon']
+    ctype: ["int32_t", "uint32_t", "float"]
     implementation: |
-      auto __attribute__((__aligned__(Vec::vector_alignment()))) mask_values_array = tsl::to_array<typename Vec:: template transform_extension<typename Vec::offset_base_type>>(vec_mask);
-      typename Vec::imask_type mask_integral = 0;
-      for (size_t i = 0; i < Vec::vector_element_count(); ++i) {
-        mask_integral |= (mask_values_array[i] & 0b1) << i;
-      }
-      return mask_integral;
+      return vaddvq_u32(
+        vandq_u32(
+          vcombine_u32(vcreate_u64(0x200000001), vcreate_u32(0x800000004)),
+          vec_mask
+        )
+      );
+  - target_extension: "neon"
+    lscpu_flags: ['neon']
+    ctype: ["int16_t", "uint16_t"]
+    implementation: |
+      return vaddvq_u16(
+        vandq_u16(
+          vcombine_u16(vcreate_u16(0x8000400020001), vcreate_u16(0x80004000200010)),
+          vec_mask
+        )
+      );
+  - target_extension: "neon"
+    lscpu_flags: ['neon']
+    ctype: ["int8_t", "uint8_t"]
+    implementation: |
+      uint16_t upper = 
+        (vaddlv_u8(
+          vand_u8(
+            vget_high_u8(vec_mask),
+            vcreate_u8(0x8040201008040201)
+          )
+        ) << 8 );
+      uint16_t lower =
+        vaddlv_u8(
+          vand_u8(
+            vget_low_u8(vec_mask),
+            vcreate_u8(0x8040201008040201)
+          )
+        );
+      return upper | lower;
 #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
