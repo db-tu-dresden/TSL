@@ -2,6 +2,7 @@ import argparse
 import copy
 import logging.config
 import pathlib
+import os
 import re
 from pathlib import Path
 from typing import Dict, Any, Generator, List
@@ -27,7 +28,7 @@ class TSLGeneratorConfig:
 
     def __init__(self) -> None:
         self.include_guard_regex = re.compile(r"\W|[^\x00-\x7F]")
-        self.path_seperator: str = pathlib.os.sep
+        self.path_seperator: str = os.sep
         self.__valid = False
         self.__logger = None
         self.__jinja_templates_str: Dict[str, str] = dict()
