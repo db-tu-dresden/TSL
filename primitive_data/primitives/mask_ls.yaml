@@ -247,7 +247,7 @@ definitions:
     lscpu_flags: ['neon']
     ctype: ["int8_t", "uint8_t"]
     implementation: |
-      uint16_t upper = 
+      uint16_t upper =
         (vaddlv_u8(
           vand_u8(
             vget_high_u8(vec_mask),
