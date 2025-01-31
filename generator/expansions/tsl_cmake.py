@@ -48,7 +48,8 @@ class TSLCMakeGenerator:
                     **{
                         "header_files": header_files,
                         "library_root_path": f"{strip_common_path_prefix(config.lib_root_path, config.generation_out_path)}/",
-                        "tsl_target_compile_options": f"{get_architecture_flags(lib)} {get_warning_options()} -flax-vector-conversions",
+                        "tsl_hw_compile_flags_options": f"{get_architecture_flags(lib)}",
+                        "tsl_target_compile_options": f"{get_warning_options()} -flax-vector-conversions",
                         "tsl_required_supplementary_libraries": lib.relevant_supplementary_libraries,
                         "tsl_additional_include_paths": [f"{p.parent}" for p in lib.relevant_runtime_headers],
                         "use_concepts": config.use_concepts,

@@ -671,7 +671,7 @@ definitions:
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["neon"]
     implementation: |
-      std::array<Vec::base_type,sizeof...(Ts)> data{args...};
+      std::array<Vec::base_type,sizeof...(Ts)> data{static_cast<Vec::base_type>(args)...};
       constexpr size_t len = sizeof...(args);
       for (auto i = 0; i < len/2; ++i) {
         std::swap(data[i],data[len-1-i]);

@@ -44,43 +44,43 @@ implementations:
         return r;
     }
     template <>
-    std::string type_name<uint8_t>() {
+    inline std::string type_name<uint8_t>() {
       return "uint8_t";
     }
     template <>
-    std::string type_name<uint16_t>() {
+    inline std::string type_name<uint16_t>() {
       return "uint16_t";
     }
     template <>
-    std::string type_name<uint32_t>() {
+    inline std::string type_name<uint32_t>() {
       return "uint32_t";
     }
     template <>
-    std::string type_name<uint64_t>() {
+    inline std::string type_name<uint64_t>() {
       return "uint64_t";
     }
     template <>
-    std::string type_name<int8_t>() {
+    inline std::string type_name<int8_t>() {
       return "int8_t";
     }
     template <>
-    std::string type_name<int16_t>() {
+    inline std::string type_name<int16_t>() {
       return "int16_t";
     }
     template <>
-    std::string type_name<int32_t>() {
+    inline std::string type_name<int32_t>() {
       return "int32_t";
     }
     template <>
-    std::string type_name<int64_t>() {
+    inline std::string type_name<int64_t>() {
       return "int64_t";
     }
     template <>
-    std::string type_name<float>() {
+    inline std::string type_name<float>() {
       return "float";
     }
     template <>
-    std::string type_name<double>() {
+    inline std::string type_name<double>() {
       return "double";
     }
     #define TYPENAME(x) type_name<decltype(x)>()
