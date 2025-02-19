@@ -89,7 +89,7 @@ jobs:
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             echo "tag=${{ github.head_ref }}" >> "${GITHUB_OUTPUT}"
           else
-            if [[ "${{ github.ref_type }}" == "tag"]]; then
+            if [[ "${{ github.ref_type }}" == "tag" ]]; then
               TAG_COMMIT=$(git rev-list -n 1 ${{ github.ref }})
               BRANCH=$(git branch -r --contains "${TAG_COMMIT}" | sed 's/origin\///' | grep -v HEAD | head -n 1 | awk '{$1=$1};1')
               echo "tag=${BRANCH}" >> "${GITHUB_OUTPUT}"
