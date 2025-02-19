@@ -1,0 +1,135 @@
+on:
+  workflow_call:
+    inputs:
+      context: 
+        description: 'Path to the tsl repository (context)'
+        required: true
+        type: string
+      path:
+        description: 'Path to the Dockerfile'
+        required: true
+        type: string
+      image_name:
+        description: 'Name of the image'
+        required: true
+        type: string
+      platforms:
+        description: 'Platforms to build for'
+        required: false
+        default: 'linux/amd64,linux/arm64'
+        type: string
+      mandatory_files:
+        description: 'List of files that will used to check for changes to determine whether to build a new image or notor not'
+        required: false
+        type: string
+    secrets:
+      dockerhub_username:
+        description: 'Username for Dockerhub'
+        required: true
+      dockerhub_token:
+        description: 'Token for Dockerhub (RWD)'
+        required: true
+    outputs:
+      image_fqname:
+        description: 'Name of the image'
+        value: ${{ jobs.main.outputs.image_fqname }}
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    outputs:
+      image_fqname: ${{ steps.image-name.outputs.image_fqname }}
+
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+      - name: 'Check for changes'
+        id: check_changes
+        shell: bash
+        run: |
+          set -x
+          if ${{ github.event_name == 'pull_request' }}; then
+            if git rev-parse "HEAD^" > /dev/null 2>&1; then
+              changed_files=$(git diff --name-only -r "HEAD^" "HEAD" | tr '\n' ' ' | xargs)
+            else
+              changed_files=$(git ls-tree --name-only "HEAD" | tr '\n' ' ' | xargs)
+            fi
+          else
+            if [[ "${{ github.event.before }}" =~ ^0+$ ]]; then
+              changed_files=$(git ls-tree --name-only "HEAD" | tr '\n' ' ' | xargs)
+            else
+              changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | tr '\n' ' ' | xargs)
+            fi
+          fi
+          echo ${changed_files}
+          changed=0
+          if echo "${changed_files}" | grep -qw -- "${{ inputs.path }}"; then
+            changed=1
+          fi
+          IFS=',' read -ra mandatory_files_array <<< "${{ inputs.mandatory_files }}"
+          for file in "${mandatory_files_array[@]}"; do
+            if echo "${changed_files}" | grep -qw -- "${file}"; then
+              changed=1
+              break
+            fi
+          done
+          if [ $changed -eq 1 ]; then
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: 'Determine Docker Image Tag'
+        id: tag-creation
+        shell: bash
+        run: |
+          set -x
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "tag=${{ github.head_ref }}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "tag=${{ github.ref_name }}" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: 'Set image name output'
+        id: image-name
+        shell: bash
+        run: |
+          set -x
+          echo "image_fqname=${{ inputs.image_name }}-${{ steps.tag-creation.outputs.tag }}" >> "${GITHUB_OUTPUT}"
+
+      - name: 'Check if image is present'
+        id: is_present
+        shell: bash
+        run: |
+          set -x
+          if curl -s -f https://hub.docker.com/v2/repositories/${{ secrets.dockerhub_username }}/${{ steps.image-name.outputs.image_fqname }}/tags/latest; then
+            echo "image_present=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "image_present=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: 'Login to Docker hub for build and push'
+        if: ${{ (steps.check_changes.outputs.changed == 'true') || (steps.is_present.outputs.image_present == 'false') }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.dockerhub_username }}
+          password: ${{ secrets.dockerhub_token }}
+  
+      - name: Set up Docker Buildx
+        if: ${{ (steps.check_changes.outputs.changed == 'true') || (steps.is_present.outputs.image_present == 'false') }}
+        uses: docker/setup-buildx-action@v3
+        
+      - name: 'Build and push to DockerHub'
+        if: ${{ (steps.check_changes.outputs.changed == 'true') || (steps.is_present.outputs.image_present == 'false') }}
+        uses: docker/build-push-action@v6
+        with:
+          file: ${{ inputs.path }}
+          push: true
+          tags: ${{ secrets.dockerhub_username }}/${{ steps.image-name.outputs.image_fqname }}:latest
+          labels: org.opencontainers.image.source=${{ github.repository }}/blob/${{ github.sha }}/${{ inputs.path }}
+          cache-from: type=registry,ref=${{ secrets.dockerhub_username }}/${{ steps.image-name.outputs.image_fqname }}:latest
+          cache-to: type=inline
+          platforms: ${{ inputs.platforms }}
+          context: ${{ inputs.context }}

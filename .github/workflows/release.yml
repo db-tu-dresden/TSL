@@ -1,0 +1,592 @@
+name: Create release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_run:
+    workflows: [Validate TSL]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: false
+        default: 'v0.0.1-rc0'
+jobs:
+  define-targets:
+    if: ${{ github.event_name != 'workflow_run' }}
+    runs-on: ubuntu-latest
+    outputs:
+      target-matrix: ${{ steps.parse-target-specs.outputs.target_matrix }}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          
+      - name: Parse Target Specs
+        id: parse-target-specs
+        run: |
+          echo "target_matrix=$(jq -c '{include: ([keys[] as $k | .[$k][] | (. + { arch: $k })])}' .github/workflows/target_specs.json -c)" >> $GITHUB_OUTPUT
+  
+  build-generation-image:
+    if: ${{ github.event_name != 'workflow_run' }}
+    name: Generation Image (build and push on demand)
+    uses: ./.github/workflows/build_and_push_dockerhub.yml
+    with:
+      context: .
+      path: .github/workflows/docker/generate_ubuntu.dockerfile
+      image_name: tsl-generate
+      platforms: linux/amd64
+      mandatory_files: requirements.txt
+    secrets:
+      dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+    
+  run-generation:
+    needs: [build-generation-image, define-targets]
+    if: ${{ github.event_name != 'workflow_run' }}
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.build-generation-image.outputs.image_fqname }}:latest
+    strategy:
+      matrix: ${{ fromJson(needs.define-targets.outputs.target-matrix) }}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      
+      - name: Generate tsl
+        run: |
+          python3 main.py --targets ${{ matrix.flags }} -o docker_out/${{ matrix.name }}
+
+      - name: Upload tsl
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsl-${{ matrix.arch }}-${{ matrix.name }}
+          path: ./docker_out/${{ matrix.name }}
+          compression-level: 9
+  
+  prepare-tsl-tarball:
+    if: ${{ always() && !failure() && !cancelled() }}
+    needs: [run-generation]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge tsl flavors
+        if: ${{ github.event_name != 'workflow_run' }}
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: tsl-artifact-tarball
+          pattern: tsl-*
+          separate-directories: true
+          delete-merged: true
+          compression-level: 9
+          retention-days: 1
+      
+      - name: Download all tsl-flavours
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ github.workspace }}/tsl
+          name: tsl-artifact-tarball
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+      
+      # - name: Download all tsl-flavours
+      #   if: ${{ github.event_name == 'workflow_run' }}
+      #   uses: dawidd6/action-download-artifact@v8
+      #   with:
+      #     workflow: ${{ github.event.workflow_run.id }}
+      #     name: tsl-artifact-tarball
+      #     path: ${{ github.workspace }}/tsl
+      
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'workflow_run' }}
+        with:
+          name: tsl-artifact-tarball
+          path: ${{ github.workspace }}/tsl/*
+          compression-level: 9
+          overwrite: true
+          retention-days: 1    
+  
+  prepare-scripts:
+    needs: [prepare-tsl-tarball]
+    if: ${{ always() && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          path: repository
+
+      - name: Download tsl-artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ github.workspace }}/tsl
+          name: tsl-artifact-tarball
+
+      - name: Copy relevant files
+        run: |
+          mkdir -p ${{ github.workspace }}/release
+          mkdir -p ${{ github.workspace }}/release_tmp
+          cp ${{ github.workspace }}/repository/.github/workflows/release/select_flavor.sh ${{ github.workspace }}/release_tmp/select_flavor.sh
+          cp ${{ github.workspace }}/repository/detect_flags.sh ${{ github.workspace }}/release_tmp/detect_flags.sh
+      
+      - name: Substitute placeholders
+        run: |
+          python3 ${{ github.workspace }}/repository/.github/workflows/release/prepare_select_flavor.py \
+            --install-sh ${{ github.workspace }}/release_tmp/select_flavor.sh \
+            --folder-prefix "tsl" \
+            --targets-spec-file repository/.github/workflows/target_specs.json \
+            --tsl-folder-ph "$<< TslFolderArrayValues >>" \
+            --default-flags-array-ph "$<< DefaultFlagsArrayValues >>" \
+            --alt-flags-array-ph "$<< AlternativeFlagsArrayValues >>" \
+            --alt-to-tsl-mapping-ph "$<< AlternativeMappingsArrayValues >>" \
+            --generic-fallback-ph "$<< GenericFallback >>"
+
+      - name: Tarball tsl
+        run: |
+          tar -czf ${{ github.workspace }}/release_tmp/tsl.tar.gz -C ${{ github.workspace }}/tsl/ $(find ${{ github.workspace }}/tsl/ -maxdepth 1 -type d -name 'tsl-*' -exec basename {} \;) --strip-components=1
+          tar -czf ${{ github.workspace }}/release/libtsl-dev.tar.gz -C ${{ github.workspace }}/release_tmp/ $(find ${{ github.workspace }}/release_tmp -type f -exec basename {} \;) --strip-components=1
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tsl-artifact-tarball
+          path: ${{ github.workspace }}/release/libtsl-dev.tar.gz
+          compression-level: 9
+          overwrite: true
+          retention-days: 1
+
+  build-rpm-builder-image:
+    name: RPM builder Image (build and push on demand)
+    uses: ./.github/workflows/build_and_push_dockerhub.yml
+    with:
+      context: .
+      path: .github/workflows/docker/package_rpm_fedora.dockerfile
+      image_name: tsl-package-rpm
+      platforms: linux/amd64
+    secrets:
+      dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+  
+  build-deb-builder-image:
+    name: DEB builder Image (build and push on demand)
+    uses: ./.github/workflows/build_and_push_dockerhub.yml
+    with:
+      context: .
+      path: .github/workflows/docker/package_deb_ubuntu.dockerfile
+      image_name: tsl-package-deb
+      platforms: linux/amd64
+    secrets:
+      dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  auto-tag:
+    needs: [prepare-scripts, build-rpm-builder-image, build-deb-builder-image]
+    if: ${{ always() && !failure() && !cancelled() }}
+    name: Auto-Tag current Head
+    runs-on: ubuntu-latest
+    permissions: write-all
+    outputs:
+      tag: ${{ steps.determine-tag.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auto-Tag
+        id: push-tag
+        if: ${{ github.event_name == 'workflow_run' }}
+        run: |
+          git fetch --tags
+          LATEST_TAG=$(git tag -l --sort=-v:refname "v*" | head -n 1)
+          
+          if [ -z "${LATEST_TAG}" ]; then
+            echo "No tag found. Using v0.0.1-rc0 as latest tag."
+            LATEST_TAG=v0.0.1-rc1
+          else
+            echo "Latest tag: $LATEST_TAG"
+          fi
+
+          LATEST_TAG=${LATEST_TAG:1}  # Remove 'v' prefix
+          MAJOR=${LATEST_TAG%%.*}
+          TEMP=${LATEST_TAG#*.}
+          MINOR=${TEMP%%.*}
+          PATCHTEMP=${TEMP#*.}
+          PATCH=${PATCHTEMP%%-*}
+          RC_TMP=${PATCHTEMP#*-}
+          RC=${RC_TMP:2}
+
+          if [ -z "${RC}" ]; then
+            PATCH=$((PATCH+1))
+            RC=1
+          else
+            RC=$((RC+1))
+          fi
+
+          VERSION="v${MAJOR}.${MINOR}.${PATCH}-rc${RC}"
+          echo "New Version: ${VERSION}"
+
+          # Set output
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+
+          git config --global user.email "johannes.pietrzyk@tu-dresden.de"
+          git config --global user.name "GitHub Action (Maintainer: Johannes Pietrzyk)"
+          git tag -a $VERSION -m "${VERSION} (Auto-tagged by GitHub Actions)"
+          git push origin --tags
+
+      - name: Determine Tag
+        id: determine-tag
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == refs/tags/v* ]]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
+            echo "Pushed to tags. Tag: ${TAG_NAME}"
+          else
+            echo "tag=${{ steps.push-tag.outputs.tag }}" >> $GITHUB_OUTPUT
+            echo "Auto-tagged. Tag: ${{ steps.push-tag.outputs.tag }}"
+          fi
+
+  package-rpm:
+    needs: [auto-tag, prepare-scripts, build-rpm-builder-image]
+    if: ${{ always() && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.auto-tag.outputs.tag }}
+      OUT_PATH: ./artifacts/rpm
+    container:
+      image: ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.build-rpm-builder-image.outputs.image_fqname }}:latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          path: repository
+      
+      - name: Download tsl artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tsl-artifact-tarball
+          path: artifacts_tmp
+      
+      - name: Unpack artifacts
+        run: |
+          mkdir -p ./artifacts
+          tar -xf ./artifacts_tmp/libtsl-dev.tar.gz -C ./artifacts
+          ls -la ./artifacts
+
+      - name: Prepare specs
+        run: |
+          if [[ "${TAG}" == *"-"* ]]; then
+            VERSION=${TAG%%-*}
+            RELEASE=${TAG##*-}
+          else
+            VERSION=${TAG}
+            RELEASE=1
+          fi
+          sed -i "s/$<< VERSION_TAG >>/${VERSION}/g" repository/.github/workflows/release/rpm/tsl.spec
+          sed -i "s/$<< RELEASE_TAG >>/${RELEASE}/g" repository/.github/workflows/release/rpm/tsl.spec
+        
+      - name: Run rpmbuild
+        run: |
+          RPM_TMP_OUT_PATH=$(realpath ./tmp_rpm)
+          mkdir -p ${RPM_TMP_OUT_PATH}
+          SPEC_FILE=$(realpath ./repository/.github/workflows/release/rpm/tsl.spec)
+          SOURCE_ROOT=$(realpath ./artifacts/)
+
+          rpmbuild -ba "${SPEC_FILE}" --buildroot=/root/rpmbuild/BUILDROOT/ --define "_sourcedir ${SOURCE_ROOT}" --define "_rpmdir ${RPM_TMP_OUT_PATH}" --define "_verbose 1"
+          RPM_FILE=$(find "${RPM_TMP_OUT_PATH}" -type f -name '*.rpm')
+          echo "RPM_FILE: ${RPM_FILE}"
+          ls -la "${RPM_FILE}"
+
+          mkdir -p ${OUT_PATH}
+          mv "${RPM_FILE}" "${OUT_PATH}/libtsl-dev.rpm"
+
+      - name: Test install
+        run: |
+          dnf install -y ${OUT_PATH}/libtsl-dev.rpm
+      
+      - name: Check install directory
+        run: |
+          set -x
+          mkdir /tmp/tsl-test
+          SOURCE_ROOT=$(realpath ./artifacts/)
+          ls -halt ${SOURCE_ROOT}
+          chmod +x ${SOURCE_ROOT}/select_flavor.sh
+          chmod +x ${SOURCE_ROOT}/detect_flags.sh
+          HARDWARE_PATH=$(${SOURCE_ROOT}/select_flavor.sh ${SOURCE_ROOT})
+          echo "HARDWARE_PATH: ${HARDWARE_PATH}"
+          tar -xf ${SOURCE_ROOT}/tsl.tar.gz -C /tmp/tsl-test ${HARDWARE_PATH} --strip-components=1
+
+          find /tmp/tsl-test -type f -exec md5sum {} + | sed "s| /tmp/tsl-test/| |" | sort > ref.md5
+          find /usr/include/tsl -type f -exec md5sum {} + | sed "s| /usr/include/tsl/| |" | sort > tst.md5
+          diff ref.md5 tst.md5
+
+      - name: Compile test programm
+        run: |
+          g++ -march=native -Wno-ignored-attributes -Wno-attributes -Wdeprecated-declarations -flax-vector-conversions -o test_program repository/.github/workflows/release/test.cpp
+
+      - name: Test uninstall
+        run: |
+          dnf remove -y libtsl-dev
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tsl-artifact-rpm
+          path: ${{ env.OUT_PATH }}
+          compression-level: 9
+          overwrite: true
+          retention-days: 1
+  
+  package-deb:
+    needs: [auto-tag, prepare-scripts, build-deb-builder-image]
+    if: ${{ always() && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.auto-tag.outputs.tag }}
+      OUT_PATH: ./artifacts/deb
+    container:
+      image: ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.build-deb-builder-image.outputs.image_fqname }}:latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          path: repository
+
+      - name: Download tsl artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tsl-artifact-tarball
+          path: artifacts_tmp
+      
+      - name: Unpack artifacts
+        run: |
+          mkdir -p ./artifacts
+          tar -xf ./artifacts_tmp/libtsl-dev.tar.gz -C ./artifacts
+          ls -la ./artifacts
+        
+      - name: Prepare specs
+        run: |
+          TIME=$(date +"%a, %d %b %Y %T +0000")
+          ls -halt repository/.github/workflows/release/deb/debian
+          sed -i "s/$<< BUILD_TIME >>/${TIME}/g" repository/.github/workflows/release/deb/debian/changelog
+          sed -i "s/$<< VERSION_TAG >>/${TAG}/g" repository/.github/workflows/release/deb/debian/control
+      
+      - name: Run dpkb-buildpackage
+        run: |
+          set -x
+          CWD=$(pwd)
+          echo "Currently in ${CWD} (set to CWD)"
+
+          DEB_TMP_OUT_ROOT=$(realpath ./tmp_deb)
+          DEB_TMP_OUT_PATH=${DEB_TMP_OUT_ROOT}/libtsl-dev
+          mkdir -p ${DEB_TMP_OUT_PATH}
+          cp -r ./repository/.github/workflows/release/deb/* ${DEB_TMP_OUT_PATH}
+          cp ./artifacts/tsl.tar.gz ${DEB_TMP_OUT_PATH}/tsl.tar.gz
+          cp ./artifacts/select_flavor.sh ${DEB_TMP_OUT_PATH}/select_flavor.sh
+          cp ./artifacts/detect_flags.sh ${DEB_TMP_OUT_PATH}/detect_flags.sh
+          
+          chmod 755 ${DEB_TMP_OUT_PATH}/debian/postrm
+          chmod 755 ${DEB_TMP_OUT_PATH}/debian/postinst
+          chmod +x ${DEB_TMP_OUT_PATH}/debian/rules
+          chmod +x ${DEB_TMP_OUT_PATH}/select_flavor.sh
+          chmod +x ${DEB_TMP_OUT_PATH}/detect_flags.sh
+
+          
+          cd ${DEB_TMP_OUT_PATH}
+          dpkg-buildpackage -us -uc
+
+          DEB_FILE=$(find "${DEB_TMP_OUT_ROOT}" -type f -name '*.deb')
+          echo "DEB_FILE: ${DEB_FILE}"
+
+          echo "Current directory: $(pwd)"
+          echo "Change to ${CWD}"
+          cd $CWD
+          ls -la $CWD
+          echo "Creating directory ${CWD}/${OUT_PATH}"
+          mkdir -p ${CWD}/${OUT_PATH}
+          echo "Moving ${DEB_FILE} to ${CWD}/${OUT_PATH}/libtsl-dev.deb"
+          mv "${DEB_FILE}" "${PWD}/${OUT_PATH}/libtsl-dev.deb"
+          ls -la ${PWD}/${OUT_PATH}
+      
+      - name: Test install
+        run: |
+          set -x 
+          echo $(pwd)
+          echo "OUT_PATH = ${OUT_PATH}"
+          ls -la "${OUT_PATH}"
+          dpkg -i "${OUT_PATH}/libtsl-dev.deb"
+      
+      - name: Check install directory
+        run: |
+          set -x
+          mkdir /tmp/tsl-test
+          SOURCE_ROOT=$(realpath ./artifacts/)
+          ls -halt ${SOURCE_ROOT}
+          chmod +x ${SOURCE_ROOT}/select_flavor.sh
+          chmod +x ${SOURCE_ROOT}/detect_flags.sh
+          HARDWARE_PATH=$(${SOURCE_ROOT}/select_flavor.sh ${SOURCE_ROOT})
+          echo "HARDWARE_PATH: ${HARDWARE_PATH}"
+          tar -xf ${SOURCE_ROOT}/tsl.tar.gz -C /tmp/tsl-test ${HARDWARE_PATH} --strip-components=1
+
+          find /tmp/tsl-test -type f -exec md5sum {} + | sed "s| /tmp/tsl-test/| |" | sort > ref.md5
+          find /usr/include/tsl -type f -exec md5sum {} + | sed "s| /usr/include/tsl/| |" | sort > tst.md5
+          diff ref.md5 tst.md5
+      
+      - name: Compile test programm
+        run: |
+          g++ -march=native -Wno-ignored-attributes -Wno-attributes -Wdeprecated-declarations -flax-vector-conversions -o test_program repository/.github/workflows/release/test.cpp
+
+      - name: Test uninstall
+        run: |
+          dpkg -r libtsl-dev
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tsl-artifact-deb
+          path: ${{ env.OUT_PATH }}
+          compression-level: 9
+          overwrite: true
+          retention-days: 1
+  
+  # Disabled, since brew seems to not work with the current setup (transient tarball)
+  build-brew-builder-image:
+    name: HomeBrew builder Image (build and push on demand)
+    uses: ./.github/workflows/build_and_push_dockerhub.yml
+    if: ${{ 1 == 2 }} 
+    with:
+      context: .
+      path: .github/workflows/docker/package_brew_archlinux.dockerfile
+      image_name: tsl-package-brew
+      platforms: linux/amd64
+    secrets:
+      dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+  
+  # Disabled, since brew seems to not work with the current setup (transient tarball)
+  package-brew:
+    needs: [auto-tag, prepare-scripts, build-brew-builder-image]
+    runs-on: ubuntu-latest
+    if: ${{ 1 == 2 }}
+    env:
+      TAG: ${{ needs.auto-tag.outputs.tag }}
+      INSTALL_PATH: ./artifacts/brew
+      OUT_PATH: /tsl/brew
+    container:
+      image: ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.build-brew-builder-image.outputs.image_fqname }}:latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          path: repository
+
+      - name: Download tsl artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tsl-artifact
+          path: artifacts
+      
+      - name: Prepare installation
+        run: |
+          set -x
+          ABSOLUTE_OUT_PATH=$(realpath "${OUT_PATH}")
+          ABS_INSTALL_PATH=$(realpath "${INSTALL_PATH}")
+          ARTIFACTS_PATH=$(realpath ./artifacts)
+          REPOSITORY=$(realpath ./repository)
+          BREW_INST=${ABS_INSTALL_PATH}/brew
+          mkdir -p ${BREW_INST}
+          mkdir -p /tsl/brew
+          tar -czf "${ABSOLUTE_OUT_PATH}/libtsl-dev.tar.gz" -C  "${ARTIFACTS_PATH}" $(find "${ARTIFACTS_PATH}" -type f -exec basename {} \;) --strip-components=1
+          cp "${REPOSITORY}/.github/workflows/release/brew/libtsl-dev.rb" "${BREW_INST}/libtsl-dev.rb"
+          SHA256=$(shasum -a 256 "${BREW_INST}/libtsl-dev.tar.gz" | cut -f 1 -d ' ')
+          sed -i "s/$<< SHA256 >>/${SHA256}/g" "${BREW_INST}/libtsl-dev.rb"
+          echo "TAG IS ${TAG}"
+          echo "BEFORE:"
+          cat "${BREW_INST}/libtsl-dev.rb"
+          sed -i "s/$<< VERSION_TAG >>/${TAG}/g" "${BREW_INST}/libtsl-dev.rb"
+          echo "AFTER:"
+          cat "${BREW_INST}/libtsl-dev.rb"
+
+
+          cd "${BREW_INST}"
+          brew install --build-bottle ./libtsl-dev.rb
+
+          mv ${BREW_INST}/libtsl-dev.rb ${ABSOLUTE_OUT_PATH}/libtsl-dev.rb
+      
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tsl-artifact-brew
+          path: ${{ env.OUT_PATH }}
+          compression-level: 9
+          overwrite: true
+          retention-days: 1
+  
+  create-release:
+    needs: [auto-tag, prepare-scripts, package-rpm, package-deb]
+    if: ${{ always() && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions: write-all
+    env:
+      TAG: ${{ needs.auto-tag.outputs.tag }}
+    steps:
+      
+      - name: Merge tsl flavors
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: libtsl-dev
+          pattern: tsl-artifact-*
+          separate-directories: true
+          delete-merged: true
+          compression-level: 9
+          retention-days: 1
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: libtsl-dev
+      
+      - name: Consolidate
+        run: |
+          mkdir upload
+          find tsl-artifact* -type f -exec mv {} upload/ \;
+          rm -rf "tsl-artifact*"
+
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          path: repository
+  
+      - name: Copy setup_tsl.sh
+        run: |
+          cp ${{ github.workspace }}/repository/.github/workflows/release/tarball/setup_tsl.sh ${{ github.workspace }}/upload/setup_tsl.sh
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: libtsl-dev
+          path: upload
+          compression-level: 9
+          overwrite: true
+          retention-days: 1
+        
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            upload/*
+          tag_name: ${{ env.TAG }}

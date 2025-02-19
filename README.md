@@ -3,37 +3,13 @@
 
 
 ---
-[![Generates with py3.8-3.12](https://github.com/db-tu-dresden/TSL/actions/workflows/generation-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/generation-success.yml)
-[![Generates for x86](https://github.com/db-tu-dresden/TSL/actions/workflows/x86-generation-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/x86-generation-success.yml)
-[![Generates for ARM](https://github.com/db-tu-dresden/TSL/actions/workflows/arm-generation-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/arm-generation-success.yml)
-
-[![Builds on x86](https://github.com/db-tu-dresden/TSL/actions/workflows/x86-build-and-test-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/x86-build-and-test-success.yml)
-[![Builds on ARM](https://github.com/db-tu-dresden/TSL/actions/workflows/arm-build-and-test-success.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/arm-build-and-test-success.yml)
-
-[![Packaged](https://github.com/db-tu-dresden/TSL/actions/workflows/publish-latest.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/publish-latest.yml)
-[![Publish GH-Page](https://github.com/db-tu-dresden/TSL/actions/workflows/upload_indexhtml.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/upload_indexhtml.yml)
-<!-- 
-## **Current Status**
-
-### Library Generation using Python
-
-[![py38](./doc/badges/generate_py3.8.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml)
-[![py39](./doc/badges/generate_py3.9.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml)
-[![py310](./doc/badges/generate_py3.10.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml)
-[![py311](./doc/badges/generate_py3.11.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml)
-
-### Building on __Intel__ cores with SSE, AVX(2) and AVX512, __Ubuntu (latest)__
-[![build_g++](./doc/badges/build_g++.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml)
-[![build_clang++](./doc/badges/build_clang++.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml)
-
-
-### Running test cases on __Intel__ cores with SSE, AVX(2) and AVX512, __Ubuntu (latest)__
-[![test_g++](./doc/badges/test_g++.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml)
-[![test_clang++](./doc/badges/test_clang++.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml)
-
-
-### Docker image containing all requirements
-[![dockerio](./doc/badges/docker.io.svg)](https://github.com/db-tu-dresden/TVLGen/actions/workflows/tslgen_merge_main.yml) -->
+[![Generation py3.[8-12]](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_generation.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_generation.yml)
+[![x86 tests](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_testing_x86.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_testing_x86.yml)
+[![aarch64 tests](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_testing_aarch64.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_testing_aarch64.yml)
+[![tarball package](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_package_tarball.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_package_tarball.yml)
+[![deb package](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_package_deb.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_package_deb.yml)
+[![rpm package](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_package_rpm.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/badge_package_rpm.yml)
+[![Github Pages](https://github.com/db-tu-dresden/TSL/actions/workflows/ghpage.yml/badge.svg)](https://github.com/db-tu-dresden/TSL/actions/workflows/ghpage.yml)
 
 ---
 
@@ -94,22 +70,22 @@ You may have to adopt the package manager and the package names for other Linux 
 
 ~~~console
 # update apt
-user@host:~/tslroot sudo apt update
+sudo apt update
 # install TSL-generator-specific dependencies
-user@host:~/tslroot sudo apt -y install python3.10 graphviz-dev python3-pip
+sudo apt -y install python3.10 graphviz-dev python3-pip
 # install the required CMake version
-user@host:~/tslroot sudo apt -y install cmake
+sudo apt -y install cmake
 # make sure that the CMake version is at least 3.19
-user@host:~/tslroot cmake --version
+cmake --version
 # install pip
-user@host:~/tslroot python3 -m pip install --upgrade pip
+python3 -m pip install --upgrade pip
 ~~~
 > **Note:** If you don't have root access on your machine and you can't install graphviz-dev, please delete "pygraphviz" from the requirements.txt and pass the "--no-draw-test-dependencies" to the generator whenever you use it.
 
 As the next step, install all Python dependencies, for instance, using pip:
 
 ~~~console
-user@host:~/tslroot  pip install -r ./requirements.txt
+pip install -r ./requirements.txt
 ~~~
 > **Note:** Please ensure all packages can be installed correctly; otherwise, the generator may fail.
 
@@ -120,8 +96,8 @@ Make sure you installed the [Docker engine](https://docs.docker.com/engine/insta
 If everything is up and running, pull the image and tag it:
 
 ~~~console
-user@host:~/tslroot  docker pull jpietrzyktud/tslgen:latest
-user@host:~/tslroot  docker tag jpietrzyktud/tslgen:latest tslgen:latest
+docker pull jpietrzyktud/tslgen:latest
+docker tag jpietrzyktud/tslgen:latest tslgen:latest
 ~~~
 
 The provided image defines a console as an entry point and exposes a path `/tslgen` as the mount point for the host machine.
@@ -237,27 +213,27 @@ For an example of how to use the TSL inside your code, see subsection [Code Exam
 As the TSL is tailored to the underlying hardware, we must provide the system specification to the generator.
 The code below can be used to check what FLAGS your hardware exposes (an i7-8550U produces the result).
 ~~~console
-user@host:~/tsl LSCPU_FLAGS=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -E -v '^Flags:|^$' | sort -d | tr '\n' ' ')
-user@host:~/tsl echo $LSCPU_FLAGS
+LSCPU_FLAGS=$(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -E -v '^Flags:|^$' | sort -d | tr '\n' ' ')
+echo $LSCPU_FLAGS
 3dnowprefetch abm acpi adx aes aperfmperf apic arat arch_capabilities arch_perfmon art avx avx2 bmi1 bmi2 bts clflush clflushopt cmov constant_tsc cpuid cpuid_fault cx16 cx8 de ds_cpl dtes64 dtherm dts epb ept ept_ad erms est f16c flexpriority flush_l1d fma fpu fsgsbase fxsr ht hwp hwp_act_window hwp_epp hwp_notify ibpb ibrs ida intel_pt invpcid invpcid_single lahf_lm lm mca mce md_clear mmx monitor movbe mpx msr mtrr nonstop_tsc nopl nx pae pat pbe pcid pclmulqdq pdcm pdpe1gb pebs pge pln pni popcnt pse pse36 pti pts rdrand rdseed rdtscp rep_good sdbg sep sgx smap smep ss ssbd sse sse2 sse4_1 sse4_2 ssse3 stibp syscall tm tm2 tpr_shadow tsc tsc_adjust tsc_deadline_timer vme vmx vnmi vpid x2apic xgetbv1 xsave xsavec xsaveopt xsaves xtopology xtpr
 ~~~
 This list can then be passed to the generator:
 ~~~console
-user@host:~/tsl python3 ./main.py --targets ${LSCPU_FLAGS} -o ./lib
+python3 ./main.py --targets ${LSCPU_FLAGS} -o ./lib
 # Of course, you can also do this in one go
-user@host:~/tsl python3 ./main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -E -v '^Flags:|^$' | sort -d | tr '\n' ' ') -o ./lib
+python3 ./main.py --targets $(LANG=en;lscpu|grep -i flags | tr ' ' '\n' | grep -E -v '^Flags:|^$' | sort -d | tr '\n' ' ') -o ./lib
 # You can fillter for types, which may come in handy for fast prototyping
-user@host:~/tsl python3 ./main.py --targets ${LSCPU_FLAGS} -o ./libUI64 --types "uint64_t"
+python3 ./main.py --targets ${LSCPU_FLAGS} -o ./libUI64 --types "uint64_t"
 # You can filter for primitives (mainly for development reasons)
-user@host:~/tsl python3 ./main.py --targets ${LSCPU_FLAGS} -o ./libRNDMem --primitives "gather scatter"
+python3 ./main.py --targets ${LSCPU_FLAGS} -o ./libRNDMem --primitives "gather scatter"
 # Get a list of all available arguments:
-user@host:~/tsl python3 ./main.py -h
+python3 ./main.py -h
 ~~~
 > **Note:** If your compiler does not support C++-20 concepts, you should use the `--no-concepts` argument to avoid the generator using concepts.
 
 After generating the TSL to `./lib` you can include the library either using the generated `./lib/CMakeLists.txt` (see subsection [CMake Integration](#usage-cmake-integration)) or by passing the include directory to your compiler:
 ~~~console
-user@host:~/tsl $CXX_COMPILER -Ilib/include my_main.cpp 
+$CXX_COMPILER -Ilib/include my_main.cpp 
 ~~~
 
 ### <a id="usage-code-example"></a>_Code Example_
@@ -321,9 +297,9 @@ tsl
 
 As the TSL (+generator) is a cmake project we highly recommend using cmake to set up everything (however, if you feel like generating it directly, please see subsection [Explicit Include](#usage-explicit-include) above).
 ~~~console
-#user@host:~/tsl cmake -S . -D GENERATOR_OUTPUT_PATH=<path to output directory> -B lib
+#cmake -S . -D GENERATOR_OUTPUT_PATH=<path to output directory> -B lib
 # This will create the TSL into `./lib`
-user@host:~/tsl cmake -S . -B lib
+cmake -S . -B lib
 ~~~
 
 > **Note:** You can pass other flags the generator consumes using the `-D` notation. A list of available flags are listed [above](#cmake-parameters).
@@ -339,13 +315,13 @@ For more information on how to do that, look at the [Generator Usage](GeneratorU
 
 If you want to build the generated TSL together with the specified tests (which are created by default), utilizing [Catch2](https://github.com/catchorg/Catch2), run the following commands after CMake:
 ~~~console
-user@host:~/tsl make -j -C lib
-user@host:~/tsl ./lib/generator_output/build/src/test/tsl_test
+make -j -C lib
+./lib/generator_output/build/src/test/tsl_test
 # <output truncated>
 ===============================================================================
 All tests passed (968 assertions in 93 test cases)
 ## You can list all tests using the -l flag. On the example machine, the output looks like the following:
-user@host:~/tsl ./lib/generator_output/build/src/test/tsl_test -l
+./lib/generator_output/build/src/test/tsl_test -l
 #<output truncated>
   Testing primitive 'mask_equal' for sse
       [mask_equal][sse]
@@ -363,19 +339,19 @@ user@host:~/tsl ./lib/generator_output/build/src/test/tsl_test -l
       [convert_up][sse]
 93 test cases
 ## And you can test specific primitives:
-user@host:~/tsl ./lib/generator_output/build/src/test/tsl_test "[equal]"
+./lib/generator_output/build/src/test/tsl_test "[equal]"
 Filters: [equal]
 #<output truncated>
 ===============================================================================
 All tests passed (56 assertions in 3 test cases)
 ## You can filter for specific extensions
-user@host:~/tsl ./lib/generator_output/build/src/test/tsl_test "[avx2]"
+./lib/generator_output/build/src/test/tsl_test "[avx2]"
 Filters: [avx2]
 #<output truncated>
 ===============================================================================
 All tests passed (328 assertions in 31 test cases)
 ## And you can filter for both
-user@host:~/tsl ./lib/generator_output/build/src/test/tsl_test "[equal][avx2]"
+./lib/generator_output/build/src/test/tsl_test "[equal][avx2]"
 Filters: [equal][avx2]
 ===============================================================================
 All tests passed (20 assertions in 1 test case)

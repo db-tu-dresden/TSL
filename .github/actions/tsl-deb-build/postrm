@@ -1,2 +1,0 @@
-#!/bin/bash
-rm -rf ${{ POSTINSTALL_BASE }}

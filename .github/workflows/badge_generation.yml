@@ -1,0 +1,24 @@
+name: Generation py3.[8-12]
+
+on:
+  workflow_run:
+    workflows: [Validate TSL]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  generates-on-python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Fetch jobs from the previous workflow
+        run: |
+          set -x
+          curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/jobs?per_page=100" \
+               | python3 ${{ github.workspace }}/.github/workflows/utils/badge_creation.py --git-sha ${{ github.sha}} generation

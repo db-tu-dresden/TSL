@@ -27,3 +27,5 @@ supplementary/*/*.a
 .venv/
 
 doc/www/
+
+class_graph.dot

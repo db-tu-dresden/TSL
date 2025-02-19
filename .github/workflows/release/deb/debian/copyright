@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: TSL
+Source: https://github.com/db-tu-dresden/TSL
+
+Files: *
+Copyright: 2025 TU Dresden
+License: Apache-2.0

@@ -1,0 +1,36 @@
+name: Remove Image from Dockerhub
+
+on:
+  delete:
+  # workflow_dispatch:
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Delete Dockerhub Image'
+        if: ${{ github.event.ref_type == 'branch' }}
+        run: |
+          dockerhub_url="https://hub.docker.com/v2/repositories/${{ vars.DOCKERHUB_USERNAME }}"
+          metadata_url="${dockerhub_url}/?page=1&page_size=100"
+          while true; do
+            echo "Crawling ${metadata_url}"
+            results=$(curl -s -f "${metadata_url}" | jq -r '.results[] | select(.name | test("tsl-.*-${{ github.event.ref }}")) | .name')
+            for item in ${results}; do
+              echo "Found image ${item}"
+              echo "Execute curl -s -X DELETE -H \"Accept: application/json\" -H \"Authorization: JWT ${{ secrets.DOCKERHUB_TOKEN }}\" ${dockerhub_url}/${item}"
+              response=$(curl -s -X DELETE -H "Accept: application/json" -H "Authorization: JWT ${{ secrets.DOCKERHUB_TOKEN }}" ${dockerhub_url}/${item})
+              if [ ! -z "${response}" ]; then
+                if [ "$(echo "${response}" | jq -r '.detail')" != "Not found." ]; then
+                  echo "Failed to delete ${item}"
+                  echo "${response}"
+                  exit 1
+                fi
+              fi              
+              echo "Deleted ${item}"
+            done
+            echo "Checking for next page"
+            metadata_url=$(curl -s -f "${metadata_url}" | jq -r '.next')
+            if [ "${metadata_url}" = "null" ]; then
+              break
+            fi
+          done          

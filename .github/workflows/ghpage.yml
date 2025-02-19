@@ -1,0 +1,62 @@
+name: Github Pages
+
+on:
+  workflow_run:
+    workflows: [Validate TSL]
+    types: [completed]
+    branches: [main]
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-generation-image:
+    name: Generation Image (build and push on demand)
+    uses: ./.github/workflows/build_and_push_dockerhub.yml
+    with:
+      context: .
+      path: .github/workflows/docker/generate_ubuntu.dockerfile
+      image_name: tsl-generate
+      platforms: linux/amd64
+      mandatory_files: requirements.txt
+    secrets:
+      dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+      dockerhub_token: ${{ secrets.DOCKERHUB_TOKEN }}
+    
+  deploy-ghpages:
+    needs: [build-generation-image]
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.DOCKERHUB_USERNAME }}/${{ needs.build-generation-image.outputs.image_fqname }}:latest
+    env:
+      name: github-pages
+      # url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      
+      - name: Generate tsl
+        run: |
+          python3 main.py --print-outputs-only --copy-additional-www-files
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload entire repository
+          path: ${{ github.workspace }}/doc/www
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

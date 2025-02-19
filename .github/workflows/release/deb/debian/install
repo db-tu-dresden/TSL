@@ -1,0 +1,3 @@
+select_flavor.sh /tmp/tsl/
+detect_flags.sh /tmp/tsl/
+tsl.tar.gz /tmp/tsl/

@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+INSTALL_DIR="/usr/include/tsl"
+
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    echo "Removing TSL files..."
+    rm -rf "${INSTALL_DIR}"
+    echo "TSL has been removed successfully."
+fi

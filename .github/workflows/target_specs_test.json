@@ -1,0 +1,17 @@
+{
+  "x86": [
+      {
+          "name": "AVX2",
+          "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2"
+      }
+  ],
+  "aarch64": [
+    { 
+      "name": "NEON", 
+      "flags": "neon",
+      "alternatives": {
+        "neon": "asimd"
+      }
+    }
+  ]
+}
