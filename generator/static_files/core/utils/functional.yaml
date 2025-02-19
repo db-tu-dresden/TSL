@@ -26,6 +26,11 @@ implementations:
         constexpr RetT ctz(T data) {
           return std::countr_zero<std::make_unsigned_t<T>>(data);
         }
+      
+      template<typename T, typename RetT>
+        constexpr RetT popcount(T data) {
+          return std::popcount<std::make_unsigned_t<T>>(data);
+        }
     }
     #else
     namespace details {
@@ -71,6 +76,17 @@ implementations:
             } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
               return data == 0 ? std::numeric_limits<UT>::digits : __builtin_ctzll(static_cast<UT>(data));
             }
+          }
+        }
+      template <typename T, typename RetT>
+        RetT popcount(T data) {
+          static_assert(sizeof(T) <= sizeof(unsigned long long), "Unsupported type");
+          if constexpr(sizeof(T) <= sizeof(unsigned int)) {
+            return __builtin_popcount(data);
+          } else if constexpr(sizeof(T) <= sizeof(unsigned long)) {
+            return __builtin_popcountl(data);
+          } else if constexpr(sizeof(T) <= sizeof(unsigned long long)) {
+            return __builtin_popcountll(data);
           }
         }
     }

@@ -1,0 +1,5 @@
+libtsl-dev (1.0-1) unstable; urgency=low
+
+  * Release of TSL.
+
+ -- Johannes Pietrzyk <johannes.pietrzyk@tu-dresden.de>  $<< BUILD_TIME >>

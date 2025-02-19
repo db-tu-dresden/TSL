@@ -418,6 +418,314 @@ definitions:
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (mask)? vec_a + vec_b : vec_a;"
+...
+---
+primitive_name: "add"
+functor_name: "imask_add"
+brief_description: "Adds two vector registers, depending on a mask: result[*] = (m[*])? vec_a[*]+vec_b[*] : vec_a[*]."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Vector mask register indicating which elements should be added."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the addition."
+testing:
+  - test_name: "zero_mask"
+    requires: ["loadu", "storeu", "to_mask", "integral_all_false"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+
+      typename Vec::mask_type zero_mask = to_mask<Vec>(integral_all_false<Vec>());
+
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+
+      for(std::size_t i = 0; i < (element_count - Vec::vector_element_count()); i += Vec::vector_element_count()){
+        std::size_t tester_idx = 0;
+        for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
+          reference_result_ptr[tester_idx++] = reference_data_ptr[j];
+        }
+        auto vec = loadu<Vec>(&test_data_ptr[i]);
+        auto vec_result = add<Vec>(zero_mask, vec, vec);
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+  - test_name: "all_one_mask"
+    requires: ["loadu", "storeu", "to_mask", "integral_all_true"]
+    implementation: |
+      using T = typename Vec::base_type;
+      using reg_t = typename Vec::register_type;
+
+      typename Vec::mask_type mask = to_mask<Vec>(integral_all_true<Vec>());
+
+      std::size_t element_count = 1024;
+      testing::test_memory_helper_t<Vec> test_helper{element_count, Vec::vector_element_count(), false };
+      bool allOk = true;
+      auto reference_data_ptr = test_helper.data_ref();
+      auto reference_result_ptr = test_helper.result_ref();
+      auto test_data_ptr = test_helper.data_target();
+      auto test_result_ptr = test_helper.result_target();
+
+      for(std::size_t i = 0; i < (element_count - (2*Vec::vector_element_count())); i += 2*Vec::vector_element_count()){
+        std::size_t tester_idx = 0;
+        for(size_t j = i; j < i + Vec::vector_element_count(); j++) {
+          reference_result_ptr[tester_idx++] = reference_data_ptr[j] + reference_data_ptr[j + Vec::vector_element_count()];
+        }
+        auto vec_a = loadu<Vec>(&test_data_ptr[i]);
+        auto vec_b = loadu<Vec>(&test_data_ptr[i + Vec::vector_element_count()]);
+        auto vec_result = add<Vec>(mask, vec_a, vec_b);
+        storeu<Vec>(test_result_ptr, vec_result);
+        test_helper.synchronize();
+        allOk &= test_helper.validate();
+      }
+      return allOk;
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_add_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_and_si256(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_add_{{ intrin_tp_full[ctype] }}(vec_a, _mm256_and_{{ intrin_tp_full[ctype] }}(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_mask_add_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_add_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_and_si128(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_add_ps(vec_a, _mm_and_ps(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_add_pd(vec_a, _mm_and_pd(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (mask)? vec_a + vec_b : vec_a;"
+...
+---
+primitive_name: "sub"
+functor_name: "mask_sub"
+brief_description: "Subtracts two vector registers, depending on a mask: result[*] = (m[*])? vec_a[*]-vec_b[*] : vec_a[*]."
+parameters:
+  - ctype: "const typename Vec::mask_type"
+    name: "mask"
+    description: "Vector mask register indicating which elements should be subtracted."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the subtraction."
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_and_si256(vec_b, mask));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_sub_{{ intrin_tp_full[ctype] }}(vec_a, _mm256_and_{{ intrin_tp_full[ctype] }}(vec_b, mask));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_and_si128(vec_b, mask));"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse"]
+    implementation: "return _mm_sub_ps(vec_a, _mm_and_ps(vec_b, mask));"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sub_pd(vec_a, _mm_and_pd(vec_b, mask));"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (mask)? vec_a - vec_b : vec_a;"
+...
+---
+primitive_name: "sub"
+functor_name: "imask_sub"
+brief_description: "Subtracts two vector registers, depending on a mask: result[*] = (m[*])? vec_a[*]-vec_b[*] : vec_a[*]."
+parameters:
+  - ctype: "const typename Vec::imask_type"
+    name: "mask"
+    description: "Vector mask register indicating which elements should be subtracted."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_a"
+    description: "First vector."
+  - ctype: "const typename Vec::register_type"
+    name: "vec_b"
+    description: "Second vector."
+returns:
+  ctype: "typename Vec::register_type"
+  description: "Vector containing result of the subtraction."
+definitions:
+#INTEL - AVX512
+  - target_extension: "avx512"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw"]
+    implementation: "return _mm512_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx512"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f"]
+    implementation: "return _mm512_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#INTEL - AVX2
+  - target_extension: "avx2"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm256_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "avx2"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm256_and_si256(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx"]
+    implementation: "return _mm256_sub_{{ intrin_tp_full[ctype] }}(vec_a, _mm256_and_{{ intrin_tp_full[ctype] }}(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "avx2"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm256_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#INTEL - SSE
+  - target_extension: "sse"
+    ctype: ["uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+    lscpu_flags: ["avx512bw", "avx512vl"]
+    implementation: "return _mm_mask_sub_epi{{ intrin_tp[ctype][1]  }}(vec_a, mask, vec_a, vec_b);"
+  - target_extension: "sse"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sub_epi{{ intrin_tp[ctype][1] }}(vec_a, _mm_and_si128(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "sse"
+    ctype: ["float"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sub_ps(vec_a, _mm_and_ps(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "sse"
+    ctype: ["double"]
+    lscpu_flags: ["sse2"]
+    implementation: "return _mm_sub_pd(vec_a, _mm_and_pd(vec_b, tsl::to_mask<Vec>(mask)));"
+  - target_extension: "sse"
+    ctype: ["float", "double"]
+    lscpu_flags: ["avx512f", "avx512vl"]
+    implementation: "return _mm_mask_sub_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#SCALAR
+  - target_extension: "scalar"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (mask)? vec_a - vec_b : vec_a;"
+...
 ---
 primitive_name: "mul"
 brief_description: "Multiplies two vector registers."
@@ -1344,8 +1652,8 @@ definitions:
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
     lscpu_flags: ['neon']
     implementation: |
-      auto arr_a = tsl::to_array<Vec>(vec_a);
-      auto arr_b = tsl::to_array<Vec>(vec_b);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_a = tsl::to_array<Vec>(vec_a);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_b = tsl::to_array<Vec>(vec_b);
       for (std::size_t i = 0; i < Vec::vector_element_count(); ++i) {
         arr_a[i] /= arr_b[i];
       }
@@ -1920,7 +2228,7 @@ definitions:
       auto threshold = _mm512_set1_epi32(threshold_value);
       auto cmp_result = _mm512_cmpgt_epi32_mask(vec, threshold);
       if(cmp_result){
-        auto arr = tsl::to_array<Vec>(vec);
+        auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(vec);
         typename Vec::base_type result[Vec::vector_element_count()];
         for(int i = 0; i < Vec::vector_element_count(); i++){
           result[i] = arr[i] % val;
@@ -1977,7 +2285,7 @@ definitions:
       auto cmp_result = _mm256_cmpgt_epi32(vec, threshold);
       int mask = _mm256_movemask_epi8(cmp_result);
       if(mask){
-        auto arr = tsl::to_array<Vec>(vec);
+        auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(vec);
         typename Vec::base_type result[Vec::vector_element_count()];
         for(int i = 0; i < Vec::vector_element_count(); i++){
           result[i] = arr[i] % val;
@@ -2033,7 +2341,7 @@ definitions:
       auto cmp_result = _mm_cmpgt_epi32(vec, threshold);
       int mask = _mm_movemask_epi8(cmp_result);
       if(mask){
-        auto arr = tsl::to_array<Vec>(vec);
+        auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(vec);
         typename Vec::base_type result[Vec::vector_element_count()];
         for(int i = 0; i < Vec::vector_element_count(); i++){
           result[i] = arr[i] % val;
@@ -2123,7 +2431,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::max_element(arr.begin(), arr.end());
   #INTEL - AVX2
   - target_extension: ["avx2"]
@@ -2185,7 +2493,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::max_element(arr.begin(), arr.end());
   #INTEL - SSE
   - target_extension: ["sse"]
@@ -2231,7 +2539,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::max_element(arr.begin(), arr.end());
   #SCALAR
   - target_extension: ["scalar"]
@@ -2291,7 +2599,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::min_element(arr.begin(), arr.end());
   #INTEL - AVX2
   - target_extension: ["avx2"]
@@ -2353,7 +2661,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::min_element(arr.begin(), arr.end());
   #INTEL - SSE
   - target_extension: ["sse"]
@@ -2399,7 +2707,7 @@ definitions:
     is_native: False
     includes: ["<algorithm>"]
     implementation: |
-      auto arr = tsl::to_array<Vec>(data);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr = tsl::to_array<Vec>(data);
       return *std::min_element(arr.begin(), arr.end());
   #SCALAR
   - target_extension: ["scalar"]
@@ -2492,8 +2800,8 @@ definitions:
     lscpu_flags: ["avx2", "avx"]
     is_native: False
     implementation: |
-      auto arr_a = tsl::to_array<Vec>(vec_a);
-      auto arr_b = tsl::to_array<Vec>(vec_b);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_a = tsl::to_array<Vec>(vec_a);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_b = tsl::to_array<Vec>(vec_b);
       typename Vec::base_type result[Vec::vector_element_count()];
       for(size_t i = 0; i < Vec::vector_element_count(); i++){
         (arr_a[i] < arr_b [i]) ? result[i] = arr_b[i] : result[i] = arr_a[i];
@@ -2532,8 +2840,8 @@ definitions:
     lscpu_flags: ["sse", "sse2"]
     is_native: False
     implementation: |
-      auto arr_a = tsl::to_array<Vec>(vec_a);
-      auto arr_b = tsl::to_array<Vec>(vec_b);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_a = tsl::to_array<Vec>(vec_a);
+      auto __attribute__((__aligned__(Vec::vector_alignment()))) arr_b = tsl::to_array<Vec>(vec_b);
       typename Vec::base_type result[Vec::vector_element_count()];
       for(size_t i = 0; i < Vec::vector_element_count(); i++){
         (arr_a[i] < arr_b [i]) ? result[i] = arr_b[i] : result[i] = arr_a[i];

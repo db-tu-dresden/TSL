@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+INSTALL_DIR="/usr/include/tsl"
+TMP_DIR="/tmp/tsl"
+
+CHOSEN_TSL_PATH=$(/bin/bash "${TMP_DIR}/select_flavor.sh" "${TMP_DIR}")
+if [ -z "${CHOSEN_TSL_PATH}" ]; then
+  echo "Error: No valid TSL flavor detected."
+  exit 1
+fi
+
+echo "Chosen TSL flavor: ${CHOSEN_TSL_PATH}"
+
+# Ensure the install directory is empty before extraction
+rm -rf "${INSTALL_DIR}"/*
+mkdir -p "${INSTALL_DIR}"
+
+# Extract only the selected flavor
+tar -xf "${TMP_DIR}/tsl.tar.gz" -C "${INSTALL_DIR}" "${CHOSEN_TSL_PATH}" --strip-components=1
+
+# Remove temporary files
+rm -rf "${TMP_DIR}"
+
+echo "TSL has been installed successfully."

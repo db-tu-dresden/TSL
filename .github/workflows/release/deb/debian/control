@@ -1,0 +1,15 @@
+Source:            libtsl-dev
+Version:           $<< VERSION_TAG >>
+Section:           libs
+Priority:          optional
+Maintainer:        Johannes Pietrzyk <johannes.pietrzyk@tu-dresden.de>
+Standards-Version: 4.6.0
+Homepage:          https://github.com/db-tu-dresden/TSL
+
+Package:           libtsl-dev
+Architecture:      all
+Depends:           ${misc:Depends}, util-linux, tar, gzip, which
+Description:       Template SIMD Library (TSL) - Header-only C++ SIMD Library
+ Header-only library TSL (Template SIMD Library) provides a comprehensive 
+ collection of SIMD intrinsics and high-level interfaces to exploit the 
+ full power of SIMD hardware.
