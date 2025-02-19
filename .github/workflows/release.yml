@@ -12,8 +12,8 @@ on:
     inputs:
       tag:
         description: 'Tag to release'
-        required: false
-        default: 'v0.0.1-rc0'
+        required: true
+
 jobs:
   define-targets:
     if: ${{ github.event_name != 'workflow_run' }}
@@ -279,7 +279,6 @@ jobs:
         run: |
           mkdir -p ./artifacts
           tar -xf ./artifacts_tmp/libtsl-dev.tar.gz -C ./artifacts
-          ls -la ./artifacts
 
       - name: Prepare specs
         run: |
@@ -303,7 +302,6 @@ jobs:
           rpmbuild -ba "${SPEC_FILE}" --buildroot=/root/rpmbuild/BUILDROOT/ --define "_sourcedir ${SOURCE_ROOT}" --define "_rpmdir ${RPM_TMP_OUT_PATH}" --define "_verbose 1"
           RPM_FILE=$(find "${RPM_TMP_OUT_PATH}" -type f -name '*.rpm')
           echo "RPM_FILE: ${RPM_FILE}"
-          ls -la "${RPM_FILE}"
 
           mkdir -p ${OUT_PATH}
           mv "${RPM_FILE}" "${OUT_PATH}/libtsl-dev.rpm"
@@ -317,7 +315,6 @@ jobs:
           set -x
           mkdir /tmp/tsl-test
           SOURCE_ROOT=$(realpath ./artifacts/)
-          ls -halt ${SOURCE_ROOT}
           chmod +x ${SOURCE_ROOT}/select_flavor.sh
           chmod +x ${SOURCE_ROOT}/detect_flags.sh
           HARDWARE_PATH=$(${SOURCE_ROOT}/select_flavor.sh ${SOURCE_ROOT})
@@ -372,12 +369,10 @@ jobs:
         run: |
           mkdir -p ./artifacts
           tar -xf ./artifacts_tmp/libtsl-dev.tar.gz -C ./artifacts
-          ls -la ./artifacts
         
       - name: Prepare specs
         run: |
           TIME=$(date +"%a, %d %b %Y %T +0000")
-          ls -halt repository/.github/workflows/release/deb/debian
           sed -i "s/$<< BUILD_TIME >>/${TIME}/g" repository/.github/workflows/release/deb/debian/changelog
           sed -i "s/$<< VERSION_TAG >>/${TAG}/g" repository/.github/workflows/release/deb/debian/control
       
@@ -408,22 +403,12 @@ jobs:
           DEB_FILE=$(find "${DEB_TMP_OUT_ROOT}" -type f -name '*.deb')
           echo "DEB_FILE: ${DEB_FILE}"
 
-          echo "Current directory: $(pwd)"
-          echo "Change to ${CWD}"
           cd $CWD
-          ls -la $CWD
-          echo "Creating directory ${CWD}/${OUT_PATH}"
           mkdir -p ${CWD}/${OUT_PATH}
-          echo "Moving ${DEB_FILE} to ${CWD}/${OUT_PATH}/libtsl-dev.deb"
           mv "${DEB_FILE}" "${PWD}/${OUT_PATH}/libtsl-dev.deb"
-          ls -la ${PWD}/${OUT_PATH}
       
       - name: Test install
         run: |
-          set -x 
-          echo $(pwd)
-          echo "OUT_PATH = ${OUT_PATH}"
-          ls -la "${OUT_PATH}"
           dpkg -i "${OUT_PATH}/libtsl-dev.deb"
       
       - name: Check install directory
@@ -431,7 +416,6 @@ jobs:
           set -x
           mkdir /tmp/tsl-test
           SOURCE_ROOT=$(realpath ./artifacts/)
-          ls -halt ${SOURCE_ROOT}
           chmod +x ${SOURCE_ROOT}/select_flavor.sh
           chmod +x ${SOURCE_ROOT}/detect_flags.sh
           HARDWARE_PATH=$(${SOURCE_ROOT}/select_flavor.sh ${SOURCE_ROOT})

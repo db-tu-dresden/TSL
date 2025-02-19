@@ -103,14 +103,6 @@
       "alternatives": {
         "neon": "asimd"
       }
-    },
-    { 
-      "name": "SVE", 
-      "flags": "neon sve",
-      "alternatives": {
-        "neon": "asimd",
-        "sve": "sve2"
-      }
     }
   ]
 }
