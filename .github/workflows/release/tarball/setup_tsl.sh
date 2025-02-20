@@ -54,7 +54,14 @@ mkdir -p "${out_path}"
 tmp_dir=$(mktemp -ud /tmp/libtsl-dev-XXXXXX)
 mkdir -p "${tmp_dir}"
 
-curl -L "https://github.com/db-tu-dresden/TSL/releases/latest/download/libtsl-dev.tar.gz" -o ${tmp_dir}/libtsl-dev.tar.gz
+if type curl > /dev/null 2>&1; then
+  curl -L "https://github.com/db-tu-dresden/TSL/releases/latest/download/libtsl-dev.tar.gz" -o ${tmp_dir}/libtsl-dev.tar.gz
+elif type wget > /dev/null 2>&1; then
+  wget -O ${tmp_dir}/libtsl-dev.tar.gz "https://github.com/db-tu-dresden/TSL/releases/latest/download/libtsl-dev.tar.gz"
+else
+  echo "Please install curl or wget to download the library"
+  exit 1
+fi
 tar -xzf "${tmp_dir}/libtsl-dev.tar.gz" -C "${tmp_dir}"
 chmod 755 "${tmp_dir}"/*.sh
 supported_path=$("${tmp_dir}"/select_flavor.sh "${tmp_dir}")

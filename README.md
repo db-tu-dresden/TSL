@@ -35,7 +35,7 @@ The latest release is available under [Releases](https://github.com/db-tu-dresde
 
 To download the TSL to the current working directory, just run
 ~~~console
-curl -L -s "https://github.com/db-tu-dresden/TSL/releases/latest/download/install_tsl.sh" | /bin/bash
+curl -L -s "https://github.com/db-tu-dresden/TSL/releases/latest/download/setup_tsl.sh" | /bin/bash
 ~~~
 
 If you want to "install" the TSL (the header files will be placed at /usr/include/tsl), we prepared an `rpm` and a `deb` package.
