@@ -141,7 +141,7 @@ class TSLGenerator:
                 for primitive in pClass:
                     implregex_list.append( primitive.declaration.functor_name )
 
-            implregex_string = f'(?<!_)({"|".join(implregex_list)})(?!([a-zA-Z]|_|\[|\.))'
+            implregex_string = rf'(?<!_)({"|".join(implregex_list)})(?!([a-zA-Z]|_|\[|\.))'
 
             implregex = re.compile(implregex_string, re.IGNORECASE)
 

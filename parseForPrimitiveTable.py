@@ -13,8 +13,9 @@ from generator.utils.yaml_utils import yaml_load_all
 from generator.core.ctrl.tsl_lib import TSLLib
 
 class PrintablePrimitive:
-    def __init__(self, name: str, description: str, ctype_to_extension_dict: dict, vec_type: List[str], parameters: List[str], return_type: str) -> None:
+    def __init__(self, name: str, functor_name: str, description: str, ctype_to_extension_dict: dict, vec_type: List[str], parameters: List[str], return_type: str) -> None:
         self.name = name
+        self.functor_name = functor_name
         self.description = description
         self.ctype_to_extension_dict = ctype_to_extension_dict
         self.vec_type = vec_type
@@ -26,9 +27,14 @@ class PrintablePrimitive:
         return f"{self.name}: {self.ctype_to_extension_dict}"
     
     def to_html(self, considered_types: list, considered_exts: list) -> str:
+        button_label = ""
+        if self.name != self.functor_name:
+          button_label = f"{self.name} <div style='font-size: small;'><i>overload</i> (calls tsl::functors::{self.functor_name})</div>"
+        else:
+           button_label = self.name
         call_signature = f"{self.name}&lt;{', '.join(self.vec_type)}&gt;({', '.join(self.parameters)}) -> {self.return_type}"
-        primitive_button = f"""<div class="primitiveContainer"><div class="primitive"><button id ="{self.name}_link" onclick="togglePrimitive(event, '{self.name}')">{self.name}</button></div>"""
-        primitive_table_start = f"""<div id="{self.name}" class="primitiveinfo"><p>Brief: <span class="description">{self.description}</span></p><p>Call signature: <br><code>{call_signature}</code></p><center><table border=1 cellpadding=10 cellspacing=0>"""
+        primitive_button = f"""<div class="primitiveContainer"><div class="primitive"><button id ="{self.functor_name}_link" onclick="togglePrimitive(event, '{self.functor_name}')">{button_label}</button></div>"""
+        primitive_table_start = f"""<div id="{self.functor_name}" class="primitiveinfo"><p>Brief: <span class="description">{self.description}</span></p><p>Call signature: <br><code>{call_signature}</code></p><center><table border=1 cellpadding=10 cellspacing=0>"""
         primitive_table_end = """</table></center></div><br/></div>"""
         
         top_left_corner = """<td style="border-top:0;border-left:0;"></td>"""
@@ -115,7 +121,8 @@ def create_primitive_index_html(tsl_lib: TSLLib) -> None:
     checkbox_html += add_checkbox(primitive_class.name)
     primitive_html += f"""<div class="primitiveCategory" id="{primitive_class.name}">"""
     for primitive in primitive_class:
-      name = primitive.declaration.functor_name
+      name = primitive.declaration.name
+      functor_name = primitive.declaration.functor_name
       brief_description = primitive.declaration.data["brief_description"]
       detailed_description = primitive.declaration.data["detailed_description"]
       ctype_ext_dict = copy.deepcopy(raw_primitive_dict)
@@ -127,7 +134,7 @@ def create_primitive_index_html(tsl_lib: TSLLib) -> None:
       vnames = [primitive.declaration.data["vector_name"]]
       if primitive.declaration.data["additional_simd_template_parameter"]['name'] != "":
         vnames.append(primitive.declaration.data["additional_simd_template_parameter"]['name'])
-      pP = PrintablePrimitive(name, brief_description, ctype_ext_dict, 
+      pP = PrintablePrimitive(name, functor_name,  brief_description, ctype_ext_dict, 
                               vnames,
                               [f"{html.escape(param['ctype'])} {param['name']}" for param in primitive.declaration.data["parameters"]],
                                html.escape(primitive.declaration.data['returns']['ctype']))

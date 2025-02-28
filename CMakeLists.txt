@@ -29,6 +29,13 @@ else()
     set(DTD "DRAW_TEST_DEPENDENCIES")
   endif()
 
+  if (DEFINED ArchId)
+    message(STATUS "ArchId: ${ArchId}")
+  else()
+    message(STATUS "ArchId not defined. Defaulting to 0.")
+    set(ArchId "")
+  endif()
+
   create_tsl(
     ${WAW}
     ${UC}
@@ -37,6 +44,7 @@ else()
     TSLGENERATOR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DESTINATION ${DESTINATION}
     TARGETS_FLAGS ${TARGETS_FLAGS}
+    TARGET_ARCHID ${ArchId}
     APPEND_TARGETS_FLAGS ${APPEND_TARGETS_FLAGS}
     PRIMITIVES_FILTER ${PRIMITIVES_FILTER}
     DATATYPES_FILTER ${DATATYPES_FILTER}
