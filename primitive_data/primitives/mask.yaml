@@ -802,22 +802,14 @@ definitions:
     lscpu_flags: [ "avx2" ]
     includes: ["<type_traits>"]
     implementation: |
-      if constexpr(Vec::vector_element_count() < 8) {
-        return ((static_cast<typename Vec::imask_type>(1)<<Vec::vector_element_count()) - 1);
-      } else {
-        return ~0;
-      }
+      return static_cast<typename Vec::imask_type>(~0);
   #INTEL - SSE
   - target_extension: "sse"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
     lscpu_flags: [ "sse" ]
     includes: ["<type_traits>"]
     implementation: |
-      if constexpr(Vec::vector_element_count() < 8) {
-        return ((static_cast<typename Vec::imask_type>(1)<<Vec::vector_element_count()) - 1);
-      } else {
-        return ~0;
-      }
+      return static_cast<typename Vec::imask_type>(~0);
   #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
@@ -829,11 +821,7 @@ definitions:
     lscpu_flags: [ "neon" ]
     includes: ["<type_traits>"]
     implementation: |
-      if constexpr(Vec::vector_element_count() < 8) {
-        return ((static_cast<typename Vec::imask_type>(1)<<Vec::vector_element_count()) - 1);
-      } else {
-        return ~0;
-      }
+      return static_cast<typename Vec::imask_type>(~0);
 ...
 ---
 primitive_name: "integral_all_false"
@@ -957,19 +945,19 @@ definitions:
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["avx512f"]
-    implementation: "return (mask >> position) & ((1ULL << Vec::vector_element_count()) - 1);"
+    implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>(~0));"
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["avx"]
-    implementation: "return (mask >> position) & ((1ULL << Vec::vector_element_count()) - 1);"
+    implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>(~0));"
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["sse"]
-    implementation: "return (mask >> position) & ((1ULL << Vec::vector_element_count()) - 1);"
+    implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>(~0));"
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: []
-    implementation: "return (mask >> position) & ((1ULL << Vec::vector_element_count()) - 1);"
+    implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>(~0));"
 ...
 #---
 #primitive_name: "mask_reduce"
