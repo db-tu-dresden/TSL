@@ -7,51 +7,51 @@
   ],
   "x86": [
       {
-          "name": "SSE",
+          "name": "sse",
           "flags": "sse"
       },
       {
-          "name": "SSE2",
+          "name": "sse2",
           "flags": "sse sse2"
       },
       {
-          "name": "SSE3",
+          "name": "sse3",
           "flags": "sse sse2 ssse3"
       },
       {
-          "name": "AVX",
+          "name": "avx",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx"
       },
       {
-          "name": "AVX2",
+          "name": "avx2",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2"
       },
       {
-          "name": "KNL",
+          "name": "knl",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512er avx512pf"
       },
       {
-          "name": "KML",
+          "name": "kml",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512er avx512pf avx512_4fmaps avx512_4vnniw avx512_vpopcntdq"
       },
       {
-          "name": "Skylake",
+          "name": "skylake",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512vl avx512dq avx512bw"
       },
       {
-          "name": "Cannon_Lake",
+          "name": "cannonlake",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512vl avx512dq avx512bw avx512ifma avx512vbmi"
       },
       {
-          "name": "Cascade_Lake",
+          "name": "cascadelake",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512vl avx512dq avx512bw avx512_vnni"
       },
       {
-          "name": "Cooper_Lake",
+          "name": "cooperlake",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512vl avx512dq avx512bw avx512_vnni avx512_bf16"
       },
       {
-          "name": "Ice_Lake_Rocker_Lake",
+          "name": "icelake-rockerlake",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512vl avx512dq avx512bw avx512_vpopcntdq avx512ifma avx512vbmi avx512_vnni avx512_vbmi2 avx512_bitalg avx512_vpclmulqdq avx512_gfni avx512_vaes",
           "alternatives": {
             "avx512_vpclmulqdq": "vpclmulqdq",
@@ -60,7 +60,7 @@
           }
       },
       {
-          "name": "Tiger_Lake",
+          "name": "tigerlake",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512vl avx512dq avx512bw avx512_vpopcntdq avx512ifma avx512vbmi avx512_vnni avx512_vbmi2 avx512_bitalg avx512_vpclmulqdq avx512_gfni avx512_vaes avx512_vp2intersect",
           "alternatives": {
             "avx512_vpclmulqdq": "vpclmulqdq",
@@ -69,7 +69,7 @@
           }
       },
       {
-          "name": "Zen_4",
+          "name": "zen4",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512vl avx512dq avx512bw avx512_vpopcntdq avx512ifma avx512vbmi avx512_vnni avx512_bf16 avx512_vbmi2 avx512_bitalg avx512_vpclmulqdq avx512_gfni avx512_vaes",
           "alternatives": {
             "avx512_vpclmulqdq": "vpclmulqdq",
@@ -78,7 +78,7 @@
           }
       },
       {
-          "name": "Sapphire_Rapids",
+          "name": "sapphirerapids",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512vl avx512dq avx512bw avx512_vpopcntdq avx512ifma avx512vbmi avx512_vnni avx512_bf16 avx512_vbmi2 avx512_bitalg avx512_vpclmulqdq avx512_gfni avx512_vaes avx512_fp16",
           "alternatives": {
             "avx512_vpclmulqdq": "vpclmulqdq",
@@ -87,7 +87,7 @@
           }
       },
       {
-          "name": "Zen_5",
+          "name": "zen5",
           "flags": "sse sse2 ssse3 sse4_1 sse4_2 avx avx2 avx512f avx512cd avx512vl avx512dq avx512bw avx512_vpopcntdq avx512ifma avx512vbmi avx512_vnni avx512_bf16 avx512_vbmi2 avx512_bitalg avx512_vpclmulqdq avx512_gfni avx512_vaes avx512_vp2intersect",
           "alternatives": {
             "avx512_vpclmulqdq": "vpclmulqdq",
@@ -98,7 +98,7 @@
   ],
   "aarch64": [
     { 
-      "name": "NEON", 
+      "name": "neon", 
       "flags": "neon",
       "alternatives": {
         "neon": "asimd"

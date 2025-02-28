@@ -1,5 +1,6 @@
 import argparse
 import copy
+import json
 import logging.config
 import pathlib
 import os
@@ -422,6 +423,7 @@ def parse_args(**kwargs) -> dict:
     parser.add_argument('--targets', default=None, nargs='*',
                         help='List of target flags which match the lscpu_flags from the extension/primitive files.',
                         dest='targets')
+    parser.add_argument('--archid', default='', type=str, dest='target_archid', metavar="ArchId", help="Identifier of a target platform (e.g., 'skylake').")
     types_help = 'List of types which should be considered for generation.'
     if "known_types" in kwargs:
         types_help += f" Choose from the following list: [{', '.join(kwargs['known_types'])}]"
@@ -464,9 +466,29 @@ def parse_args(**kwargs) -> dict:
                 current_dict = current_dict[match]
             current_dict[matches[-1]] = value
 
+    targets_set = set()
+    if "target_archid" in args_dict:
+      with open("target_specs.json", 'r') as specs_file:
+        target_specs = json.load(specs_file)
+        found = False
+        for targets in target_specs.values():
+          for target in targets:
+            if target['name'] == args_dict["target_archid"]:
+              found = True
+              targets_set.update([flag.strip() for flag in target['flags'].split(" ")])
+              break
+        if not found:
+          print(f"Unknown target archid: {args_dict['target_archid']}")
+          exit(1)
+    
     if "targets" not in args_dict:
-        args_dict["targets"] = None
+        if len(targets_set) == 0:
+            args_dict["targets"] = None
+        else:
+            args_dict["targets"] = list(targets_set)
+    else:
+        targets_set.update(args_dict["targets"])
+        args_dict["targets"] = list(targets_set)
     # if "relevant_types" not in args_dict:
     #     args_dict["relevant_types"] = None
     return args_dict
-

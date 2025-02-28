@@ -32,17 +32,17 @@ jobs:
       - name: Parse Target Specs
         id: parse-target-specs
         run: |
-          echo "x86_flags_matrix=$(jq '{include: .x86}' .github/workflows/target_specs.json -c)" >> $GITHUB_OUTPUT
+          echo "x86_flags_matrix=$(jq '{include: .x86}' target_specs.json -c)" >> $GITHUB_OUTPUT
           echo "x86_flags_compiler_matrix=$(jq '.x86 |= map([
             . + {compiler: "g++"}, 
             . + {compiler: "clang++"}
-          ]) | .x86 |= flatten | {include: .x86}' .github/workflows/target_specs.json -c)" >> $GITHUB_OUTPUT
-          echo "aarch64_flags_matrix=$(jq '{include: .aarch64}' .github/workflows/target_specs.json -c)" >> $GITHUB_OUTPUT
+          ]) | .x86 |= flatten | {include: .x86}' target_specs.json -c)" >> $GITHUB_OUTPUT
+          echo "aarch64_flags_matrix=$(jq '{include: .aarch64}' target_specs.json -c)" >> $GITHUB_OUTPUT
           echo "aarch64_flags_compiler_matrix=$(jq '.aarch64 |= map([
             . + {compiler: "aarch64-linux-gnu-g++"}, 
             . + {compiler: "clang++"}
-          ]) | .aarch64 |= flatten | {include: .aarch64}' .github/workflows/target_specs.json -c)" >> $GITHUB_OUTPUT
-          echo "target_matrix=$(jq -c '{include: ([keys[] as $k | .[$k][] | (. + { arch: $k })])}' .github/workflows/target_specs.json -c)" >> $GITHUB_OUTPUT
+          ]) | .aarch64 |= flatten | {include: .aarch64}' target_specs.json -c)" >> $GITHUB_OUTPUT
+          echo "target_matrix=$(jq -c '{include: ([keys[] as $k | .[$k][] | (. + { arch: $k })])}' target_specs.json -c)" >> $GITHUB_OUTPUT
   
   build-generation-image:
     name: Generation Image (build and push on demand)

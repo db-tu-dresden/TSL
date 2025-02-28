@@ -29,7 +29,7 @@ jobs:
       - name: Parse Target Specs
         id: parse-target-specs
         run: |
-          echo "target_matrix=$(jq -c '{include: ([keys[] as $k | .[$k][] | (. + { arch: $k })])}' .github/workflows/target_specs.json -c)" >> $GITHUB_OUTPUT
+          echo "target_matrix=$(jq -c '{include: ([keys[] as $k | .[$k][] | (. + { arch: $k })])}' target_specs.json -c)" >> $GITHUB_OUTPUT
   
   build-generation-image:
     if: ${{ github.event_name != 'workflow_run' }}
@@ -142,7 +142,7 @@ jobs:
           python3 ${{ github.workspace }}/repository/.github/workflows/release/prepare_select_flavor.py \
             --install-sh ${{ github.workspace }}/release_tmp/select_flavor.sh \
             --folder-prefix "tsl" \
-            --targets-spec-file repository/.github/workflows/target_specs.json \
+            --targets-spec-file repository/target_specs.json \
             --tsl-folder-ph "$<< TslFolderArrayValues >>" \
             --default-flags-array-ph "$<< DefaultFlagsArrayValues >>" \
             --alt-flags-array-ph "$<< AlternativeFlagsArrayValues >>" \
