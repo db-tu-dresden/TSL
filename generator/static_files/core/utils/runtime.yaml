@@ -14,6 +14,8 @@ implementations:
         public:
           template<typename T, int Par>
           using simd_ext_t = typename ExecTarget::template simd_ext_t<T, Par>;
+          template<typename T, int Par>
+          using simd_by_par_t = typename simd<T, simd_ext_t<T, Par>>;
         private:
           ExecTarget target;
         public:
@@ -81,6 +83,17 @@ implementations:
           template<TSLArithmetic T>
           static constexpr auto available_parallelism() {
             return ExecTarget::template available_parallelism<T>();
+          }
+
+          template<TSLArithmetic T, int Par>
+          static constexpr bool parallelism_available() {
+            constexpr auto avail = available_parallelism<BaseT>();
+            for (size_t i = 0; i < avail.size(); ++i) {
+              if (avail[i] == Par) {
+                return true;
+              }
+            }
+            return false;
           }
 
           void wait() {

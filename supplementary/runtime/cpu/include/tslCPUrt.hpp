@@ -19,10 +19,14 @@ namespace tsl {
     }
     class cpu {
       public:
-        template<typename T, int Par>
-        using simd_ext_t = typename std::conditional_t<
-            (Par==1), scalar, typename details::simd_ext_helper_t<sizeof(T)*CHAR_BIT*Par>::extension_t
-          >;
+        template <typename T, int Par>
+        struct simd_ext_by_par {
+          using type = typename details::simd_ext_helper_t<sizeof(T) * CHAR_BIT * Par>::extension_t;
+        };
+        template <typename T>
+        struct simd_ext_by_par<T, 1> {
+          using type = scalar;
+        };
 
         using max_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|max] }};
         using min_width_extension_t = {{ avail_extension_types_dict[avail_extension_types_dict.keys()|min] }};

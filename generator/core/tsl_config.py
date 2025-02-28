@@ -423,7 +423,7 @@ def parse_args(**kwargs) -> dict:
     parser.add_argument('--targets', default=None, nargs='*',
                         help='List of target flags which match the lscpu_flags from the extension/primitive files.',
                         dest='targets')
-    parser.add_argument('--archid', default='', type=str, dest='target_archid', metavar="ArchId", help="Identifier of a target platform (e.g., 'skylake').")
+    parser.add_argument('--archid', type=str, dest='target_archid', metavar="ArchId", help="Identifier of a target platform (e.g., 'skylake').")
     types_help = 'List of types which should be considered for generation.'
     if "known_types" in kwargs:
         types_help += f" Choose from the following list: [{', '.join(kwargs['known_types'])}]"
