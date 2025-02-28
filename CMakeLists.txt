@@ -33,7 +33,7 @@ else()
     message(STATUS "ArchId: ${ArchId}")
   else()
     message(STATUS "ArchId not defined. Defaulting to 0.")
-    set(ArchId 0)
+    set(ArchId "")
   endif()
 
   create_tsl(

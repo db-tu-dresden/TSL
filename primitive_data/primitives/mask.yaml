@@ -798,18 +798,36 @@ definitions:
     implementation: "return ~0;"
   #INTEL - AVX2
   - target_extension: "avx2"
-    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    ctype: [ "uint8_t", "uint16_t", "uint32_t", "int8_t", "int16_t", "int32_t", "float"]
     lscpu_flags: [ "avx2" ]
     includes: ["<type_traits>"]
     implementation: |
       return static_cast<typename Vec::imask_type>(~0);
+  - target_extension: "avx2"
+    ctype: [ "uint64_t", "int64_t", "double" ]
+    lscpu_flags: [ "avx2" ]
+    includes: ["<type_traits>"]
+    implementation: |
+      return static_cast<typename Vec::imask_type>(0b1111);
   #INTEL - SSE
   - target_extension: "sse"
-    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    ctype: [ "uint8_t", "uint16_t", "int8_t", "int16_t"]
     lscpu_flags: [ "sse" ]
     includes: ["<type_traits>"]
     implementation: |
       return static_cast<typename Vec::imask_type>(~0);
+  - target_extension: "sse"
+    ctype: [ "uint32_t", "int32_t", "float" ]
+    lscpu_flags: [ "sse" ]
+    includes: ["<type_traits>"]
+    implementation: |
+      return static_cast<typename Vec::imask_type>(0b1111);
+  - target_extension: "sse"
+    ctype: [ "uint64_t", "int64_t", "double" ]
+    lscpu_flags: [ "sse" ]
+    includes: ["<type_traits>"]
+    implementation: |
+      return static_cast<typename Vec::imask_type>(0b11);
   #SCALAR
   - target_extension: "scalar"
     ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
@@ -817,11 +835,23 @@ definitions:
     implementation: return true;
   #ARM - NEON
   - target_extension: "neon"
-    ctype: [ "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double" ]
+    ctype: [ "uint8_t", "uint16_t", "int8_t", "int16_t"]
     lscpu_flags: [ "neon" ]
     includes: ["<type_traits>"]
     implementation: |
       return static_cast<typename Vec::imask_type>(~0);
+  - target_extension: "neon"
+    ctype: [ "uint32_t", "int32_t", "float" ]
+    lscpu_flags: [ "neon" ]
+    includes: ["<type_traits>"]
+    implementation: |
+      return static_cast<typename Vec::imask_type>(0b1111);
+  - target_extension: "neon"
+    ctype: [ "uint64_t", "int64_t", "double" ]
+    lscpu_flags: [ "neon" ]
+    includes: ["<type_traits>"]
+    implementation: |
+      return static_cast<typename Vec::imask_type>(0b11);
 ...
 ---
 primitive_name: "integral_all_false"
