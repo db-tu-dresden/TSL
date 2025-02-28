@@ -136,5 +136,30 @@ implementations:
       };
       template <class... Functors>
       inline constexpr bool tsl_primitives_redeclared_v = tsl_primitives_redeclared<Functors...>::is_ambiguous::value;
-
+    - |
+      template <class Func, typename ArgsTuple, typename = std::void_t<>>
+      struct has_function : std::false_type {};
+      // Specialization: When Func<Ts...>(Args...) is valid
+      template <class Func, typename... Args>
+      struct has_function<Func, std::tuple<Args...>,
+          std::void_t<decltype(Func(std::declval<Args>()...))>> : std::true_type {};
+      template <typename... Args>
+      struct callable_by_types {
+          bool available;
+          template <typename Fun>
+          constexpr callable_by_types(Fun&&): available(std::is_invocable_v<Fun, Args...>) {}
+      };
+      struct callable_by_values {
+          bool available;
+          template <typename Fun, typename... Args>
+          constexpr callable_by_values(Fun&&, Args&&... args): available(has_function<Fun, std::tuple<decltype(args)...>>::value) {}
+      };
+      #define TSL_MAKE_CALLABLE(func) \
+          [](auto&&... args) -> decltype(func(std::forward<decltype(args)>(args)...)) { \
+              return func(std::forward<decltype(args)>(args)...); \
+          }
+      #define TSL_BACKEND_SUPPORTS_BY_TYPE(func, ...) \
+          tsl::callable_by_types<__VA_ARGS__>(TSL_MAKE_CALLABLE(func)).available
+      #define TSL_BACKEND_SUPPORTS_BY_VALUE(func, ...) \
+          tsl::callable_by_values(TSL_MAKE_CALLABLE(func), __VA_ARGS__).available
 ...
