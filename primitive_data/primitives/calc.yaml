@@ -413,6 +413,19 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f", "avx512vl"]
     implementation: "return _mm_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, tsl::to_integral<Vec>(mask), vec_a, vec_b);"
+#ARM NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ['neon']
+    implementation: |
+      return vaddq_{{ intrin_tp_full[ctype] }}(vec_a, tsl::binary_and<Vec>(mask, vec_b));
+  - target_extension: "neon"
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ['neon']
+    implementation: |
+      using T = typename Vec::offset_base_type;
+      using OffsetExt = typename Vec::template transform_extension<T>;
+      return vaddq_{{ intrin_tp_full[ctype] }}(vec_a, tsl::reinterpret<OffsetExt, Vec>(tsl::binary_and<OffsetExt>(mask, tsl::reinterpret<Vec, OffsetExt>(vec_b))));
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
@@ -554,6 +567,19 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["avx512f", "avx512vl"]
     implementation: "return _mm_mask_add_{{ intrin_tp_full[ctype] }}(vec_a, mask, vec_a, vec_b);"
+#ARM NEON
+  - target_extension: "neon"
+    ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t"]
+    lscpu_flags: ['neon']
+    implementation: |
+      return vaddq_{{ intrin_tp_full[ctype] }}(vec_a, tsl::binary_and<Vec>(tsl::to_mask<Vec>(mask), vec_b));
+  - target_extension: "neon"
+    ctype: ["int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    lscpu_flags: ['neon']
+    implementation: |
+      using T = typename Vec::offset_base_type;
+      using OffsetExt = typename Vec::template transform_extension<T>;
+      return vaddq_{{ intrin_tp_full[ctype] }}(vec_a, tsl::reinterpret<OffsetExt, Vec>(tsl::binary_and<OffsetExt>(tsl::to_mask<Vec>(mask), tsl::reinterpret<Vec, OffsetExt>(vec_b))));
 #SCALAR
   - target_extension: "scalar"
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]

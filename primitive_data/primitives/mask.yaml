@@ -206,7 +206,7 @@ definitions:
       for(int i = 0; i < Vec::vector_element_count(); i++){
         ((mask >> i) & 0b1) ? result[i] = static_cast<T>(-1) : result[i] = 0;
       }
-      return reinterpret_cast<Vec::mask_type>(tsl::loadu<OffsetExt>(result));
+      return tsl::loadu<OffsetExt>(result);
 ...
 ---
 primitive_name: "mask_binary_not"
