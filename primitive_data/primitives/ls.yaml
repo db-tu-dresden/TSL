@@ -569,6 +569,10 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ["sse2"]
     implementation: "return _mm_setzero_{{ intrin_tp_full[ctype] }}();"
+  - target_extension: "neon"
+    ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "float", "double"]
+    lscpu_flags: ["neon"]
+    implementation: "return vdupq_n_{{ intrin_tp_full[ctype] }}(0);"
 #FPGA
   - target_extension: ["oneAPIfpga", "oneAPIfpgaRTL"]
     ctype: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float", "uint64_t", "int64_t", "double"]
