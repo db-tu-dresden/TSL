@@ -1556,6 +1556,11 @@ definitions:
     ctype: ["float", "double"]
     lscpu_flags: ['avx512f']
     implementation: "return _mm512_cmp_{{ intrin_tp_full[ctype] }}_mask(vec_a, vec_b, _CMP_GE_OQ);"
+  - target_extension: "avx512"
+    ctype: ["std::float16_t"]
+    includes: ["<stdfloat>"]
+    lscpu_flags: ["avx512f", "avx512_fp16"]
+    implementation: "return _mm512_cmp_ph_mask(vec_a, vec_b, _CMP_GE_OQ);"
 #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["int8_t", "int16_t", "int32_t", "int64_t"]
@@ -1686,6 +1691,11 @@ definitions:
 #SCALAR
   - target_extension: "scalar"
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
+    lscpu_flags: []
+    implementation: "return (vec_a >= vec_b);"
+  - target_extension: "scalar"
+    ctype: ["std::float16_t"]
+    includes: ["<stdfloat>"]
     lscpu_flags: []
     implementation: "return (vec_a >= vec_b);"
 #INTEL - FPGA

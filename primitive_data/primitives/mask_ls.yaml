@@ -60,6 +60,11 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: ['avx512f']
     implementation: "return vec_mask; //mask is integral already."
+  - target_extension: "avx512"
+    ctype: ["std::float16_t"]
+    includes: ["<stdfloat>"]
+    lscpu_flags: ["avx512f", "avx512_fp16"]
+    implementation: "return vec_mask;"
 #INTEL - AVX2
   - target_extension: "avx2"
     ctype: ["int8_t", "uint8_t"]
@@ -267,6 +272,11 @@ definitions:
     ctype: ["int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t", "float", "double"]
     lscpu_flags: []
     implementation: "return (vec_mask)? 1 : 0;"
+  - target_extension: "scalar"
+    ctype: ["std::float16_t"]
+    includes: ["<stdfloat>"]
+    lscpu_flags: []
+    implementation: "return (vec_mask) ? 1 : 0;"
 ...
 #---
 #primitive_name: "get_msb"
