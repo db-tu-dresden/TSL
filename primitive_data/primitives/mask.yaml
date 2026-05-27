@@ -960,9 +960,11 @@ definitions:
 ...
 ---
 primitive_name: "extract_mask"
+additional_simd_template_parameter:
+  name: "FromType"
 brief_description: "Extracts one mask from another."
 parameters:
-  - ctype: "typename Vec::imask_type"
+  - ctype: "typename FromType::imask_type"
     name: "mask"
     description: "First mask."
   - ctype: "int"
@@ -974,18 +976,22 @@ returns:
 definitions:
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: { uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], double: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], float: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint16_t: ["uint8_t", "int8_t"], int16_t: ["uint8_t", "int8_t"], uint8_t: ["uint8_t", "int8_t"], int8_t: ["uint8_t", "int8_t"] }
     lscpu_flags: ["avx512f"]
     implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>(~0));"
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], double: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], float: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint16_t: ["uint8_t", "int8_t"], int16_t: ["uint8_t", "int8_t"], uint8_t: ["uint8_t", "int8_t"], int8_t: ["uint8_t", "int8_t"]}
     lscpu_flags: ["avx"]
     implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>(~0));"
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], double: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], float: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint16_t: ["uint8_t", "int8_t"], int16_t: ["uint8_t", "int8_t"], uint8_t: ["uint8_t", "int8_t"], int8_t: ["uint8_t", "int8_t"]}
     lscpu_flags: ["sse"]
     implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>(~0));"
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
+    additional_simd_template_base_type_mapping_dict: {uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], double: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], float: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint16_t: ["uint8_t", "int8_t"], int16_t: ["uint8_t", "int8_t"], uint8_t: ["uint8_t", "int8_t"], int8_t: ["uint8_t", "int8_t"]}
     lscpu_flags: []
     implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>(~0));"
 ...
