@@ -51,7 +51,11 @@ implementations:
                   >                     
                >;
             template<TSLArithmetic OtherType>
-            using transform_extension = simd<OtherType, TargetExtensionType, VectorSizeInBits>;
+            using transform_extension = std::conditional_t<
+               (VectorSizeInBits == sizeof(BaseType) * 8),
+               simd<OtherType, TargetExtensionType, sizeof(OtherType) * 8>,
+               simd<OtherType, TargetExtensionType, VectorSizeInBits> 
+            >;
             //using offset_register_type = std::array<typename TargetExtensionType::template types<offset_t, VectorSizeInBits>::register_t, sizeof(offset_t)/sizeof(BaseType)>;
 
 

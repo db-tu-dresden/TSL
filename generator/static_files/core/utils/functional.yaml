@@ -14,6 +14,28 @@ includes:
   - '<climits>'
 implementations:
   - |
+    template <class T>
+    constexpr T lowest_n_bits(std::size_t n) {
+        constexpr auto width = sizeof(T)*CHAR_BIT;
+        if (n == 0) {
+            return T{0};
+        }
+        if (n >= width) {
+            return ~T{0};
+        }
+        return (T{1} << n) - T{1};
+    }
+    template <class T, std::size_t N>
+    constexpr T lowest_n_bits_imm() {
+        constexpr auto width = sizeof(T)*CHAR_BIT;
+        if constexpr (N == 0) {
+            return T{0};
+        }
+        if constexpr (N >= width) {
+            return ~T{0};
+        }
+        return (T{1} << N) - T{1};
+    }
     #if ((__cplusplus >= 202002L) && (__has_include(<bit>)))
     #include <bit>
     namespace details {

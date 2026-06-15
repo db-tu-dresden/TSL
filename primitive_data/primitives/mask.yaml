@@ -976,24 +976,80 @@ returns:
 definitions:
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    additional_simd_template_base_type_mapping_dict: { uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], double: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], float: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint16_t: ["uint8_t", "int8_t"], int16_t: ["uint8_t", "int8_t"], uint8_t: ["uint8_t", "int8_t"], int8_t: ["uint8_t", "int8_t"] }
+    additional_simd_template_base_type_mapping_dict: 
+      uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      double: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      float: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      uint16_t: ["uint8_t", "int8_t"]
+      int16_t: ["uint8_t", "int8_t"]
+      uint8_t: ["uint8_t", "int8_t"]
+      int8_t: ["uint8_t", "int8_t"]
     lscpu_flags: ["avx512f"]
-    implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>((1<<(Vec::vector_element_count()))-1));"
+    implementation: |
+      return 
+        (mask >> position) 
+        & 
+        lowest_n_bits_imm<typename Vec::imask_type, Vec::vector_element_count()>();
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    additional_simd_template_base_type_mapping_dict: {uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], double: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], float: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint16_t: ["uint8_t", "int8_t"], int16_t: ["uint8_t", "int8_t"], uint8_t: ["uint8_t", "int8_t"], int8_t: ["uint8_t", "int8_t"]}
+    additional_simd_template_base_type_mapping_dict: 
+      uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      double: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      float: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      uint16_t: ["uint8_t", "int8_t"]
+      int16_t: ["uint8_t", "int8_t"]
+      uint8_t: ["uint8_t", "int8_t"]
+      int8_t: ["uint8_t", "int8_t"]
     lscpu_flags: ["avx"]
-    implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>((1<<(Vec::vector_element_count()))-1));"
+    implementation: |
+      return 
+        (mask >> position) 
+        & 
+        lowest_n_bits_imm<typename Vec::imask_type, Vec::vector_element_count()>();
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    additional_simd_template_base_type_mapping_dict: {uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], double: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], float: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint16_t: ["uint8_t", "int8_t"], int16_t: ["uint8_t", "int8_t"], uint8_t: ["uint8_t", "int8_t"], int8_t: ["uint8_t", "int8_t"]}
+    additional_simd_template_base_type_mapping_dict: 
+      uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      double: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      float: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      uint16_t: ["uint8_t", "int8_t"]
+      int16_t: ["uint8_t", "int8_t"]
+      uint8_t: ["uint8_t", "int8_t"]
+      int8_t: ["uint8_t", "int8_t"]
     lscpu_flags: ["sse"]
-    implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>((1<<(Vec::vector_element_count()))-1));"
+    implementation: |
+      return 
+        (mask >> position) 
+        & 
+        lowest_n_bits_imm<typename Vec::imask_type, Vec::vector_element_count()>();
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
-    additional_simd_template_base_type_mapping_dict: {uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], double: ["uint8_t", "int8_t", "uint16_t", "int16_t", uint32_t, int32_t], float: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"], uint16_t: ["uint8_t", "int8_t"], int16_t: ["uint8_t", "int8_t"], uint8_t: ["uint8_t", "int8_t"], int8_t: ["uint8_t", "int8_t"]}
+    additional_simd_template_base_type_mapping_dict: 
+      uint64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      int64_t: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      double: ["uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "float"]
+      float: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      uint32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      int32_t: ["uint8_t", "int8_t", "uint16_t", "int16_t"]
+      uint16_t: ["uint8_t", "int8_t"]
+      int16_t: ["uint8_t", "int8_t"]
+      uint8_t: ["uint8_t", "int8_t"]
+      int8_t: ["uint8_t", "int8_t"]
     lscpu_flags: []
-    implementation: "return (mask >> position) & (static_cast<typename Vec::imask_type>((1<<(Vec::vector_element_count()))-1));"
+    implementation: |
+      return 
+        (mask >> position) 
+        & 
+        lowest_n_bits_imm<typename Vec::imask_type, Vec::vector_element_count()>();
 ...
 #---
 #primitive_name: "mask_reduce"
