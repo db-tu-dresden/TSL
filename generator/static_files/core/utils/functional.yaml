@@ -33,8 +33,9 @@ implementations:
         }
         if constexpr (N >= width) {
             return ~T{0};
+        } else {
+          return (T{1} << N) - T{1};
         }
-        return (T{1} << N) - T{1};
     }
     #if ((__cplusplus >= 202002L) && (__has_include(<bit>)))
     #include <bit>
