@@ -1,31 +1,32 @@
 FROM archlinux:latest
 
-RUN pacman --noconfirm -Syu && \
-    pacman --noconfirm -S git base-devel go 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Create a non-root user for using yay safely
-RUN useradd -m auruser && \
-    echo "auruser ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN pacman -Syu --noconfirm --needed \
+        base-devel \
+        go \
+        git \
+        curl \
+        ca-certificates \
+        tar \
+        xz \
+    && pacman -Scc --noconfirm
 
-# Switch to the new user
-USER auruser
-WORKDIR /home/auruser
+# Install Intel SDE directly instead of using the AUR package.
+# The AUR package can fail when Intel updates/replaces the tarball
+# before the PKGBUILD checksum is updated.
+ARG SDE_VERSION=10.8.0-2026-03-15
+ARG SDE_URL=https://downloadmirror.intel.com/915934/sde-external-10.8.0-2026-03-15-lin.tar.xz
+ARG SDE_SHA256=50B320CD226ACEF7A491F5B321FC1BE3C3C7984F9E27A456E64894B5B0979DD3
 
-# Install yay
-RUN git clone https://aur.archlinux.org/yay-bin.git /home/auruser/yay-bin && \
-    cd /home/auruser/yay-bin && \
-    makepkg -si --noconfirm && \
-    rm -rf /home/auruser/yay-bin
+RUN curl -fL --retry 3 "${SDE_URL}" -o /tmp/intel-sde.tar.xz \
+    && echo "${SDE_SHA256}  /tmp/intel-sde.tar.xz" | sha256sum -c - \
+    && mkdir -p /opt/intel-sde \
+    && tar -xf /tmp/intel-sde.tar.xz --strip-components=1 -C /opt/intel-sde \
+    && rm -f /tmp/intel-sde.tar.xz
 
-# Set PATH (optional, but ensures yay is found)
-ENV PATH="/home/auruser/.local/bin:$PATH"
+ENV PATH="/opt/intel-sde:${PATH}"
 
-# Install an AUR package globally
-RUN yay -Sy --noconfirm intel-sde
-
-# Switch back to root
-USER root
-
-RUN rm /var/cache/pacman/pkg/*
+RUN sde64 --version || sde --version
 
 WORKDIR /tsl
