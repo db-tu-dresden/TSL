@@ -902,23 +902,23 @@ definitions:
   - target_extension: "avx512"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["avx512f"]
-    implementation: "return (mask & (1<< position));"
+    implementation: "return (mask & (static_cast<typename Vec::imask_type>(1) << position));"
   - target_extension: "avx2"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["avx"]
-    implementation: "return (mask & (1<< position));"
+    implementation: "return (mask & (static_cast<typename Vec::imask_type>(1) << position));"
   - target_extension: "sse"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["sse"]
-    implementation: "return (mask & (1<< position));"
+    implementation: "return (mask & (static_cast<typename Vec::imask_type>(1) << position));"
   - target_extension: "scalar"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: []
-    implementation: "return (mask & (1<< position));"
+    implementation: "return (mask & (static_cast<typename Vec::imask_type>(1) << position));"
   - target_extension: "neon"
     ctype: ["uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "float", "double"]
     lscpu_flags: ["neon"]
-    implementation: "return (mask & (1<< position));"
+    implementation: "return (mask & (static_cast<typename Vec::imask_type>(1) << position));"
 ...
 ---
 primitive_name: "insert_mask"
